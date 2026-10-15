@@ -16,7 +16,7 @@
   - They are mirrored as Markdown in the private repo `drvarunkrishnakv/upsc-mains-atlas-notes`
     (local copy `output/notes-pilot/`), which also holds the PIB/PRS/Supreme Court feed and
     the matcher.
-- **Checks:** docs only; no app code yet.
+- **Checks:** `quality` workflow runs `tooling/check-public.sh` (no private folders, secrets, personal paths or files over 1 MB). It passes locally, and a planted key, a `data/` file, a service-account file and a personal path were each caught. M1 extends it with format, typecheck, tests and build.
 - **PR:** https://github.com/drvarunkrishnakv/recall-atlas/pull/25 (open). The 12 graph-era PRs (#2–#24) are closed with a note; their branches are kept.
 - **Open decision for the user:** create the Firebase project (suggested ID `mains-atlas`) before M2.
 - **Next action:** M1 reader shell on a new branch, following docs/BUILD_PLAN.md.
