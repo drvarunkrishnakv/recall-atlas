@@ -8,9 +8,32 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: app
     steps:
       - uses: actions/checkout@v4
       - name: Public-repo check (no private content, secrets or personal paths)
+        working-directory: .
         run: bash tooling/check-public.sh
-      # M1 adds format, typecheck, unit tests and build here once the app exists.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - name: Format, typecheck, unit tests, build (fixture content only)
+        run: npm run check
+      - name: Browser tests at desktop, iPad and Android sizes
+        run: |
+          npx playwright install --with-deps chromium
+          npx playwright test
+        env:
+          CI: "1"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: app/test-results/
+          retention-days: 7

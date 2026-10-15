@@ -24,3 +24,6 @@ test-results/
 .firebaserc
 *-debug.log
 .DS_Store
+
+# Local agent tooling
+.claude/

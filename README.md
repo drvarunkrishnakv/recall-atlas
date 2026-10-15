@@ -14,8 +14,15 @@ Design target: Mock A · Paper (https://claude.ai/artifact/5L2N2GLe9zD74En3PBBdW
 
 ## Status
 
-M0, a clean start: there is no app code yet. See docs/BUILD_PLAN.md for the milestones
-and docs/HANDOFF.md for the current state.
+M1: the reader runs locally (`app/`). Sign-in, hosting, editing and comments come in M2–M4.
+See docs/BUILD_PLAN.md and docs/HANDOFF.md.
+
+```sh
+cd app && npm ci
+npm run dev         # synthetic fixture content
+npm run dev:notes   # your notes, from ../output/notes-pilot/content (private repo)
+npm run check && npx playwright test
+```
 
 ## Privacy
 
