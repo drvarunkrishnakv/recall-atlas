@@ -17,9 +17,8 @@
     (local copy `output/notes-pilot/`), which also holds the PIB/PRS/Supreme Court feed and
     the matcher.
 - **Checks:** docs only; no app code yet.
-- **Open decisions for the user:**
-  - Close the 12 open Codex PRs (#6–#24) from the graph era.
-  - Create the Firebase project (suggested ID `mains-atlas`) before M2.
+- **PR:** https://github.com/drvarunkrishnakv/recall-atlas/pull/25 (open). The 12 graph-era PRs (#2–#24) are closed with a note; their branches are kept.
+- **Open decision for the user:** create the Firebase project (suggested ID `mains-atlas`) before M2.
 - **Next action:** M1 reader shell on a new branch, following docs/BUILD_PLAN.md.
 
 ## Graph era (superseded)
