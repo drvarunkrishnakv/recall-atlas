@@ -1,0 +1,16 @@
+name: Quality
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Public-repo check (no private content, secrets or personal paths)
+        run: bash tooling/check-public.sh
+      # M1 adds format, typecheck, unit tests and build here once the app exists.

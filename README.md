@@ -1,48 +1,28 @@
-# Polity Atlas
+# Mains Atlas
 
-A personal UPSC Mains revision graph. Read elsewhere, then use the graph to recall
-concepts and understand justified connections. No textbook reader, tutor or game.
+A private, minimal, Notion-like app for living UPSC Mains revision notes. You read and
+edit on a Mac, an Android phone or an iPad; Claude keeps each note current from official
+sources and acts on your comments.
 
-## Product contract
+- **Navigate:** GS paper → subject → syllabus topic → note, in one click, with working back.
+- **Read:** calm reading pages with tables, charts and flowcharts. Hover a highlighted term
+  to see its concept card in place.
+- **Edit, comment, approve:** edit like Notion, comment for Claude, and approve or reject
+  Claude's proposed updates inline.
 
-GS papers → subjects → syllabus topics → PYQ microthemes → concepts. A compact
-node contains a title and one-line meaning. The inspector shows short recall
-bullets, Mains use, explained connections and source references. Reveal direct
-neighbours first; never recursively light up the entire corpus.
+Design target: Mock A · Paper (https://claude.ai/artifact/5L2N2GLe9zD74En3PBBdWU).
 
-The selected design is `docs/design/selected-canvas-option-2.png`. Generated mock
-copy is visual reference only, not study evidence.
+## Status
 
-## Run
+M0, a clean start: there is no app code yet. See docs/BUILD_PLAN.md for the milestones
+and docs/HANDOFF.md for the current state.
 
-Node.js 22.12+ and npm are required.
+## Privacy
 
-```sh
-npm ci
-npm run dev
-npm run check
-npm run test:e2e
-```
+This repository is public and holds only code and docs. Note content lives in Firestore,
+readable only by the owner's account, and in a private notes repository. See
+docs/ARCHITECTURE.md.
 
-The app is in `apps/web`; curated, versioned content is separate from components.
-The first example covers Fundamental Rights. See `docs/HANDOFF.md` for exact
-implementation and verification status, and `docs/ARCHITECTURE.md` for boundaries.
+## For agents
 
-## Public code, private corpus
-
-This repository contains code, small original study summaries and documentation.
-Books, extracted text, embeddings, Tracker data, source packets, credentials and
-machine-specific manifests are excluded from Git. A local corpus snapshot exists
-in the owner's workspace; it is not required to run the public example. Corpus
-setup details remain in ignored `docs/private/CORPUS_WORKSPACE.md`.
-
-Do not upload the workspace wholesale. Run `npm run audit:public` before publishing.
-Any future agent can work on UI from this repository; private-source generation
-requires separately provisioned corpus access. No upstream project is required.
-
-## Workflow
-
-Read `AGENTS.md` before editing. One issue and branch per task; independent worktrees
-for simultaneous agents. Pull requests, automated checks and previews precede
-merging. Main is protected on the public remote. Production release is a separate,
-explicit action. Never put provider credentials in frontend code.
+Read AGENTS.md first.
