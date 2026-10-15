@@ -1,40 +1,44 @@
-# Content conventions under discussion
+# Content conventions
 
-## Confirmed by the user
+These apply to every topic note and concept card, wherever they are stored.
 
-The node shows a title and one-line meaning. The right sidebar changes with the
-selected node and holds brief detail. Concepts/articles are the initial expansion;
-judgments, applications and current affairs extend them. No chapter reader or quiz.
-The selected restrained canvas mock is docs/design/selected-canvas-option-2.png.
+## Topic notes
 
-## Proposed for the next sample, not generated graph content
+A note covers one note unit: a group of related syllabus microthemes with their PYQs.
+It is a revision note for Mains, not a textbook chapter. Sections, in order:
 
-Judgments: recognisable short case name plus year on the node; one-line principle
-below. Sidebar retains the full case title, court/date, precise relevant holding,
-source, current status, and one suggested sentence for Mains. Distinguish decisions
-with similar party names by year and issue. A short citation plus an accurate
-principle is our recommended writing convention, not a claim about every topper.
+1. **Lead:** one or two sentences giving the current position.
+2. **State of play:** at most 8 dated rows (front · where it stands · since). Rows are
+   rewritten when things change, never appended. Displaced rows go to the note's history.
+3. **Core:** constitutional and legal framework, institutions, judgments. Changes only
+   when the law does.
+4. **How it works / comes into force:** one diagram where the topic has a process.
+5. **Dimensions:** political, social, economic, governance, international, as relevant;
+   ends with Way forward, each point naming who recommended it.
+6. **Evidence bank:** one chart where a dated series exists, plus a capped table of figures.
+7. **Prelims box:** short facts: Articles, numbers, bodies.
+8. **PYQ trail and linkages:** questions with what they demand, plus links to other notes.
+9. **Sources and open checks.**
 
-Current affairs: neutral issue/event label, with a one-line meaning. Preserve the
-original headline, date, source and event identity separately. Sidebar distinguishes
-what happened, what it illustrates, and an evidence-backed Mains-use sentence.
-Avoid hiding tentative proposals or changed statistics behind undated summaries.
+## Facts and sources
 
-Relationships: specific source and target, relationship type, explanation, source
-evidence, direct/analytical distinction, and review status. A direct legal basis,
-a judgment interpreting a provision, an illustrative application, and a tension
-between principles are different relations. Similarity produces candidates only.
-Broad theme nodes can navigate to more precise concepts without falsely presenting
-the theme itself as the legal basis of every connected example.
+- Every fact has a source link. Prefer primary sources: the Constitution, Acts, judgments,
+  PIB, PRS, commission reports. Then reputable press.
+- Anything that can change carries a date ("as of Oct 2026"). Nothing is "recent" without a date.
+- Analysis reads as analysis ("arguably", "critics argue") and needs no source.
+- A fact that can't be verified goes to Open checks, not into the text.
+- Paraphrase; quotes stay under 15 words.
 
-Visibility: store all justified connections. Proposed default hover highlights
-direct links, with deliberate deeper expansion; recursively highlighting the entire
-connected component could make a large graph unreadable. This is a UI proposal.
+## Concept cards
 
-Updates: the user suggested a weekly manually initiated import/review session.
-No automation or fixed Sunday time has been authorised/configured. Add new items;
-reuse unchanged IDs/content/vectors; review only new/changed material and affected
-relationships. Preserve version history and distinguish court overruling from a
-new event, updated statistic, amendment, or corrected source. The amount of change
-cannot be assumed to be 1-2 percent. A stale claim should leave the current revision
-view while its history remains accessible.
+- One card per case, body, committee, provision or event that notes cite.
+- A card has: a one-line summary, key facts, how to use it in Mains, and sources.
+- Notes link to cards with `[[card-id|label]]`. "Cited in" is computed from those links.
+
+## Updates
+
+- Claude's daily run turns real developments into **proposals** for the user to approve.
+  Developments are decisions, judgments, reports, notified rules and new official data,
+  not meetings, visits or speeches.
+- Only approved proposals and changes the user explicitly asks for edit a note's facts.
+- Every change bumps the note's version and keeps the previous body in history.
