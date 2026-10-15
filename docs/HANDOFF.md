@@ -1,5 +1,35 @@
 # Handoff
 
+## M1 · Reader shell — 2026-10-16
+
+- **Branch:** `claude/m1-reader-shell`, from `main` (e39a6da). Assisting tool: Claude Code.
+- **Built:** `app/`, Vite 8 + React 19 + TypeScript 6 + react-router 8, with no backend yet.
+  - Paper design (Mock A) in light and dark, with a theme toggle (system/light/dark).
+  - Sidebar tree (GS paper → subject → topic → notes), breadcrumbs and back/forward.
+  - Pages for home, paper, subject, topic, note, card and the card index.
+  - Markdown with `[[card-id|label]]` terms: a hover card on desktop, click to pin, and a bottom sheet on touch.
+  - ```` ```chart ```` blocks (line, bar and step/timeline) drawn as SVG from JSON rows.
+  - ```` ```mermaid ```` flowcharts, lazy-loaded and themed.
+  - On phones the sidebar becomes a drawer and the breadcrumb shows its last item.
+- **Content:**
+  - Read at dev/build time from `ATLAS_CONTENT_DIR`. `npm run dev:notes` points it at
+    `../output/notes-pilot/content` (the private notes repo).
+  - That content is built from the Docs mirror by the notes repo's `tools/build_content.py`, which
+    restores the six charts/flowcharts from the Docs widgets' data.
+  - Without `ATLAS_CONTENT_DIR`, the synthetic fixture in `app/fixtures/content` is used (CI and tests).
+- **Checks (all passing locally):**
+  - `npm run check`: Prettier, `tsc -b`, 6 Vitest unit tests, build.
+  - `npx playwright test`: 12 tests across desktop 1440, iPad 1024 (touch) and Android Pixel 7.
+  - `tooling/check-public.sh` on 43 files.
+  - CI `quality` runs all of these.
+- **Screenshots:** fixture only in `docs/design/m1/`. Real-note screenshots stay local
+  (`output/m1-real-shots/`) because note content is private.
+- **Known limits:**
+  - No sign-in, editing, comments or proposals yet (M2–M4).
+  - Not deployed.
+  - Chromium emulation only; no physical Android/iPad and no Safari yet.
+- **Next:** M2 needs the Firebase project from the user (suggested ID `mains-atlas`).
+
 ## M0 · Clean start — 2026-10-16
 
 - **Branch:** `claude/atlas-reader`, from `origin/main` (826d9b9). Assisting tool: Claude Code.
