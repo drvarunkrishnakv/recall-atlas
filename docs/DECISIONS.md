@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-10-17 — Study files are parented notes
+
+- The user is piloting a long "study file" beside each short note. It is a note page with a
+  `parent` field, not a new collection or route, so the editor, comments, search and save API
+  work unchanged. `locateNote(id, parent)` places it under the parent's paper › subject ›
+  topic, and the breadcrumb ends with the parent note.
+- It is not in the syllabus tree, so subject counts ignore it, and opening it does not start a
+  revision cycle (revision is tracked on the parent note).
+
 ## 2026-10-16 — Colourful, Evernote-inspired look; subject databases; quick capture
 
 - The user found the Paper look too plain and the topic tree too cluttered, and chose a

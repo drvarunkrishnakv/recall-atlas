@@ -21,6 +21,14 @@ It is a revision note for Mains, not a textbook chapter. Sections, in order:
 8. **PYQ trail and linkages:** questions with what they demand, plus links to other notes.
 9. **Sources and open checks.**
 
+## Study files (pilot)
+
+A study file is a long companion page to one note, for first reading; the note stays the
+short revision copy. It is stored as a note with the id `<note>-study` (for example
+`P06-study`) and `parent: "<note>"` in its front matter. The app shows it under its parent
+note in the breadcrumb, does not count it as a separate note, and gives it no revision
+cycle of its own. The same fact and source rules apply.
+
 ## Facts and sources
 
 - Every fact has a source, shown as a citation marker after its sentence, never inside it.

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router";
 import { COMING_SUBJECTS, PAPERS, locateNote, findTopic, subjectStyle } from "../content/syllabus";
-import { useContent } from "../content/store";
+import { usePage, useContent } from "../content/store";
 import { claudeState, refreshStudy, useStudy } from "../content/study";
 import { isDue } from "../lib/progress";
 import { Capture } from "./Capture";
@@ -117,6 +117,7 @@ function Sidebar({ onCapture, onSearch }: { onCapture: () => void; onSearch: () 
 function Crumbs() {
   const { pathname } = useLocation();
   const params = useParams();
+  const note = usePage("notes", params.noteId);
   const parts: ReactNode[] = [];
   const add = (to: string, label: string) =>
     parts.push(
@@ -131,17 +132,15 @@ function Crumbs() {
   } else if (pathname === "/revise") {
     add("/revise", "Revise today");
   } else {
-    const loc = params.noteId
-      ? locateNote(params.noteId)
-      : params.topicId
-        ? findTopic(params.paperId!, params.subjectId!, params.topicId)
-        : null;
+    const located = params.noteId ? locateNote(params.noteId, note?.parent) : null;
+    const loc = located ?? (params.topicId ? findTopic(params.paperId!, params.subjectId!, params.topicId) : null);
     const paper = loc?.paper ?? PAPERS.find((p) => p.id === params.paperId);
     const subject = loc?.subject ?? paper?.subjects.find((s) => s.id === params.subjectId);
     if (paper) add(`/${paper.id}`, paper.title.replace("GS Paper ", "GS"));
     if (paper && subject) add(`/${paper.id}/${subject.id}`, subject.title);
     if (paper && subject && loc?.topic && params.noteId)
       add(`/${paper.id}/${subject.id}`, `${loc.topic.n} ${loc.topic.title}`);
+    if (located?.parent) add(`/notes/${located.parent.id}`, located.parent.title);
   }
   return (
     <nav className="crumbs" aria-label="Breadcrumb">
