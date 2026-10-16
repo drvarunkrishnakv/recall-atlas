@@ -16,7 +16,9 @@
     `src/content/syllabus.test.ts`; e2e "a study file sits under its parent note…".
   - Recorded in DECISIONS and CONTENT_CONVENTIONS ("Study files (pilot)").
 - **Checks:** `npm run check` (Prettier, `tsc -b`, 33 unit tests, build) passed;
-  `npx playwright test`: see the PR for the final count.
+  `npx playwright test` 34 passed + 8 desktop-only skips (one earlier run had two context
+  teardown timeouts in the citation test on this slow drive; it passed alone and on the
+  clean rerun); `tooling/check-public.sh` passed.
 - **Screenshots:** fixture only, `docs/design/study-file/` (desktop, iPad, phone; light).
 - **Known issue (not from this change):** in Editing mode a long title can show only its first
   line, because the title box is sized before the heading web font loads (box 43 px tall,
