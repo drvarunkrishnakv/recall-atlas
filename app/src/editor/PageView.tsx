@@ -72,6 +72,24 @@ function useWidth() {
   );
 }
 
+/** Counts web-font loads (fonts ready, then each later batch), so text can be re-measured. */
+function useFontsLoaded() {
+  const [loads, setLoads] = useState(0);
+  useEffect(() => {
+    const fonts = document.fonts;
+    if (!fonts) return;
+    let live = true;
+    const bump = () => live && setLoads((n) => n + 1);
+    void fonts.ready.then(bump);
+    fonts.addEventListener("loadingdone", bump);
+    return () => {
+      live = false;
+      fonts.removeEventListener("loadingdone", bump);
+    };
+  }, []);
+  return loads;
+}
+
 const slug = (s: string) =>
   s
     .toLowerCase()
@@ -243,15 +261,17 @@ function PageEditor({ page: initial, inPeek }: { page: Page; inPeek: boolean }) 
   const lastSaved = useRef(JSON.stringify(initial.blocks ?? []));
   const timer = useRef(0);
   const titleRef = useRef<HTMLTextAreaElement>(null);
+  const fontsLoaded = useFontsLoaded();
 
-  // Grow the title field to fit, only when the title changes (resizing on every render
-  // shifts the page and makes the browser jump the scroll position).
+  // Grow the title field to fit, only when the title, width or fonts change (resizing on
+  // every render shifts the page and makes the browser jump the scroll position). The
+  // heading font loads after the first paint, and a long title can wrap only once it has.
   useLayoutEffect(() => {
     const el = titleRef.current;
     if (!el) return;
     el.style.height = "auto";
     el.style.height = el.scrollHeight + "px";
-  }, [meta.title, editing, width]);
+  }, [meta.title, editing, width, fontsLoaded]);
 
   const store = useMemo(() => new AtlasThreadStore(initial.collection, initial.id), [initial.collection, initial.id]);
   const threads = useStoredThreads(store);
