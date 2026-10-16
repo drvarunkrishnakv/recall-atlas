@@ -1,0 +1,265 @@
+// Local save API for the Vite dev server. Notes, cards and comment threads are files in a
+// content folder: ATLAS_CONTENT_DIR (the private notes repo's content/), or, without it, a
+// git-ignored working copy of the synthetic fixture. M3 swaps this for Firestore.
+//
+//   GET  /api/content                         all pages (block JSON, or Markdown not yet converted)
+//   GET  /api/pages/:collection/:id           one page (to pick up edits made by Claude's CLI)
+//   PUT  /api/pages/:collection/:id           save a page; refuses a stale baseVersion (409)
+//   GET  /api/comments/:collection/:id        the page's threads
+//   POST /api/comments/:collection/:id        apply one ThreadOp, return the threads
+//   GET  /api/comments                        every page's threads (inbox, subject table)
+//   GET|POST /api/progress, /api/captures     revision state and quick captures (one op per POST)
+//
+// Writes are accepted only from this machine (unless ATLAS_ALLOW_LAN_WRITES=1) and only
+// from the app's own origin.
+import {
+  copyFileSync,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
+import type { IncomingMessage, ServerResponse } from "node:http";
+import { join } from "node:path";
+import type { Connect } from "vite";
+import { parseFrontMatter } from "../src/lib/content-parse.ts";
+import { PAGE_FIELDS, pageToMarkdown, type PageDoc } from "../src/lib/blocks.ts";
+import { applyThreadOp, ThreadOpError, type StoredThread, type ThreadOp } from "../src/lib/threads.ts";
+import {
+  applyCaptureOp,
+  applyProgressOp,
+  ProgressOpError,
+  type Capture,
+  type CaptureOp,
+  type Progress,
+  type ProgressOp,
+} from "../src/lib/progress.ts";
+
+const COLLECTIONS = ["notes", "cards"] as const;
+type Collection = (typeof COLLECTIONS)[number];
+const ID = /^[A-Za-z0-9][A-Za-z0-9-]{0,80}$/;
+const SNAPSHOT_EVERY_MS = 10 * 60 * 1000;
+
+export function contentDir(appRoot: string): string {
+  if (process.env.ATLAS_CONTENT_DIR) return process.env.ATLAS_CONTENT_DIR;
+  const local = join(appRoot, ".atlas-local");
+  if (!existsSync(local)) cpSync(join(appRoot, "fixtures/content"), local, { recursive: true });
+  return local;
+}
+
+function writeAtomic(path: string, text: string) {
+  const tmp = path + ".tmp";
+  writeFileSync(tmp, text);
+  renameSync(tmp, path);
+}
+
+const readJson = <T>(path: string, fallback: T): T => {
+  try {
+    return JSON.parse(readFileSync(path, "utf8")) as T;
+  } catch {
+    return fallback;
+  }
+};
+
+/** Every page: converted ones as block JSON, the rest as Markdown for the app to convert once. */
+export function loadAll(dir: string) {
+  const out: Record<Collection, unknown[]> = { notes: [], cards: [] };
+  for (const collection of COLLECTIONS) {
+    const folder = join(dir, collection);
+    if (!existsSync(folder)) continue;
+    const files = readdirSync(folder);
+    const ids = new Set(files.filter((f) => /\.(json|md)$/.test(f)).map((f) => f.replace(/\.(json|md)$/, "")));
+    for (const id of [...ids].sort()) {
+      if (files.includes(id + ".json")) {
+        out[collection].push({ ...readJson<PageDoc>(join(folder, id + ".json"), {} as PageDoc), collection, id });
+      } else {
+        const { meta, body } = parseFrontMatter(readFileSync(join(folder, id + ".md"), "utf8"));
+        out[collection].push({ ...meta, collection, id, version: 0, markdown: body });
+      }
+    }
+  }
+  return out;
+}
+
+export function savePage(dir: string, collection: Collection, id: string, page: PageDoc, baseVersion: number) {
+  const folder = join(dir, collection);
+  mkdirSync(folder, { recursive: true });
+  const jsonPath = join(folder, id + ".json");
+  const mdPath = join(folder, id + ".md");
+  const current = existsSync(jsonPath) ? readJson<PageDoc | null>(jsonPath, null) : null;
+  const currentVersion = current?.version ?? 0;
+  if (baseVersion !== currentVersion) return { conflict: true as const, version: currentVersion };
+
+  const history = join(dir, "history", `${collection}-${id}`);
+  if (!current && existsSync(mdPath)) {
+    // First conversion from Markdown: keep the original file.
+    mkdirSync(history, { recursive: true });
+    if (!existsSync(join(history, "original.md"))) copyFileSync(mdPath, join(history, "original.md"));
+  } else if (current) {
+    // Keep a snapshot of the previous version at most every few minutes of editing.
+    mkdirSync(history, { recursive: true });
+    const snaps = readdirSync(history).filter((f) => f.endsWith(".json"));
+    const last = snaps.map((f) => Number(f.split("-")[0])).sort((a, b) => b - a)[0] ?? 0;
+    if (Date.now() - last > SNAPSHOT_EVERY_MS)
+      writeAtomic(join(history, `${Date.now()}-v${currentVersion}.json`), JSON.stringify(current, null, 1));
+  }
+
+  const meta = Object.fromEntries(Object.entries(page).filter(([k]) => !["markdown", "collection"].includes(k)));
+  const saved: PageDoc = {
+    ...meta,
+    collection,
+    id,
+    title: String(page.title ?? id),
+    version: currentVersion + 1,
+    updated: new Date().toLocaleDateString("en-CA"), // local YYYY-MM-DD
+    blocks: Array.isArray(page.blocks) ? page.blocks : [],
+  };
+  // Fixed key order keeps git diffs readable: identity first, blocks last.
+  const ordered = Object.fromEntries([
+    ...PAGE_FIELDS.filter((k) => k !== "blocks").map((k) => [k, saved[k]]),
+    ...Object.entries(saved).filter(([k]) => !PAGE_FIELDS.includes(k)),
+    ["blocks", saved.blocks],
+  ]);
+  delete (ordered as Record<string, unknown>).collection;
+  writeAtomic(jsonPath, JSON.stringify(ordered, null, 1) + "\n");
+  writeAtomic(mdPath, pageToMarkdown(saved));
+  return { conflict: false as const, version: saved.version, updated: saved.updated };
+}
+
+const threadsPath = (dir: string, collection: string, id: string) => join(dir, "comments", `${collection}-${id}.json`);
+
+export function loadThreads(dir: string, collection: string, id: string): StoredThread[] {
+  return readJson<{ threads: StoredThread[] }>(threadsPath(dir, collection, id), { threads: [] }).threads;
+}
+
+export function changeThreads(dir: string, collection: string, id: string, op: ThreadOp): StoredThread[] {
+  const next = applyThreadOp(loadThreads(dir, collection, id), op);
+  mkdirSync(join(dir, "comments"), { recursive: true });
+  writeAtomic(threadsPath(dir, collection, id), JSON.stringify({ threads: next }, null, 1) + "\n");
+  return next;
+}
+
+/** Every page's threads, keyed `notes:P06`, for the inbox and the subject table. */
+export function loadAllThreads(dir: string): Record<string, StoredThread[]> {
+  const folder = join(dir, "comments");
+  if (!existsSync(folder)) return {};
+  const out: Record<string, StoredThread[]> = {};
+  for (const f of readdirSync(folder).filter((f) => f.endsWith(".json"))) {
+    const m = /^(notes|cards)-(.+)\.json$/.exec(f);
+    if (m) out[`${m[1]}:${m[2]}`] = readJson<{ threads: StoredThread[] }>(join(folder, f), { threads: [] }).threads;
+  }
+  return out;
+}
+
+export function loadProgress(dir: string): Progress {
+  return readJson<Progress>(join(dir, "progress.json"), { notes: {} });
+}
+
+export function changeProgress(dir: string, op: ProgressOp): Progress {
+  const next = applyProgressOp(loadProgress(dir), op);
+  writeAtomic(join(dir, "progress.json"), JSON.stringify(next, null, 1) + "\n");
+  return next;
+}
+
+export function loadCaptures(dir: string): Capture[] {
+  return readJson<{ captures: Capture[] }>(join(dir, "captures.json"), { captures: [] }).captures;
+}
+
+export function changeCaptures(dir: string, op: CaptureOp): Capture[] {
+  const next = applyCaptureOp(loadCaptures(dir), op);
+  writeAtomic(join(dir, "captures.json"), JSON.stringify({ captures: next }, null, 1) + "\n");
+  return next;
+}
+
+// ---------- HTTP ----------
+
+const LOOPBACK = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
+
+function send(res: ServerResponse, status: number, body: unknown) {
+  res.statusCode = status;
+  res.setHeader("Content-Type", "application/json");
+  res.setHeader("Cache-Control", "no-store");
+  res.end(JSON.stringify(body));
+}
+
+async function readBody(req: IncomingMessage): Promise<unknown> {
+  let size = 0;
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) {
+    size += (chunk as Buffer).length;
+    if (size > 5_000_000) throw new Error("Body too large");
+    chunks.push(chunk as Buffer);
+  }
+  return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
+}
+
+function writeAllowed(req: IncomingMessage): string | null {
+  if (!LOOPBACK.has(req.socket.remoteAddress ?? "") && process.env.ATLAS_ALLOW_LAN_WRITES !== "1")
+    return "Saving is only allowed from this computer";
+  const origin = req.headers.origin;
+  if (origin && new URL(origin).host !== req.headers.host) return "Cross-origin write refused";
+  if (req.headers["x-atlas"] !== "1") return "Missing X-Atlas header";
+  return null;
+}
+
+export function contentApi(appRoot: string): Connect.NextHandleFunction {
+  return async (req, res, next) => {
+    const url = new URL(req.url ?? "/", "http://local");
+    if (!url.pathname.startsWith("/api/")) return next();
+    const dir = contentDir(appRoot);
+    const parts = url.pathname.split("/").filter(Boolean); // api, kind, collection, id
+    try {
+      if (req.method === "GET" && url.pathname === "/api/content") return send(res, 200, loadAll(dir));
+      if (req.method === "GET" && url.pathname === "/api/comments") return send(res, 200, loadAllThreads(dir));
+      if (url.pathname === "/api/progress" || url.pathname === "/api/captures") {
+        const progress = url.pathname === "/api/progress";
+        if (req.method === "GET") return send(res, 200, progress ? loadProgress(dir) : { captures: loadCaptures(dir) });
+        if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+        const refused = writeAllowed(req);
+        if (refused) return send(res, 403, { error: refused });
+        const op = await readBody(req);
+        return send(
+          res,
+          200,
+          progress ? changeProgress(dir, op as ProgressOp) : { captures: changeCaptures(dir, op as CaptureOp) },
+        );
+      }
+
+      const [, kind, collection, id] = parts;
+      if (!COLLECTIONS.includes(collection as Collection) || !ID.test(id ?? "") || parts.length !== 4)
+        return send(res, 404, { error: "Not found" });
+
+      if (kind === "comments" && req.method === "GET")
+        return send(res, 200, { threads: loadThreads(dir, collection, id) });
+      if (kind === "pages" && req.method === "GET") {
+        const path = join(dir, collection, `${id}.json`);
+        return existsSync(path)
+          ? send(res, 200, { ...readJson<PageDoc>(path, {} as PageDoc), collection, id })
+          : send(res, 404, { error: "Not found" });
+      }
+
+      if (req.method !== "GET") {
+        const refused = writeAllowed(req);
+        if (refused) return send(res, 403, { error: refused });
+      }
+      if (kind === "pages" && req.method === "PUT") {
+        const body = (await readBody(req)) as { page: PageDoc; baseVersion: number };
+        const result = savePage(dir, collection as Collection, id, body.page, Number(body.baseVersion ?? 0));
+        return result.conflict
+          ? send(res, 409, { error: "This page changed elsewhere. Reload to get the latest version.", ...result })
+          : send(res, 200, result);
+      }
+      if (kind === "comments" && req.method === "POST") {
+        const op = (await readBody(req)) as ThreadOp;
+        return send(res, 200, { threads: changeThreads(dir, collection, id, op) });
+      }
+      return send(res, 405, { error: "Method not allowed" });
+    } catch (e) {
+      if (e instanceof ThreadOpError || e instanceof ProgressOpError) return send(res, 400, { error: e.message });
+      return send(res, 500, { error: e instanceof Error ? e.message : String(e) });
+    }
+  };
+}

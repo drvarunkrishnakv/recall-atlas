@@ -1,24 +1,23 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link } from "react-router";
-import { CARDS, CITED_IN, NOTES } from "../content/store";
+import { getPage, KIND_LABEL, linksTo } from "../content/store";
+import { openPeek } from "./peek";
 
-const KIND: Record<string, string> = { case: "Case", body: "Body", provision: "Provision", event: "Event" };
-const isTouch = () => window.matchMedia("(hover: none), (pointer: coarse)").matches || window.innerWidth < 600;
+const canHover = () => window.matchMedia("(hover: hover) and (pointer: fine)").matches && window.innerWidth >= 600;
 
 /**
- * A concept-card term. Desktop: hover shows the card in place, click pins it.
- * Touch: tap opens the card as a bottom sheet. Escape or a click outside closes it.
+ * A link to a concept card or another note, shown as a highlighted term. Click opens it in
+ * the side peek. On desktop, hovering a card term previews its summary in place.
  */
-export function Term({ cardId, children }: { cardId: string; children: ReactNode }) {
-  const card = CARDS.get(cardId);
-  const [open, setOpen] = useState<null | "hover" | "pinned" | "sheet">(null);
-  const btn = useRef<HTMLButtonElement>(null);
+export function TermChip({ kind, id, label }: { kind: "card" | "note"; id: string; label: string }) {
+  const [hover, setHover] = useState(false);
+  const btn = useRef<HTMLSpanElement>(null);
   const pop = useRef<HTMLDivElement>(null);
-  const timer = useRef<number>(0);
+  const timer = useRef(0);
+  const page = getPage(kind === "card" ? "cards" : "notes", id);
 
   useLayoutEffect(() => {
-    if (!open || open === "sheet" || !btn.current || !pop.current) return;
+    if (!hover || !btn.current || !pop.current) return;
     const r = btn.current.getBoundingClientRect();
     const p = pop.current;
     const left = Math.min(
@@ -30,85 +29,65 @@ export function Term({ cardId, children }: { cardId: string; children: ReactNode
       top = r.top + window.scrollY - p.offsetHeight - 8;
     p.style.left = `${left}px`;
     p.style.top = `${top}px`;
-  }, [open]);
+  }, [hover]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(null);
-    const onDown = (e: PointerEvent) => {
-      const t = e.target as Node;
-      if (!pop.current?.contains(t) && !btn.current?.contains(t)) setOpen(null);
-    };
-    document.addEventListener("keydown", onKey);
-    document.addEventListener("pointerdown", onDown);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.removeEventListener("pointerdown", onDown);
-    };
-  }, [open]);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
 
-  if (!card) return <>{children}</>;
-  const cited = (CITED_IN.get(cardId) ?? []).map((id) => NOTES.get(id)).filter(Boolean);
-
-  const body = (
-    <div
-      ref={pop}
-      className={`pop${open === "sheet" ? " sheet" : ""}`}
-      role="dialog"
-      aria-label={card.title}
-      onMouseEnter={() => window.clearTimeout(timer.current)}
-      onMouseLeave={() => open === "hover" && setOpen(null)}
-    >
-      <div className="kind">{KIND[card.kind] ?? card.kind}</div>
-      <h4>{card.title}</h4>
-      <p>{card.summary}</p>
-      {cited.length > 0 && (
-        <div className="cited">
-          Cited in:{" "}
-          {cited.map((n, i) => (
-            <span key={n!.id}>
-              {i > 0 && ", "}
-              <Link to={`/notes/${n!.id}`} onClick={() => setOpen(null)}>
-                {n!.title}
-              </Link>
-            </span>
-          ))}
-        </div>
-      )}
-      <Link className="more" to={`/cards/${card.id}`} onClick={() => setOpen(null)}>
-        Open full card →
-      </Link>
-    </div>
-  );
+  const leave = () => {
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setHover(false), 200);
+  };
+  const cited = kind === "card" ? linksTo("card", id).filter((l) => l.collection === "notes") : [];
 
   return (
     <>
-      <button
+      <span
         ref={btn}
-        type="button"
-        className="term"
-        aria-expanded={open ? "true" : "false"}
-        aria-haspopup="dialog"
+        role="link"
+        tabIndex={0}
+        className={`term${page ? "" : " missing"}${kind === "note" ? " note-link" : ""}`}
+        data-term={`${kind}:${id}`}
+        title={page ? undefined : "This page doesn't exist yet"}
         onMouseEnter={() => {
-          if (isTouch() || open) return;
+          if (kind !== "card" || !page || !canHover()) return;
           window.clearTimeout(timer.current);
-          timer.current = window.setTimeout(() => setOpen("hover"), 150);
+          timer.current = window.setTimeout(() => setHover(true), 250);
         }}
-        onMouseLeave={() => {
+        onMouseLeave={leave}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
           window.clearTimeout(timer.current);
-          if (open === "hover")
-            timer.current = window.setTimeout(() => setOpen((o) => (o === "hover" ? null : o)), 200);
+          setHover(false);
+          openPeek(kind, id);
         }}
-        onClick={() => setOpen((o) => (o === "pinned" || o === "sheet" ? null : isTouch() ? "sheet" : "pinned"))}
+        onKeyDown={(e) => e.key === "Enter" && openPeek(kind, id)}
       >
-        {children}
-      </button>
-      {open &&
+        {label || page?.title || id}
+      </span>
+      {hover &&
+        page &&
         createPortal(
-          <>
-            {open === "sheet" && <div className="sheet-scrim" onClick={() => setOpen(null)} />}
-            {body}
-          </>,
+          <div
+            ref={pop}
+            className="pop"
+            role="tooltip"
+            onMouseEnter={() => window.clearTimeout(timer.current)}
+            onMouseLeave={leave}
+          >
+            <div className="kind">{KIND_LABEL[String(page.kind)] ?? "Concept card"}</div>
+            <h4>{page.title}</h4>
+            {page.summary ? <p>{String(page.summary)}</p> : null}
+            {cited.length > 0 && (
+              <div className="cited">
+                Cited in: {cited.map((c) => getPage("notes", c.id)?.title ?? c.id).join(", ")}
+              </div>
+            )}
+            <button type="button" className="more" onClick={() => (setHover(false), openPeek(kind, id))}>
+              Open card →
+            </button>
+          </div>,
           document.body,
         )}
     </>

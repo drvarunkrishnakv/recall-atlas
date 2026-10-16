@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local working copy of the fixture content (edited by the dev server)
+.atlas-local/

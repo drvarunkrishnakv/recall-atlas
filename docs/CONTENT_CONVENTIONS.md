@@ -33,7 +33,8 @@ It is a revision note for Mains, not a textbook chapter. Sections, in order:
 
 - One card per case, body, committee, provision or event that notes cite.
 - A card has: a one-line summary, key facts, how to use it in Mains, and sources.
-- Notes link to cards with `[[card-id|label]]`. "Cited in" is computed from those links.
+- Notes link to cards with term chips (type @ in the editor; `[[card-id|label]]` in the
+  Markdown copy). "Cited in" is computed from those links.
 
 ## Updates
 
@@ -41,4 +42,7 @@ It is a revision note for Mains, not a textbook chapter. Sections, in order:
   Developments are decisions, judgments, reports, notified rules and new official data,
   not meetings, visits or speeches.
 - Only approved proposals and changes the user explicitly asks for edit a note's facts.
+- Comments: a **comment** is resolved by the user; a **sticky note** is permanent context
+  beside the text; an **Ask Claude** thread gets Claude's reply in the thread. Claude
+  replies, never resolves the user's threads, and edits a fact only when the thread asks.
 - Every change bumps the note's version and keeps the previous body in history.

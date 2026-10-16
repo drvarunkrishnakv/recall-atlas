@@ -25,6 +25,34 @@ export interface Paper {
   comingSubjects: string[];
 }
 
+/** A subject's colours: `color` for fills (white text on it), `tint` and `ink` for soft chips. */
+export interface SubjectStyle {
+  color: string;
+  tint: string;
+  ink: string;
+  shape: string;
+}
+const STYLES: Record<string, SubjectStyle> = {
+  polity: { color: "#5b5bd6", tint: "#e6e6fb", ink: "#34348f", shape: "#7c7cf0" },
+  governance: { color: "#138a7e", tint: "#d7f1ee", ink: "#0d5f57", shape: "#23a597" },
+  "social-justice": { color: "#c2477f", tint: "#fbe3ee", ink: "#86224f", shape: "#d9699b" },
+  "international-relations": { color: "#d9542f", tint: "#fbe3db", ink: "#93361b", shape: "#ee7a59" },
+  economy: { color: "#c98408", tint: "#fcefd3", ink: "#7a4d00", shape: "#e7a52c" },
+  history: { color: "#8b4fb3", tint: "#f0e3f8", ink: "#5e2c80", shape: "#a86fd0" },
+};
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+export const subjectStyle = (idOrTitle: string): SubjectStyle =>
+  STYLES[slug(idOrTitle)] ?? { color: "#5f6068", tint: "#ebe9e1", ink: "#33343b", shape: "#7a7b83" };
+
+/** Subjects not planned yet, for the home page and sidebar. */
+export const COMING_SUBJECTS: { title: string; paper: string }[] = [
+  { title: "Governance", paper: "GS2" },
+  { title: "Social Justice", paper: "GS2" },
+  { title: "International Relations", paper: "GS2" },
+  { title: "Economy", paper: "GS3" },
+  { title: "History", paper: "GS1" },
+];
+
 const polity: Topic[] = [
   {
     id: "t01",

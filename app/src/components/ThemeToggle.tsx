@@ -47,3 +47,25 @@ export function ThemeToggle() {
     </button>
   );
 }
+
+function resolvedTheme(): "light" | "dark" {
+  const set = document.documentElement.getAttribute("data-theme");
+  if (set === "light" || set === "dark") return set;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+/** The theme actually showing ("system" resolved), for components that need a fixed value. */
+export function useResolvedTheme(): "light" | "dark" {
+  const [theme, setTheme] = useState(resolvedTheme);
+  useEffect(() => {
+    const update = () => setTheme(resolvedTheme());
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    window.addEventListener("atlas-theme", update);
+    mq.addEventListener("change", update);
+    return () => {
+      window.removeEventListener("atlas-theme", update);
+      mq.removeEventListener("change", update);
+    };
+  }, []);
+  return theme;
+}
