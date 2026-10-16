@@ -1,5 +1,41 @@
 # Handoff
 
+## M2 · Workspace: editor, side peek, comments — 2026-10-16
+
+- **Branch:** `claude/m2-workspace`, from `main` (c7a145e). Assisting tool: Claude Code.
+- **Built:**
+  - BlockNote 0.56 (Mantine UI) editor restyled as Paper; Reading/Editing switch per
+    device (touch devices default to Reading); autosave with version checks (409 → reload banner).
+  - Atlas blocks: `chart`, `flowchart`, `callout` (note/prelims/warning), inline `term` chips.
+    "/" menu adds them; "@" links a card or note, or creates a new card.
+  - Side peek (`?peek=card:id`), hover preview on desktop, backlinks ("Cited in" / "Linked from").
+  - Comments via BlockNote's comment marks + `AtlasThreadStore`: comment / sticky / Ask
+    Claude; margin cards aligned to text at ≥1280 px, panel/sheet below; resolve, reopen,
+    pin/unpin, delete; anchors (block id + quote) restore highlights and detect deleted text.
+  - ⌘K search, sidebar outline for the open note, "Start this note" from a topic page.
+  - Local save API (`app/server/content-api.ts`): loopback-only writes, origin + `X-Atlas`
+    header checks, id validation, atomic writes, snapshots every 10 min in `content/history/`.
+  - CLI `app/cli/atlas.ts` (`npm run atlas -- …`): pages, show [--ids], comments
+    [--waiting|--all], reply (as Claude), replace (one exact phrase, versioned).
+- **Redesign (same branch):** colourful Evernote-inspired theme (mock https://claude.ai/artifact/V5VbeLQ3hFE9LAgjf8k5Pe);
+  short sidebar with Capture; home dashboard; subject database with Table/Board/Due views,
+  filters and inline status/confidence; Revise today; Claude inbox; note page gets a
+  revision bar (Mark revised, confidence, next due) and a Contents menu (replaces the
+  sidebar outline). New files: `content/progress.json`, `content/captures.json`.
+  New CLI commands: `captures`, `file-capture`, `progress`.
+- **Content:** the three real notes and 11 cards were converted in the private notes repo
+  (`output/notes-pilot/content`): JSON added, `.md` rewritten as the export, originals in
+  `content/history/*/original.md`. Word-for-word identical apart from numbered-list markers;
+  all terms, charts, flowcharts, tables and links kept. **Not committed in the notes repo yet.**
+  Its `tools/build_content.py` would overwrite the `.md` exports; the JSON is now the source.
+- **Checks (all passing locally):** `npm run check` (Prettier, `tsc -b`, 26 Vitest tests, build);
+  `npx playwright test` 28 passed + 8 desktop-only skips across desktop 1440, iPad 1024 and
+  Pixel 7; `tooling/check-public.sh`.
+- **Screenshots:** fixture only, `docs/design/m2/` (home, subject, board, note, capture; three sizes; light/dark).
+- **Known limits:** Mac only until Firebase; the main bundle is ~1.3 MB (BlockNote + Mantine),
+  to lazy-load in M3; no history/restore UI yet; Chromium only in tests.
+- **Next:** user review on the Mac; then M3 (Firebase) needs the Firebase project from the user.
+
 ## M1 · Reader shell — 2026-10-16
 
 - **Branch:** `claude/m1-reader-shell`, from `main` (e39a6da). Assisting tool: Claude Code.

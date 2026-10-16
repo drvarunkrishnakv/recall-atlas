@@ -1,17 +1,23 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router";
-import "@fontsource/ibm-plex-sans/400.css";
-import "@fontsource/ibm-plex-sans/500.css";
-import "@fontsource/ibm-plex-sans/600.css";
-import "@fontsource/ibm-plex-serif/500.css";
-import "@fontsource/ibm-plex-serif/600.css";
+import "@fontsource/figtree/400.css";
+import "@fontsource/figtree/500.css";
+import "@fontsource/figtree/600.css";
+import "@fontsource/figtree/700.css";
+import "@fontsource/bricolage-grotesque/600.css";
+import "@fontsource/bricolage-grotesque/700.css";
 import "./index.css";
 import { Layout } from "./components/Layout";
 import { applySavedTheme } from "./components/ThemeToggle";
-import { HomePage, PaperPage, SubjectPage, TopicPage, NotePage, CardPage, CardsPage, NotFound } from "./pages";
+import { loadContent } from "./content/store";
+import { refreshStudy } from "./content/study";
+import { PaperPage, TopicPage, NotePage, CardPage, CardsPage, NotFound } from "./pages";
+import { HomePage, InboxPage, RevisePage, SubjectPage } from "./dashboard";
 
 applySavedTheme();
+void loadContent();
+void refreshStudy();
 
 const router = createBrowserRouter([
   {
@@ -19,6 +25,8 @@ const router = createBrowserRouter([
     children: [
       { path: "/", element: <HomePage /> },
       { path: "/notes/:noteId", element: <NotePage /> },
+      { path: "/inbox", element: <InboxPage /> },
+      { path: "/revise", element: <RevisePage /> },
       { path: "/cards", element: <CardsPage /> },
       { path: "/cards/:cardId", element: <CardPage /> },
       { path: "/:paperId", element: <PaperPage /> },

@@ -6,23 +6,28 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",
     "dev:notes": "ATLAS_CONTENT_DIR=../output/notes-pilot/content vite --host 0.0.0.0 --port 5173",
+    "dev:fixture": "vite --port 5175 --strictPort",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "test": "vitest run",
     "e2e": "playwright test",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"e2e/**/*.ts\" \"*.config.ts\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"e2e/**/*.ts\" \"*.config.ts\"",
-    "check": "npm run format:check && npm run typecheck && npm run test && npm run build"
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"server/**/*.ts\" \"cli/**/*.ts\" \"e2e/**/*.ts\" \"*.config.ts\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"server/**/*.ts\" \"cli/**/*.ts\" \"e2e/**/*.ts\" \"*.config.ts\"",
+    "check": "npm run format:check && npm run typecheck && npm run test && npm run build",
+    "atlas": "node cli/atlas.ts"
   },
   "dependencies": {
-    "@fontsource/ibm-plex-sans": "^5.3.0",
-    "@fontsource/ibm-plex-serif": "^5.3.0",
+    "@blocknote/core": "^0.56.0",
+    "@blocknote/mantine": "^0.56.0",
+    "@blocknote/react": "^0.56.0",
+    "@fontsource/bricolage-grotesque": "^5.3.0",
+    "@fontsource/figtree": "^5.3.0",
+    "@mantine/core": "^8.3.18",
+    "@mantine/hooks": "^8.3.18",
     "mermaid": "^12.2.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-markdown": "^10.1.0",
-    "react-router": "^8.4.0",
-    "remark-gfm": "^4.0.1"
+    "react-router": "^8.4.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",

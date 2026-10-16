@@ -1,69 +1,115 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router";
-import { COMING_PAPERS, PAPERS, locateNote, findTopic } from "../content/syllabus";
-import { NOTES } from "../content/store";
+import { COMING_SUBJECTS, PAPERS, locateNote, findTopic, subjectStyle } from "../content/syllabus";
+import { useContent } from "../content/store";
+import { claudeState, refreshStudy, useStudy } from "../content/study";
+import { isDue } from "../lib/progress";
+import { Capture } from "./Capture";
 import { Icon } from "./Icon";
+import { Peek, usePeekHost } from "./SidePeek";
+import { Search } from "./Search";
 import { ThemeToggle } from "./ThemeToggle";
 
-function Tree({ openTopic }: { openTopic: string | null }) {
+/** Counts for the sidebar badges. */
+export function useBadges() {
+  const { pages } = useContent();
+  const { progress, threads, captures } = useStudy();
+  const due = [...pages.values()].filter((p) => p.collection === "notes" && isDue(progress.notes[p.id])).length;
+  const replied = Object.values(threads).reduce((n, t) => n + claudeState(t).replied, 0);
+  const filed = captures.filter((c) => c.status === "done").length;
+  return { due, inbox: replied + filed };
+}
+
+function Sidebar({ onCapture, onSearch }: { onCapture: () => void; onSearch: () => void }) {
+  const { pages } = useContent();
+  const { due, inbox } = useBadges();
+  const [menu, setMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!menu) return;
+    const close = (e: PointerEvent) => !menuRef.current?.contains(e.target as Node) && setMenu(false);
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, [menu]);
+
   return (
-    <ul className="tree">
-      {PAPERS.map((paper) => (
-        <li key={paper.id}>
-          <NavLink to={`/${paper.id}`} end>
-            {paper.title}
-          </NavLink>
-          <ul>
-            {paper.subjects.map((subject) => (
-              <li key={subject.id}>
-                <NavLink to={`/${paper.id}/${subject.id}`} end>
-                  {subject.title}
-                </NavLink>
-                <ul>
-                  {subject.topics.map((topic) => (
-                    <li key={topic.id}>
-                      <NavLink to={`/${paper.id}/${subject.id}/${topic.id}`}>
-                        <span className="num">{topic.n}</span>
-                        <span>{topic.title}</span>
-                      </NavLink>
-                      {openTopic === topic.id && (
-                        <ul>
-                          {topic.notes.map((n) =>
-                            NOTES.has(n.id) ? (
-                              <li key={n.id}>
-                                <NavLink to={`/notes/${n.id}`}>{n.title}</NavLink>
-                              </li>
-                            ) : (
-                              <li key={n.id}>
-                                <span className="planned">{n.title}</span>
-                              </li>
-                            ),
-                          )}
-                        </ul>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-            {paper.comingSubjects.map((s) => (
-              <li key={s}>
-                <span className="soon">{s}</span>
-              </li>
-            ))}
-          </ul>
-        </li>
-      ))}
-      {COMING_PAPERS.map((p) => (
-        <li key={p}>
-          <span className="soon">{p}</span>
-        </li>
-      ))}
-      <li className="tree-label">Reference</li>
-      <li>
-        <NavLink to="/cards">Concept cards</NavLink>
-      </li>
-    </ul>
+    <>
+      <button type="button" className="search-btn" onClick={onSearch}>
+        <Icon name="search" />
+        <span>Search</span>
+        <kbd>⌘K</kbd>
+      </button>
+      <div className="create-row" ref={menuRef}>
+        <button type="button" className="capture-btn" onClick={onCapture}>
+          <Icon name="plus" />
+          Capture
+        </button>
+        <button
+          type="button"
+          className="more-btn"
+          aria-label="More ways to add"
+          aria-expanded={menu}
+          onClick={() => setMenu((v) => !v)}
+        >
+          ···
+        </button>
+        {menu && (
+          <div className="create-menu" role="menu">
+            <Link role="menuitem" to="/gs2/polity" onClick={() => setMenu(false)}>
+              <b>Microtheme note</b>
+              <span>Start a planned note from its subject</span>
+            </Link>
+            <Link role="menuitem" to="/cards?new=1" onClick={() => setMenu(false)}>
+              <b>Concept card</b>
+              <span>A case, body, provision or event</span>
+            </Link>
+          </div>
+        )}
+      </div>
+      <nav className="side-nav" aria-label="Atlas">
+        <NavLink to="/" end>
+          <Icon name="home" />
+          Home
+        </NavLink>
+        <NavLink to="/inbox">
+          <Icon name="inbox" />
+          Claude inbox
+          {inbox > 0 && <span className="nav-badge claude">{inbox}</span>}
+        </NavLink>
+        <NavLink to="/revise">
+          <Icon name="revise" />
+          Revise today
+          {due > 0 && <span className="nav-badge go">{due}</span>}
+        </NavLink>
+        <NavLink to="/cards">
+          <Icon name="cards" />
+          Concept cards
+        </NavLink>
+        <div className="side-label">Subjects</div>
+        {PAPERS.flatMap((paper) =>
+          paper.subjects.map((s) => {
+            const planned = s.topics.flatMap((t) => t.notes);
+            const written = planned.filter((n) => pages.has(`notes:${n.id}`)).length;
+            return (
+              <NavLink key={s.id} to={`/${paper.id}/${s.id}`}>
+                <span className="swatch" style={{ background: subjectStyle(s.id).color }} />
+                {s.title}
+                <span className="count">
+                  {written}/{planned.length}
+                </span>
+              </NavLink>
+            );
+          }),
+        )}
+        {COMING_SUBJECTS.map((s) => (
+          <span key={s.title} className="soon">
+            <span className="swatch" style={{ background: subjectStyle(s.title).color }} />
+            {s.title}
+            <span className="count">soon</span>
+          </span>
+        ))}
+      </nav>
+    </>
   );
 }
 
@@ -80,6 +126,10 @@ function Crumbs() {
     );
   if (pathname.startsWith("/cards")) {
     add("/cards", "Concept cards");
+  } else if (pathname === "/inbox") {
+    add("/inbox", "Claude inbox");
+  } else if (pathname === "/revise") {
+    add("/revise", "Revise today");
   } else {
     const loc = params.noteId
       ? locateNote(params.noteId)
@@ -90,8 +140,8 @@ function Crumbs() {
     const subject = loc?.subject ?? paper?.subjects.find((s) => s.id === params.subjectId);
     if (paper) add(`/${paper.id}`, paper.title.replace("GS Paper ", "GS"));
     if (paper && subject) add(`/${paper.id}/${subject.id}`, subject.title);
-    if (paper && subject && loc?.topic)
-      add(`/${paper.id}/${subject.id}/${loc.topic.id}`, `${loc.topic.n} ${loc.topic.title}`);
+    if (paper && subject && loc?.topic && params.noteId)
+      add(`/${paper.id}/${subject.id}`, `${loc.topic.n} ${loc.topic.title}`);
   }
   return (
     <nav className="crumbs" aria-label="Breadcrumb">
@@ -108,8 +158,11 @@ function Crumbs() {
 export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const params = useParams();
   const [navOpen, setNavOpen] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [capturing, setCapturing] = useState(false);
+  const { status, error } = useContent();
+  usePeekHost();
   const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
 
   useEffect(() => {
@@ -117,13 +170,32 @@ export function Layout() {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
-  const openTopic = params.noteId ? (locateNote(params.noteId)?.topic.id ?? null) : (params.topicId ?? null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearching(true);
+      }
+    };
+    const onFocus = () => void refreshStudy();
+    document.addEventListener("keydown", onKey);
+    window.addEventListener("focus", onFocus);
+    const poll = window.setInterval(() => document.visibilityState === "visible" && onFocus(), 60_000);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      window.removeEventListener("focus", onFocus);
+      window.clearInterval(poll);
+    };
+  }, []);
 
   return (
     <div className={`frame${navOpen ? " nav-open" : ""}`}>
-      <aside className="nav" aria-label="Atlas">
+      <aside className="nav" aria-label="Sidebar">
         <div className="nav-head">
           <Link className="brand" to="/">
+            <span className="logo" aria-hidden="true">
+              <Icon name="atlas" />
+            </span>
             Mains Atlas
           </Link>
           <button
@@ -135,7 +207,10 @@ export function Layout() {
             <Icon name="close" />
           </button>
         </div>
-        <Tree openTopic={openTopic} />
+        <Sidebar
+          onCapture={() => (setNavOpen(false), setCapturing(true))}
+          onSearch={() => (setNavOpen(false), setSearching(true))}
+        />
       </aside>
       <div className="scrim" onClick={() => setNavOpen(false)} />
       <main className="main">
@@ -156,10 +231,26 @@ export function Layout() {
           </button>
           <Crumbs />
           <div className="spacer" />
+          <button type="button" className="iconbtn" aria-label="Search" onClick={() => setSearching(true)}>
+            <Icon name="search" />
+          </button>
           <ThemeToggle />
         </div>
-        <Outlet />
+        {status === "ready" ? (
+          <Outlet />
+        ) : (
+          <article className="page">
+            <p className="loading">{status === "error" ? `Couldn't load the notes: ${error}` : "Loading notes…"}</p>
+          </article>
+        )}
       </main>
+      <button type="button" className="capture-fab" onClick={() => setCapturing(true)}>
+        <Icon name="plus" />
+        Capture
+      </button>
+      {status === "ready" && <Peek />}
+      <Search open={searching} onClose={() => setSearching(false)} />
+      {capturing && <Capture onClose={() => setCapturing(false)} />}
     </div>
   );
 }

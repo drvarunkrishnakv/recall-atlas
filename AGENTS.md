@@ -6,7 +6,8 @@ docs/CONTENT_CONVENTIONS.md before working.
 ## Product
 
 - Build the Mains Atlas reader described in docs/ARCHITECTURE.md: a private, minimal,
-  Notion-like app for living Mains revision notes. Design target: Mock A · Paper.
+  Notion-like app for living Mains revision notes. Design target: the colourful
+  mock (Evernote-inspired), https://claude.ai/artifact/V5VbeLQ3hFE9LAgjf8k5Pe.
 - Keep it minimal. Add a feature only when a milestone in docs/BUILD_PLAN.md calls for it
   or the user asks. No gamification, no chat box, no features "because Notion has them".
 - Everything is one click: no confirmation hops, no new tabs for in-app links, and back
