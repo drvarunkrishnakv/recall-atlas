@@ -240,6 +240,18 @@ test("a planned note can be started from its topic", async ({ page }) => {
   await expect(page.locator(".main").getByText("State of play")).toBeVisible();
 });
 
+test("sources show as numbered markers with a sources list", async ({ page }) => {
+  await page.goto("/notes/P06");
+  const main = page.locator("main");
+  const marker = main.getByRole("button", { name: "Source: Sample source" });
+  await expect(marker).toBeVisible();
+  await expect(main.locator(".bn-editor")).not.toContainText("Sample source");
+  await marker.click();
+  await expect(page.locator(".cite-pop")).toContainText("example.org");
+  await main.getByText(/^Sources \(\d+\)$/).click();
+  await expect(main.locator(".sources li")).toHaveCount(2);
+});
+
 test("unknown pages say so", async ({ page }) => {
   await page.goto("/notes/NOPE");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Page not found");

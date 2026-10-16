@@ -1,7 +1,8 @@
 # Agent working agreement
 
-Read README.md, docs/HANDOFF.md, docs/ARCHITECTURE.md, docs/BUILD_PLAN.md and
-docs/CONTENT_CONVENTIONS.md before working.
+Read README.md, docs/HANDOFF.md, docs/ARCHITECTURE.md, docs/BUILD_PLAN.md,
+docs/CONTENT_CONVENTIONS.md and docs/STYLE_GUIDE.md before working. Every note, card,
+comment reply and proposal follows the style guide.
 
 ## Product
 

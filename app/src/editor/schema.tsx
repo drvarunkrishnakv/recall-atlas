@@ -6,6 +6,7 @@ import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs } from "@
 import { createReactBlockSpec, createReactInlineContentSpec } from "@blocknote/react";
 import { Chart } from "../components/Chart";
 import { TermChip } from "../components/Term";
+import { CiteChip } from "../components/Cite";
 
 const Mermaid = lazy(() => import("../components/Mermaid"));
 
@@ -142,13 +143,18 @@ const termInline = createReactInlineContentSpec(
   },
 );
 
+const citeInline = createReactInlineContentSpec(
+  { type: "cite", propSchema: { label: { default: "" }, url: { default: "" } }, content: "none" },
+  { render: ({ inlineContent }) => <CiteChip label={inlineContent.props.label} url={inlineContent.props.url} /> },
+);
+
 // Media blocks need file hosting, which comes with Firebase; leave them out until then.
 const { audio: _a, video: _v, file: _f, image: _i, ...blocks } = defaultBlockSpecs;
 void [_a, _v, _f, _i];
 
 export const schema = BlockNoteSchema.create({
   blockSpecs: { ...blocks, chart: chartBlock(), flowchart: flowchartBlock(), callout: calloutBlock() },
-  inlineContentSpecs: { ...defaultInlineContentSpecs, term: termInline },
+  inlineContentSpecs: { ...defaultInlineContentSpecs, term: termInline, cite: citeInline },
 });
 
 export type AtlasEditor = typeof schema.BlockNoteEditor;

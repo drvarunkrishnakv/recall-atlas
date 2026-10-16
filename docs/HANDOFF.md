@@ -1,5 +1,24 @@
 # Handoff
 
+## Prose style and citation markers — 2026-10-16
+
+- **Branch:** `claude/prose-and-citations`, from `main` (7fcc48c). Assisting tool: Claude Code.
+- **Style guide:** `docs/STYLE_GUIDE.md` (teaching prose, approved by the user). Linked from
+  AGENTS, CONTENT_CONVENTIONS and the notes repo's NOTE_TEMPLATE (which keeps the user's
+  approved before/after pair).
+- **Citations:** new inline `cite` type; `citeLinks()` moves "(Source)" links out of sentences
+  into markers (on Markdown conversion and via `atlas cite-sources <ref>`). Markers are
+  numbered by CSS counter; a collapsible Sources list sits at the foot of each page; "/Cite a
+  source" inserts one. The Markdown copy still writes ` ([Label](url))`.
+- **Notes repo (not committed):** P06, P10, P18 reworded to the guide, wording only, checked
+  by a script (every URL with its label, card term, note link, number, quote, heading, front
+  matter and chart/flowchart unchanged; the only differences are the removed "8 points"
+  meta lines, one split bullet, "3 months" → "Three months", and one source label that now
+  includes its page numbers). Before/after files and the rewriters' logs are in
+  `notes/rewrite/`. Cards' inline sources moved into markers (no rewording).
+- **Checks:** `npm run check` (30 unit tests, build) and `npx playwright test` (31 passed, 8 desktop-only skips; a warm-up step now loads the app before tests so cold starts no longer time out).
+- **Later (user's idea):** a bank of answer intros and conclusions per microtheme.
+
 ## M2 · Workspace: editor, side peek, comments — 2026-10-16
 
 - **Branch:** `claude/m2-workspace`, from `main` (c7a145e). Assisting tool: Claude Code.

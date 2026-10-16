@@ -58,6 +58,7 @@ export function inlineText(items: InlineItem[] | string | undefined): string {
       if (i.type === "text") return i.text ?? "";
       if (i.type === "link") return inlineText(i.content);
       if (i.type === "term") return String(i.props?.label ?? "");
+      if (i.type === "cite") return "";
       return inlineText(i.content);
     })
     .join("");
@@ -106,6 +107,86 @@ function eachInline(blocks: Block[], fn: (i: InlineItem) => void) {
   walkBlocks(blocks, (b) => {
     if (isTable(b.content)) b.content.rows.forEach((r) => r.cells.forEach((c) => visit(cellItems(c))));
     else visit(inlineOf(b.content));
+  });
+}
+
+// ---------- citations ----------
+
+/** Every citation marker in document order (the app numbers them the same way). */
+export function pageCites(blocks: Block[]): { label: string; url: string }[] {
+  const out: { label: string; url: string }[] = [];
+  eachInline(blocks, (i) => {
+    if (i.type === "cite") out.push({ label: String(i.props?.label ?? ""), url: String(i.props?.url ?? "") });
+  });
+  return out;
+}
+
+const SEP = /^\s*(,|;|and)\s*$/;
+
+/**
+ * Turns source links written inside the sentence, "text ([PRS](url), [Gazette](url)) more",
+ * into citation markers after the text: "text[1][2] more". Other links are left alone.
+ */
+export function citeInline(input: InlineItem[]): InlineItem[] {
+  const items = [...input];
+  const out: InlineItem[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const t = items[i];
+    if (t.type === "text" && (t.text ?? "").endsWith("(") && items[i + 1]?.type === "link") {
+      const cites: InlineItem[] = [];
+      let j = i + 1;
+      let rest: string | null = null;
+      while (j < items.length && items[j].type === "link") {
+        const link = items[j];
+        let label = inlineText(link.content).trim();
+        const next = items[j + 1];
+        const nextText = next?.type === "text" ? (next.text ?? "") : "";
+        // A page reference after the link belongs to the citation: "([16th FC], p.169–173)".
+        const pages = /^,\s*(pp?\.\s*[\d–-]+)\)/.exec(nextText);
+        if (pages) label = `${label}, ${pages[1]}`;
+        cites.push({ type: "cite", props: { label, url: link.href ?? "" } });
+        if (pages || nextText.startsWith(")")) {
+          rest = nextText.slice(pages ? pages[0].length : 1);
+          j++;
+          break;
+        }
+        if (SEP.test(nextText) && items[j + 2]?.type === "link") {
+          j += 2;
+          continue;
+        }
+        break;
+      }
+      if (rest !== null) {
+        const before = (t.text ?? "").slice(0, -1).replace(/\s+$/, "");
+        if (before) out.push({ ...t, text: before });
+        out.push(...cites);
+        // The text after ")" may open the next citation, so process it again.
+        if (rest) items[j] = { ...items[j], text: rest };
+        i = rest ? j - 1 : j;
+        continue;
+      }
+    }
+    out.push(t);
+  }
+  return out;
+}
+
+/** citeInline over every block, including table cells and children. */
+export function citeLinks(blocks: Block[]): Block[] {
+  return blocks.map((b) => {
+    let content = b.content;
+    if (isTable(content))
+      content = {
+        ...content,
+        rows: content.rows.map((r) => ({
+          ...r,
+          cells: r.cells.map((c) =>
+            Array.isArray(c) ? citeInline(c) : { ...c, content: citeInline(c.content ?? []) },
+          ),
+        })),
+      } as TableContent;
+    else if (Array.isArray(content)) content = citeInline(content);
+    return { ...b, content, children: b.children ? citeLinks(b.children) : b.children };
   });
 }
 
@@ -168,6 +249,7 @@ export function inlineToMarkdown(items: InlineItem[] | string | undefined): stri
         const label = String(i.props?.label ?? id);
         return i.props?.kind === "note" ? `[${label}](/notes/${id})` : `[[${id}|${label}]]`;
       }
+      if (i.type === "cite") return ` ([${String(i.props?.label ?? "source")}](${String(i.props?.url ?? "")}))`;
       return inlineToMarkdown(i.content);
     })
     .join("");

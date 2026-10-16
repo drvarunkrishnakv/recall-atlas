@@ -2432,3 +2432,73 @@ tr.planned .title-cell {
     flex-wrap: wrap;
   }
 }
+
+/* Citations: numbered markers after the sentence, in page order */
+.atlas-editor .bn-editor {
+  counter-reset: cite;
+}
+.cite {
+  display: inline-block;
+  vertical-align: super;
+  margin-left: 1px;
+  min-width: 1.05em;
+  padding: 0 0.22em;
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.62em;
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+}
+.cite::after {
+  counter-increment: cite;
+  content: counter(cite);
+}
+.cite:hover,
+.cite:focus-visible {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.cite-pop {
+  position: absolute;
+  z-index: 65;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  max-width: min(20rem, calc(100vw - 1.5rem));
+  padding: 0.65rem 0.8rem;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  font-size: 0.85rem;
+}
+.cite-pop .muted {
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+.cite-pop a {
+  margin-top: 0.2rem;
+  font-weight: 700;
+}
+.sources {
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.88rem;
+}
+.sources summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.sources ol {
+  margin: 0.6rem 0 0;
+  padding-left: 1.6rem;
+}
+.sources li {
+  margin: 0.2rem 0;
+  overflow-wrap: anywhere;
+}
