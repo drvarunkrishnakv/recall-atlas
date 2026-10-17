@@ -124,13 +124,28 @@ function Sources({ list }: { list: { label: string; url: string }[] }) {
 const side = (d: Discussion, t: Pick<Turn, "by" | "role">) =>
   t.by === "me" ? "me" : d.mode === "debate" && t.role === "opposer" ? "right" : "left";
 
+/** Extra look for a turn: the roundtable moderator frames the table; the devil attacks, Claude defends. */
+function variant(d: Discussion, t: Turn): { cls: string; label?: string } {
+  if (t.by === "me") return { cls: "" };
+  if (d.mode === "roundtable" && t.role === "moderator") return { cls: "framing" };
+  if (d.mode === "devil") {
+    const n = d.turns.filter((x) => x.role === t.role && x.createdAt <= t.createdAt).length;
+    return t.role === "devil" ? { cls: "attack", label: `Attack ${n}` } : { cls: "defence", label: `Defence ${n}` };
+  }
+  return { cls: "" };
+}
+
 function Message({ d, t, onPin }: { d: Discussion; t: Turn; onPin: (t: Turn) => void }) {
   const s = side(d, t);
+  const v = variant(d, t);
   return (
-    <div className={`ds-msg ${s} ${agentOf(t.by, t.ai)}`}>
+    <div className={`ds-msg ${s} ${agentOf(t.by, t.ai)} ${v.cls}`}>
       {s !== "me" && <Orb by={t.by} ai={t.ai} />}
       <div className="ds-bubble">
-        <div className="ds-head">{s === "me" ? <b>You</b> : <Who seat={{ role: t.role, by: t.by, ai: t.ai }} />}</div>
+        <div className="ds-head">
+          {s === "me" ? <b>You</b> : <Who seat={{ role: t.role, by: t.by, ai: t.ai }} />}
+          {v.label && <span className={`ds-step ${v.cls}`}>{v.label}</span>}
+        </div>
         {t.body.split(/\n{2,}/).map((p, i) => (
           <p key={i}>{p}</p>
         ))}
@@ -144,7 +159,7 @@ function Message({ d, t, onPin }: { d: Discussion; t: Turn; onPin: (t: Turn) => 
                 onClick={() => onPin(t)}
                 title="Ask Claude to work this point into the note"
               >
-                📌 To note
+                📌 Save to note
               </button>
             )}
           </div>
@@ -198,6 +213,72 @@ function Waiting({ d }: { d: Discussion }) {
   );
 }
 
+/** Debate: the two sides face each other across the motion. */
+function DebateStage({ d }: { d: Discussion }) {
+  const [a, b] = d.seats.map((s) => withAi(d, s));
+  const up = nextUp(d);
+  const side = (s: Seat, label: string, right = false) => (
+    <div className={`ds-side${right ? " right" : ""}${up?.seat.role === s.role ? " up" : ""}`}>
+      <Orb by={s.by} ai={s.ai} size={30} />
+      <span>
+        <b>{speaker(s).split(" · ")[0]}</b>
+        <small>{label}</small>
+      </span>
+    </div>
+  );
+  return (
+    <div className="ds-stage">
+      {side(a, "For")}
+      <p className="ds-motion">{d.topic}</p>
+      {side(b, "Against", true)}
+    </div>
+  );
+}
+
+const SHORT: Record<string, string> = {
+  moderator: "Moderator",
+  lawyer: "Lawyer",
+  economist: "Economist",
+  activist: "Activist",
+  strategist: "Strategist",
+  administrator: "Ex-IAS",
+};
+
+/** Roundtable: a ring of seats, the next speaker lit up. */
+function SeatRing({ d }: { d: Discussion }) {
+  const up = nextUp(d);
+  return (
+    <>
+      <div className="ds-ring">
+        {d.seats.map((raw, i) => {
+          const s = withAi(d, raw);
+          const r = role(s.role);
+          return (
+            <div key={i} className={`ds-seat${up?.seat.role === s.role ? " up" : ""}`} title={speaker(s)}>
+              <Orb by={s.by} ai={s.ai} size={30} />
+              <small>{SHORT[s.role] ?? r?.label ?? s.role}</small>
+            </div>
+          );
+        })}
+      </div>
+      <p className="ds-motion ds-center">{d.topic}</p>
+    </>
+  );
+}
+
+/** Devil's advocate: the claim under attack, pinned on top. */
+function ClaimCard({ d }: { d: Discussion }) {
+  const attacks = d.turns.filter((t) => t.role === "devil").length;
+  return (
+    <div className="ds-claim">
+      <small>
+        Claim from your note · {attacks === 0 ? "no attacks yet" : `${attacks} attack${attacks > 1 ? "s" : ""}`}
+      </small>
+      <p className="ds-motion">{d.topic}</p>
+    </div>
+  );
+}
+
 function Conversation({
   d,
   send,
@@ -244,7 +325,7 @@ function Conversation({
       round = t.round;
       items.push(
         <div key={`r${round}`} className="ds-round">
-          {round === 0 ? "Opening" : ROUND_NAMES[d.mode][round - 1]}
+          {round === 0 ? "Opening" : `Round ${round} · ${ROUND_NAMES[d.mode][round - 1]}`}
         </div>,
       );
     }
@@ -257,21 +338,19 @@ function Conversation({
         <button type="button" className="ds-back" onClick={onBack} aria-label="All questions">
           ←
         </button>
-        <div>
+        <div className="ds-topic-body">
           <span className="ds-kicker">
             {info.emoji} {info.title} · {done}/{total}
             {d.status === "closed" ? " · closed" : ""}
           </span>
-          <p className="ds-motion">{d.topic}</p>
+          {d.mode === "debate" ? (
+            <DebateStage d={d} />
+          ) : d.mode === "roundtable" ? (
+            <SeatRing d={d} />
+          ) : (
+            <ClaimCard d={d} />
+          )}
           {d.why && <p className="ds-why">{d.why}</p>}
-          <div className="ds-cast">
-            {d.seats.map((s, i) => (
-              <span key={i} className="ds-chip">
-                <Orb by={s.by} ai={withAi(d, s).ai} size={18} />
-                {speaker(withAi(d, s))}
-              </span>
-            ))}
-          </div>
         </div>
       </div>
 
@@ -282,8 +361,8 @@ function Conversation({
           <div className="ds-conclusion">
             <div className="ds-conc-head">
               <Orb by="claude" size={26} />
-              <b>Conclusion</b>
-              <span>by Claude</span>
+              <b>{d.mode === "debate" ? "Claude's verdict" : "Claude's conclusion"}</b>
+              <span>the last word</span>
             </div>
             {d.conclusion.body.split(/\n{2,}/).map((p, i) => (
               <p key={i}>{p}</p>
@@ -295,27 +374,37 @@ function Conversation({
                 className="ds-pin"
                 onClick={() => pinned(onPin(d, d.conclusion!.body, d.conclusion!.sources, "Claude's conclusion"))}
               >
-                📌 To note
+                📌 Save to note
               </button>
             </div>
           </div>
         )}
-        {d.conclusion && d.mode === "debate" && (
+        {d.conclusion && d.mode !== "roundtable" && (
           <div className="ds-vote">
-            <b>{d.vote ? "Your verdict" : "Who convinced you?"}</b>
+            <b>
+              {d.mode === "debate"
+                ? d.vote
+                  ? "Your verdict"
+                  : "Who convinced you?"
+                : d.vote
+                  ? "Your call on the claim"
+                  : "Did the claim hold?"}
+            </b>
             <div>
               {(["for", "draw", "against"] as const).map((v) => (
                 <button
                   key={v}
                   type="button"
-                  className={d.vote === v ? "on" : ""}
+                  className={`${v}${d.vote === v ? " on" : ""}`}
                   onClick={() => void send({ op: "vote", discussionId: d.id, vote: d.vote === v ? null : v })}
                 >
-                  {v === "for"
-                    ? `👍 ${speaker(withAi(d, d.seats[0])).split(" · ")[0]}`
-                    : v === "against"
-                      ? `👎 ${speaker(withAi(d, d.seats[1])).split(" · ")[0]}`
-                      : "🤝 Draw"}
+                  {d.mode === "devil"
+                    ? { for: "✓ Holds", draw: "≈ Partly", against: "✕ Falls" }[v]
+                    : v === "for"
+                      ? `👍 ${speaker(withAi(d, d.seats[0])).split(" · ")[0]}`
+                      : v === "against"
+                        ? `👎 ${speaker(withAi(d, d.seats[1])).split(" · ")[0]}`
+                        : "🤝 Draw"}
                 </button>
               ))}
             </div>

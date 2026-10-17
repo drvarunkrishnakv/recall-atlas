@@ -7,7 +7,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { AtlasThreadStore } from "./threadStore";
 import { isWaitingForClaude, type FlagLevel, type StoredThread, type ThreadKind } from "../lib/threads";
-import { AIS, bot, isAi } from "../lib/personas";
+import { AGENTS, AIS, agentOf, bot, isAi } from "../lib/personas";
 
 export const KIND_INFO: Record<ThreadKind, { label: string; icon: string; hint: string }> = {
   comment: { label: "Comment", icon: "💬", hint: "Closes when you tick ✓" },
@@ -85,6 +85,50 @@ function Submit({
   );
 }
 
+/** A round avatar for whoever wrote a comment: Claude, you, or the AI (its own colour and mark). */
+function Avatar({ userId, size = 22 }: { userId: string; size?: number }) {
+  const agent = agentOf(userId === "claude" || userId === "me" ? userId : "bot", userId);
+  return (
+    <span className={`ds-orb ${agent}`} style={{ width: size, height: size, fontSize: size * 0.5 }} aria-hidden>
+      {AGENTS[agent].mark}
+    </span>
+  );
+}
+
+const STAMP: Record<FlagLevel, string> = { wrong: "✕", outdated: "⟳", unsourced: "?", uncertain: "~" };
+
+/** Claude's verdict on a flag, read from its reply: "Confirmed…" or "Not supported…". */
+function verdictOf(t: StoredThread): "confirmed" | "rejected" | null {
+  const last = t.comments.filter((c) => c.userId === "claude").at(-1)?.body ?? "";
+  return /^confirmed/i.test(last) ? "confirmed" : /^not supported/i.test(last) ? "rejected" : null;
+}
+
+/** Where a flag stands: raised, checked by Claude, decided by you, closed. */
+function FlagTrail({ t }: { t: StoredThread }) {
+  const firstClaude = t.comments.findIndex((c) => c.userId === "claude");
+  const steps = [
+    { label: "Raised", done: true },
+    { label: "Checked", done: firstClaude >= 0 },
+    {
+      label: "You decide",
+      done: t.resolved || (firstClaude >= 0 && t.comments.slice(firstClaude).some((c) => c.userId === "me")),
+    },
+    { label: t.resolved && verdictOf(t) === "rejected" ? "Dismissed" : "Applied", done: t.resolved },
+  ];
+  return (
+    <ol className="th-trail" aria-label="Progress">
+      {steps.map((s) => (
+        <li key={s.label} className={s.done ? "done" : ""}>
+          {s.label}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** Small deterministic tilt for sticky notes, so a stack of them looks like paper. */
+const tilt = (id: string) => [-1.4, 0.9, -0.6, 1.2][[...id].reduce((n, c) => n + c.charCodeAt(0), 0) % 4];
+
 export function ThreadCard({
   thread,
   store,
@@ -103,9 +147,12 @@ export function ThreadCard({
   // A kind this build doesn't know (added by a newer app or server) shows as a plain comment.
   const info = KIND_INFO[thread.kind] ?? KIND_INFO.comment;
   const waiting = isWaitingForClaude(thread);
-  const full = selected || thread.kind === "sticky";
-  const shown = full ? thread.comments : thread.comments.slice(0, 1);
-  const more = thread.comments.length - shown.length;
+  const sticky = thread.kind === "sticky";
+  const full = selected || sticky;
+  const [first, ...replies] = thread.comments;
+  const shownReplies = full ? replies : [];
+  const more = replies.length - shownReplies.length;
+  const verdict = thread.kind === "flag" ? verdictOf(thread) : null;
   const act = (e: React.MouseEvent, fn: () => Promise<unknown>) => {
     e.stopPropagation();
     void fn();
@@ -114,26 +161,53 @@ export function ThreadCard({
     <div
       ref={cardRef}
       className={`thread kind-${thread.kind}${selected ? " selected" : ""}${thread.resolved ? " resolved" : ""}`}
-      style={style}
+      style={sticky && !selected ? { ...style, rotate: `${tilt(thread.id)}deg` } : style}
       data-thread={thread.id}
       onClick={() => onSelect(thread.id)}
     >
-      <div className="thread-head">
-        <span className="badge">
-          {info.icon} {info.label}
-        </span>
-        {thread.flag && <span className={`badge level ${thread.flag.level}`}>{LEVEL[thread.flag.level]}</span>}
-        {thread.resolved && <span className="badge muted">Resolved</span>}
-        {thread.detached && <span className="badge muted">Text removed</span>}
-      </div>
+      {sticky ? (
+        <div className="paper-head">
+          <span className="paper-pin" aria-hidden>
+            📌
+          </span>
+          <span className="badge">{info.label}</span>
+          {thread.detached && <span className="badge muted">Text removed</span>}
+        </div>
+      ) : (
+        <div className="thread-head">
+          {first && <Avatar userId={first.userId} />}
+          <span className="th-who">{first ? who(thread, first.userId) : info.label}</span>
+          {first && <time>{when(first.createdAt)}</time>}
+          <span className="th-tags">
+            {thread.flag ? (
+              <>
+                <span className="badge th-kind">{info.label}</span>
+                <span className={`badge level ${thread.flag.level}`}>
+                  <span aria-hidden>{STAMP[thread.flag.level]}</span> {LEVEL[thread.flag.level]}
+                </span>
+              </>
+            ) : (
+              thread.kind !== "comment" && (
+                <span className="badge th-kind">
+                  {info.icon} {info.label}
+                </span>
+              )
+            )}
+            {thread.resolved && <span className="badge muted">Resolved</span>}
+            {thread.detached && <span className="badge muted">Text removed</span>}
+          </span>
+        </div>
+      )}
       {thread.anchor.quote && <blockquote className="quote">{thread.anchor.quote}</blockquote>}
-      {shown.map((c, i) => (
-        <div key={c.id} className={`comment by-${c.userId}`}>
-          <div className="who">
-            {who(thread, c.userId)} <time>{when(c.createdAt)}</time>
-          </div>
-          <div className="text">{c.body}</div>
-          {i === 0 && thread.flag && thread.flag.sources.length > 0 && (
+      {first && (
+        <div className={`comment first by-${first.userId}`}>
+          {sticky && (
+            <div className="who">
+              {who(thread, first.userId)} <time>{when(first.createdAt)}</time>
+            </div>
+          )}
+          <div className="text">{first.body}</div>
+          {thread.flag && thread.flag.sources.length > 0 && (
             <div className="flag-srcs">
               {thread.flag.sources.map((s, j) => (
                 <a
@@ -150,10 +224,36 @@ export function ThreadCard({
             </div>
           )}
         </div>
-      ))}
+      )}
+      {verdict && (
+        <div className={`th-verdict ${verdict}`}>
+          <Avatar userId="claude" size={18} />
+          <b>{verdict === "confirmed" ? "Claude: Confirmed" : "Claude: Not supported"}</b>
+          {!selected && <span>· tap to read</span>}
+        </div>
+      )}
+      {shownReplies.length > 0 && (
+        <div className="th-replies">
+          {shownReplies.map((c) => (
+            <div key={c.id} className={`comment by-${c.userId}`}>
+              <div className="who">
+                <Avatar userId={c.userId} size={18} />
+                {who(thread, c.userId)} <time>{when(c.createdAt)}</time>
+              </div>
+              <div className="text">{c.body}</div>
+            </div>
+          ))}
+        </div>
+      )}
       {more > 0 && <div className="more-replies">{more === 1 ? "1 reply" : `${more} replies`}</div>}
+      {thread.kind === "flag" && <FlagTrail t={thread} />}
       {waiting && (
         <div className="waiting">
+          <span className="ds-dots" aria-hidden>
+            <i />
+            <i />
+            <i />
+          </span>
           {thread.kind === "flag" ? "Claude checks this on its next run" : "Waiting for Claude's next run"}
         </div>
       )}

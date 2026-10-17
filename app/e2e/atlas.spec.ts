@@ -367,7 +367,7 @@ test("roundtable: Claude opens, and a point goes to Claude's inbox on the sectio
   claudeTurn(id, "Today we ask who gains from sample rows, from law, economics and politics.");
   await refresh(page);
   await expect(panel.locator(".ds-msg.claude:not(.waiting)")).toContainText("Moderator");
-  await panel.getByRole("button", { name: /To note/ }).click();
+  await panel.getByRole("button", { name: /Save to note/ }).click();
   await expect(panel.getByText("Sent to Claude's inbox")).toBeVisible();
   await expect(page.locator(".thread.kind-claude", { hasText: "Claude · Moderator said" })).toBeVisible();
 });

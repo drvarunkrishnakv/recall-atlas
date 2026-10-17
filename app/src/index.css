@@ -1121,122 +1121,227 @@ a.tile:hover {
 .thread {
   background: var(--raised);
   border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 0.55rem 0.7rem;
+  border-radius: 14px;
+  padding: 0.65rem 0.75rem 0.6rem;
   font-size: 0.85rem;
   line-height: 1.45;
   cursor: pointer;
+  transition:
+    box-shadow 0.15s,
+    border-color 0.15s,
+    rotate 0.2s;
+}
+.thread:hover {
+  border-color: color-mix(in srgb, var(--ink) 18%, var(--line));
 }
 .thread.selected {
   box-shadow: var(--shadow);
   cursor: default;
 }
-.thread.kind-sticky {
-  background: var(--sticky-bg);
-}
 .thread.resolved {
-  opacity: 0.7;
+  opacity: 0.72;
 }
 .thread-head {
   display: flex;
-  gap: 0.3rem;
+  align-items: center;
+  gap: 0.4rem;
   flex-wrap: wrap;
+}
+.thread-head .ds-orb,
+.th-replies .ds-orb,
+.th-verdict .ds-orb {
+  flex: none;
+}
+.th-who {
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+.thread-head time {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.th-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-left: auto;
 }
 .badge {
   font-size: 0.7rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--muted);
 }
-.thread.kind-claude .badge:first-child {
-  color: var(--accent);
-}
-.thread.kind-flag {
-  border-left: 3px solid var(--danger);
-}
-.thread.kind-flag .badge:first-child {
-  color: var(--danger);
-  font-weight: 600;
-}
-.badge.level {
-  border-radius: 4px;
-  padding: 0 0.3rem;
+.th-kind {
+  border-radius: 999px;
+  padding: 0.05rem 0.45rem;
   background: var(--surface);
 }
-.badge.level.wrong,
-.badge.level.outdated {
+.thread.kind-claude .th-kind {
+  background: var(--claude-soft);
+  color: var(--claude-ink);
+}
+.thread.kind-flag {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--line));
+  background: color-mix(in srgb, var(--danger) 3%, var(--raised));
+}
+.thread.kind-flag .th-kind {
   background: var(--weak-soft);
   color: var(--weak-ink);
 }
+.badge.level {
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem;
+  background: var(--surface);
+  border: 1px solid currentColor;
+}
+.badge.level.wrong,
+.badge.level.outdated {
+  color: var(--danger);
+  background: transparent;
+}
 .badge.level.uncertain,
 .badge.level.unsourced {
-  background: var(--warn-soft);
   color: var(--warn-ink);
+  background: transparent;
 }
-.comment.by-grok .who,
-.comment.by-gemini .who,
-.comment.by-chatgpt .who,
-.comment.by-claudeapp .who {
-  font-weight: 600;
+.badge.muted {
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 0.05rem 0.45rem;
 }
 .flag-srcs {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
-  margin-top: 0.3rem;
+  gap: 0.3rem;
+  margin-top: 0.45rem;
 }
 .flag-srcs a {
-  border-radius: 6px;
-  padding: 0 0.4rem;
-  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 0.55rem;
+  background: var(--raised);
   color: var(--ink);
   font-size: 0.7rem;
   font-weight: 600;
-  line-height: 1.7;
+  line-height: 1.8;
   text-decoration: none;
 }
-.badge.muted {
-  background: var(--surface);
-  border-radius: 4px;
-  padding: 0 0.3rem;
+.flag-srcs a:hover {
+  border-color: var(--muted);
 }
 .quote {
-  margin: 0.3rem 0;
-  padding-left: 0.5rem;
-  border-left: 2px solid var(--line);
+  margin: 0.45rem 0 0.35rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: 8px;
+  background: var(--surface);
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 0.79rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+.thread.kind-flag .quote {
+  background: var(--mark-flag);
+  color: var(--ink);
+}
 .comment {
-  margin-top: 0.4rem;
+  margin-top: 0.35rem;
 }
 .comment .who {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: 650;
 }
 .comment.by-claude .who {
-  color: var(--accent);
+  color: var(--claude-ink);
 }
 .comment .who time {
   font-weight: 400;
   color: var(--muted);
-  margin-left: 0.3rem;
 }
 .comment .text {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+.th-replies {
+  margin-top: 0.45rem;
+  padding-left: 0.7rem;
+  border-left: 2px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.th-replies .comment {
+  margin: 0;
+}
+.th-verdict {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 10px;
+  background: var(--claude-soft);
+  font-size: 0.76rem;
+}
+.th-verdict b {
+  color: var(--claude-ink);
+}
+.th-verdict.confirmed b::before {
+  content: "✓ ";
+  color: var(--ok);
+}
+.th-verdict.rejected b::before {
+  content: "✕ ";
+  color: var(--muted);
+}
+.th-verdict span {
+  color: var(--muted);
+}
+.th-trail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.6rem;
+  margin: 0.55rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+.th-trail li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.th-trail li::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--line);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 18%, transparent);
+}
+.th-trail li.done {
+  color: var(--ink);
+}
+.th-trail li.done::before {
+  background: var(--go);
+  box-shadow: none;
+}
 .more-replies,
 .waiting {
-  margin-top: 0.3rem;
+  margin-top: 0.35rem;
   font-size: 0.75rem;
   color: var(--muted);
 }
 .waiting {
-  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--claude-ink);
 }
 .reply {
   margin-top: 0.5rem;
@@ -1250,6 +1355,50 @@ a.tile:hover {
   flex-wrap: wrap;
   gap: 0.3rem;
   margin-top: 0.5rem;
+}
+
+/* Sticky notes: paper, slightly tilted, with a pin; they straighten when opened. */
+.thread.kind-sticky {
+  background: var(--sticky-bg);
+  color: var(--scratch-ink);
+  border: 0;
+  border-radius: 3px 3px 16px 3px;
+  padding: 0.7rem 0.8rem 0.75rem;
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.04),
+    0 6px 14px -8px rgba(60, 45, 0, 0.35);
+}
+.thread.kind-sticky:hover {
+  rotate: 0deg;
+}
+.paper-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.paper-pin {
+  font-size: 0.95rem;
+  margin-top: -0.25rem;
+}
+.thread.kind-sticky .badge {
+  color: var(--scratch-ink);
+  opacity: 0.8;
+}
+.thread.kind-sticky .quote {
+  background: color-mix(in srgb, var(--scratch-ink) 8%, transparent);
+  color: var(--scratch-ink);
+}
+.thread.kind-sticky .comment .text {
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+.thread.kind-sticky .comment .who,
+.thread.kind-sticky .comment .who time {
+  color: var(--scratch-ink);
+  opacity: 0.75;
+}
+.thread.kind-sticky .th-replies {
+  border-left-color: color-mix(in srgb, var(--scratch-ink) 25%, transparent);
 }
 .comment-bubble {
   position: absolute;
@@ -3059,15 +3208,23 @@ tr.planned .title-cell {
   gap: 0.7rem;
 }
 .ds-round {
-  align-self: center;
-  margin-top: 0.3rem;
-  padding: 0.15rem 0.65rem;
-  border-radius: 999px;
-  background: var(--surface);
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+  padding: 0;
+  background: none;
   font: 700 0.66rem var(--f-text);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted);
+}
+.ds-round::before,
+.ds-round::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--line);
 }
 .ds-msg {
   display: flex;
@@ -3259,6 +3416,158 @@ tr.planned .title-cell {
   background: var(--go-soft);
   color: var(--go-ink);
 }
+/* Conversation headers, one per mode. */
+.ds-topic-body {
+  flex: 1;
+  min-width: 0;
+}
+.ds-stage {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.45rem;
+}
+.ds-stage .ds-motion {
+  text-align: center;
+  margin: 0;
+}
+.ds-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  min-width: 3.6rem;
+  text-align: center;
+  opacity: 0.75;
+}
+.ds-side.up {
+  opacity: 1;
+}
+.ds-side.up .ds-orb {
+  outline: 2px solid var(--go);
+  outline-offset: 2px;
+}
+.ds-side span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.ds-side b {
+  font-size: 0.74rem;
+}
+.ds-side small {
+  font-size: 0.66rem;
+  color: var(--muted);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.ds-ring {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.8rem;
+  margin: 0.55rem 0 0.35rem;
+}
+.ds-seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  width: 3.4rem;
+  opacity: 0.6;
+}
+.ds-seat small {
+  font-size: 0.64rem;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.1;
+}
+.ds-seat.up {
+  opacity: 1;
+}
+.ds-seat.up .ds-orb {
+  outline: 2px solid var(--go);
+  outline-offset: 2px;
+}
+.ds-seat.up small {
+  color: var(--ink);
+  font-weight: 700;
+}
+.ds-center {
+  text-align: center;
+}
+.ds-claim {
+  margin-top: 0.45rem;
+  padding: 0.55rem 0.7rem;
+  border: 1.5px dashed color-mix(in srgb, var(--danger) 40%, var(--line));
+  border-radius: 12px;
+  background: var(--raised);
+}
+.ds-claim small {
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+.ds-claim .ds-motion {
+  margin-top: 0.15rem;
+}
+
+/* Turn variants. */
+.ds-msg.framing {
+  align-self: center;
+  max-width: 100%;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.ds-msg.framing .ds-bubble {
+  border-radius: 14px;
+  border-style: dashed;
+  background: var(--raised);
+}
+.ds-msg.framing .ds-head {
+  justify-content: center;
+}
+.ds-msg.attack .ds-bubble {
+  background: color-mix(in srgb, var(--danger) 8%, var(--raised));
+  border-color: color-mix(in srgb, var(--danger) 30%, var(--line));
+}
+.ds-msg.defence .ds-bubble {
+  background: color-mix(in srgb, var(--go) 9%, var(--raised));
+  border-color: color-mix(in srgb, var(--go) 30%, var(--line));
+}
+.ds-step {
+  margin-left: auto;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.ds-step.attack {
+  background: var(--weak-soft);
+  color: var(--weak-ink);
+}
+.ds-step.defence {
+  background: var(--go-soft);
+  color: var(--go-ink);
+}
+.ds-vote button.for.on {
+  border-color: var(--go);
+}
+.ds-vote button.against.on {
+  border-color: var(--danger);
+  background: var(--weak-soft);
+  color: var(--weak-ink);
+}
+.ds-vote button.draw.on {
+  border-color: var(--muted);
+  background: var(--surface);
+  color: var(--ink);
+}
+
 .ds-toast {
   margin: 0 0.8rem 0.4rem;
   padding: 0.35rem 0.6rem;
