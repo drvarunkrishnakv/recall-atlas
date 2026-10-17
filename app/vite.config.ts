@@ -21,5 +21,5 @@ export default defineConfig({
   server: { watch: { ignored: ["**/.atlas-local/**"] } },
   // Mermaid ships large optional chunks (layout engines) that load only when a diagram needs them.
   build: { chunkSizeWarningLimit: 1500 },
-  test: { include: ["src/**/*.test.ts"], environment: "node" },
+  test: { include: ["src/**/*.test.ts", "mcp/**/*.test.ts"], environment: "node" },
 });

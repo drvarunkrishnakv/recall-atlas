@@ -295,3 +295,79 @@ test("unknown pages say so", async ({ page }) => {
   await page.goto("/notes/NOPE");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Page not found");
 });
+
+/** A Grok bot's turn, as the Atlas MCP server would post it. */
+async function grokTurn(page: Page, discussionId: string, by: string, body: string) {
+  const r = await page.request.post("/api/discussions/notes/P06", {
+    headers: { "X-Atlas": "1" },
+    data: {
+      op: "turn",
+      discussionId,
+      turn: { id: `t-${by}-${Date.now()}`, by, body, sources: [{ label: "PRS", url: "https://prsindia.org/" }] },
+    },
+  });
+  expect(r.ok()).toBe(true);
+}
+
+/** Claude's turn, posted through the CLI as Claude's scheduled task does. */
+function claudeTurn(discussionId: string, body: string) {
+  execFileSync("node", ["cli/atlas.ts", "post", discussionId, body, "--source", "PRS|https://prsindia.org/"], {
+    env: { ...process.env, ATLAS_CONTENT_DIR: process.env.ATLAS_E2E_DIR },
+  });
+}
+
+async function openDiscuss(page: Page, tab: "Debate" | "Roundtable" | "Devil") {
+  await page.getByRole("button", { name: "Discuss with Claude and Grok" }).click();
+  const panel = page.locator(".ds-panel");
+  await panel.getByRole("tab", { name: new RegExp(tab) }).click();
+  return panel;
+}
+
+async function discussionId(page: Page, topic: string): Promise<string> {
+  const { discussions } = await (await page.request.get("/api/discussions/notes/P06")).json();
+  return discussions.find((x: { topic: string }) => x.topic === topic).id;
+}
+
+const refresh = (page: Page) => page.evaluate(() => window.dispatchEvent(new Event("focus")));
+
+test("devil's advocate: Grok attacks, Claude defends, you join in", async ({ page }, info) => {
+  await page.goto("/notes/P06");
+  const panel = await openDiscuss(page, "Devil");
+  const claim = `Markers make sources easy to check (${info.project.name})`;
+  await panel.getByRole("button", { name: /Ask your own claim/ }).click();
+  await panel.locator(".ds-addform textarea").fill(claim);
+  await panel.getByRole("button", { name: "Start" }).click();
+  await expect(panel.locator(".ds-motion")).toHaveText(claim);
+  await expect(panel.locator(".ds-msg.waiting")).toContainText("Devil's advocate");
+
+  const id = await discussionId(page, claim);
+  await grokTurn(page, id, "devil", "A marker shows a source exists, not that it supports the claim.");
+  await refresh(page);
+  await expect(panel.locator(".ds-msg.grok")).toContainText("not that it supports the claim");
+  claudeTurn(id, "A blind check reads every source against its claim before a note goes live.");
+  await refresh(page);
+  await expect(panel.locator(".ds-msg.claude:not(.waiting)")).toContainText("A blind check reads every source");
+  await expect(panel.locator(".ds-msg.claude:not(.waiting)")).toContainText("Defends the note");
+
+  await panel.locator(".ds-compose textarea").fill("And who checks the checker?");
+  await panel.getByRole("button", { name: "Send" }).click();
+  await expect(panel.locator(".ds-msg.me")).toContainText("And who checks the checker?");
+  await expect(panel.locator(".ds-msg.waiting")).toContainText("Grok");
+  await noSideScroll(page);
+});
+
+test("roundtable: Claude opens, and a point goes to Claude's inbox on the section", async ({ page }) => {
+  test.skip(!isDesktop(page), "Once is enough");
+  await page.goto("/notes/P06");
+  const panel = await openDiscuss(page, "Roundtable");
+  await panel.getByRole("button", { name: /Ask your own question/ }).click();
+  await panel.locator(".ds-addform textarea").fill("Who gains from sample rows?");
+  await panel.getByRole("button", { name: "Start" }).click();
+  const id = await discussionId(page, "Who gains from sample rows?");
+  claudeTurn(id, "Today we ask who gains from sample rows, from law, economics and politics.");
+  await refresh(page);
+  await expect(panel.locator(".ds-msg.claude:not(.waiting)")).toContainText("Moderator");
+  await panel.getByRole("button", { name: /To note/ }).click();
+  await expect(panel.getByText("Sent to Claude's inbox")).toBeVisible();
+  await expect(page.locator(".thread.kind-claude", { hasText: "Claude · Moderator said" })).toBeVisible();
+});

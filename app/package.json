@@ -11,10 +11,14 @@
     "typecheck": "tsc -b",
     "test": "vitest run",
     "e2e": "playwright test",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"server/**/*.ts\" \"cli/**/*.ts\" \"e2e/**/*.ts\" \"*.config.ts\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"server/**/*.ts\" \"cli/**/*.ts\" \"e2e/**/*.ts\" \"*.config.ts\"",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"server/**/*.ts\" \"cli/**/*.ts\" \"mcp/**/*.ts\" \"e2e/**/*.ts\" \"*.config.ts\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"server/**/*.ts\" \"cli/**/*.ts\" \"mcp/**/*.ts\" \"e2e/**/*.ts\" \"*.config.ts\"",
     "check": "npm run format:check && npm run typecheck && npm run test && npm run build",
-    "atlas": "node cli/atlas.ts"
+    "atlas": "node cli/atlas.ts",
+    "mcp": "node mcp/dist/atlas-mcp.mjs",
+    "mcp:http": "node mcp/dist/atlas-mcp.mjs --http 5190",
+    "mcp:build": "rolldown mcp/atlas-mcp.ts -o mcp/dist/atlas-mcp.mjs -p node -f esm",
+    "discuss:serve": "bash mcp/serve.sh"
   },
   "dependencies": {
     "@blocknote/core": "^0.56.0",
@@ -24,10 +28,12 @@
     "@fontsource/figtree": "^5.3.0",
     "@mantine/core": "^8.3.18",
     "@mantine/hooks": "^8.3.18",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "mermaid": "^12.2.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-router": "^8.4.0"
+    "react-router": "^8.4.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",

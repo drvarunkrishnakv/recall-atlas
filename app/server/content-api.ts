@@ -9,6 +9,9 @@
 //   POST /api/comments/:collection/:id        apply one ThreadOp, return the threads
 //   GET  /api/comments                        every page's threads (inbox, subject table)
 //   GET|POST /api/progress, /api/captures     revision state and quick captures (one op per POST)
+//   GET  /api/discussions/:collection/:id     the page's debates, roundtables and devil's-advocate rounds
+//   POST /api/discussions/:collection/:id     apply one DiscussionOp, return the discussions
+//   GET  /api/discussions                     every page's discussions
 //
 // Writes are accepted only from this machine (unless ATLAS_ALLOW_LAN_WRITES=1) and only
 // from the app's own origin.
@@ -28,6 +31,7 @@ import type { Connect } from "vite";
 import { parseFrontMatter } from "../src/lib/content-parse.ts";
 import { PAGE_FIELDS, pageToMarkdown, type PageDoc } from "../src/lib/blocks.ts";
 import { applyThreadOp, ThreadOpError, type StoredThread, type ThreadOp } from "../src/lib/threads.ts";
+import { applyDiscussionOp, DiscussionOpError, type Discussion, type DiscussionOp } from "../src/lib/discussions.ts";
 import {
   applyCaptureOp,
   applyProgressOp,
@@ -154,6 +158,35 @@ export function loadAllThreads(dir: string): Record<string, StoredThread[]> {
   return out;
 }
 
+const discussionsPath = (dir: string, collection: string, id: string) =>
+  join(dir, "discussions", `${collection}-${id}.json`);
+
+export function loadDiscussions(dir: string, collection: string, id: string): Discussion[] {
+  return readJson<{ discussions: Discussion[] }>(discussionsPath(dir, collection, id), { discussions: [] }).discussions;
+}
+
+export function changeDiscussions(dir: string, collection: string, id: string, op: DiscussionOp): Discussion[] {
+  const next = applyDiscussionOp(loadDiscussions(dir, collection, id), op);
+  mkdirSync(join(dir, "discussions"), { recursive: true });
+  writeAtomic(discussionsPath(dir, collection, id), JSON.stringify({ discussions: next }, null, 1) + "\n");
+  return next;
+}
+
+/** Every page's discussions, keyed `notes:P06`. */
+export function loadAllDiscussions(dir: string): Record<string, Discussion[]> {
+  const folder = join(dir, "discussions");
+  if (!existsSync(folder)) return {};
+  const out: Record<string, Discussion[]> = {};
+  for (const f of readdirSync(folder).filter((f) => f.endsWith(".json"))) {
+    const m = /^(notes|cards)-(.+)\.json$/.exec(f);
+    if (m)
+      out[`${m[1]}:${m[2]}`] = readJson<{ discussions: Discussion[] }>(join(folder, f), {
+        discussions: [],
+      }).discussions;
+  }
+  return out;
+}
+
 export function loadProgress(dir: string): Progress {
   return readJson<Progress>(join(dir, "progress.json"), { notes: {} });
 }
@@ -214,6 +247,7 @@ export function contentApi(appRoot: string): Connect.NextHandleFunction {
     try {
       if (req.method === "GET" && url.pathname === "/api/content") return send(res, 200, loadAll(dir));
       if (req.method === "GET" && url.pathname === "/api/comments") return send(res, 200, loadAllThreads(dir));
+      if (req.method === "GET" && url.pathname === "/api/discussions") return send(res, 200, loadAllDiscussions(dir));
       if (url.pathname === "/api/progress" || url.pathname === "/api/captures") {
         const progress = url.pathname === "/api/progress";
         if (req.method === "GET") return send(res, 200, progress ? loadProgress(dir) : { captures: loadCaptures(dir) });
@@ -234,6 +268,8 @@ export function contentApi(appRoot: string): Connect.NextHandleFunction {
 
       if (kind === "comments" && req.method === "GET")
         return send(res, 200, { threads: loadThreads(dir, collection, id) });
+      if (kind === "discussions" && req.method === "GET")
+        return send(res, 200, { discussions: loadDiscussions(dir, collection, id) });
       if (kind === "pages" && req.method === "GET") {
         const path = join(dir, collection, `${id}.json`);
         return existsSync(path)
@@ -256,9 +292,14 @@ export function contentApi(appRoot: string): Connect.NextHandleFunction {
         const op = (await readBody(req)) as ThreadOp;
         return send(res, 200, { threads: changeThreads(dir, collection, id, op) });
       }
+      if (kind === "discussions" && req.method === "POST") {
+        const op = (await readBody(req)) as DiscussionOp;
+        return send(res, 200, { discussions: changeDiscussions(dir, collection, id, op) });
+      }
       return send(res, 405, { error: "Method not allowed" });
     } catch (e) {
-      if (e instanceof ThreadOpError || e instanceof ProgressOpError) return send(res, 400, { error: e.message });
+      if (e instanceof ThreadOpError || e instanceof ProgressOpError || e instanceof DiscussionOpError)
+        return send(res, 400, { error: e.message });
       return send(res, 500, { error: e instanceof Error ? e.message : String(e) });
     }
   };
