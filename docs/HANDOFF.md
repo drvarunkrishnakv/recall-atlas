@@ -1,5 +1,24 @@
 # Handoff
 
+## Title field fits after the font loads — 2026-10-17
+
+- **Branch:** `claude/title-font-measure`, from `claude/study-file-pages` (2ef561a, PR #29 still
+  open), so the PR is stacked on #29 (and #28). Assisting tool: Claude Code.
+- **Fix:** the Editing-mode title field (`.title-input`, `app/src/editor/PageView.tsx`) was
+  sized before Bricolage Grotesque loaded, so a long title that wraps only in the real font
+  showed one line (desktop 1440: box 43 px, text 87 px). A small `useFontsLoaded()` hook
+  counts `document.fonts.ready` and each `loadingdone`; the auto-grow effect re-runs on it.
+  It still does not resize on every render (that jumps the scroll position).
+- **Test:** e2e "a long title's field grows to show every line once the heading font loads"
+  opens `/notes/P06-study` with Editing on at all three sizes and checks the title field's
+  `scrollHeight <= clientHeight`. Without the fix it fails (desktop 44 px hidden).
+- **Checks:** `npm run check` (Prettier, `tsc -b`, 33 unit tests, build) passed;
+  `npx playwright test` 37 passed + 8 desktop-only skips. (Run on port 4184 through a
+  throwaway config, because another session's tests held 4174; nothing about that is committed.)
+- **Screenshots:** fixture only, `docs/design/title-fit/` (desktop, iPad, phone; light;
+  Editing on). The title shows both lines at every size.
+- **Next:** user review; merge #28, then #29, then this PR.
+
 ## Study file pages — 2026-10-17
 
 - **Branch:** `claude/study-file-pages`, from `claude/prose-and-citations` (674e091, PR #28 still
@@ -22,7 +41,7 @@
 - **Screenshots:** fixture only, `docs/design/study-file/` (desktop, iPad, phone; light).
 - **Known issue (not from this change):** in Editing mode a long title can show only its first
   line, because the title box is sized before the heading web font loads (box 43 px tall,
-  text needs 87 px). Visible in `desktop-study-light.png`. Left for a follow-up.
+  text needs 87 px). Visible in `desktop-study-light.png`. Fixed on `claude/title-font-measure`.
 - **Not committed:** anything in `output/notes-pilot` (the real P06 study file stays private).
 - **Next:** user review; merge #28 first, then this PR.
 

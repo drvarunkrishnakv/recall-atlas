@@ -131,6 +131,18 @@ test("a study file sits under its parent note and is not counted as a note", asy
   await expectTitle(main, "Fixture note: how a sample topic reads");
 });
 
+test("a long title's field grows to show every line once the heading font loads", async ({ page }) => {
+  // Editing on at every size, so the title is the auto-grown field rather than a heading.
+  await page.addInitScript(() => localStorage.setItem("atlas-editing", "on"));
+  await page.goto("/notes/P06-study");
+  const title = page.locator("main .title-input");
+  await expectTitle(page.locator("main"), "Fixture study file: the long companion page");
+  await page.evaluate(() => document.fonts.ready);
+  await expect
+    .poll(() => title.evaluate((el) => el.scrollHeight - el.clientHeight), { timeout: 5_000 })
+    .toBeLessThanOrEqual(0);
+});
+
 test("quick capture lands in the scratch pad, and Claude's filing shows in the inbox", async ({ page }, info) => {
   await page.goto("/");
   const text = `Capture from ${info.project.name}`;
