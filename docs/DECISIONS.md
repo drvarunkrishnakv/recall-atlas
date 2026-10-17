@@ -1,5 +1,19 @@
 # Decisions
 
+## 2026-10-17 — OAuth sign-in for the MCP server
+
+- The Gemini app and Claude's custom connectors connect only by OAuth, so the hosted server
+  is also an OAuth 2.1 authorization server, per the MCP authorization spec: protected-resource
+  and authorization-server metadata, dynamic client registration, PKCE (S256 only), rotating
+  refresh tokens, and a `WWW-Authenticate` hint on a 401.
+- Approval happens on the app's own `/oauth/authorize` page, behind the same Google sign-in and
+  `atlasOwner` check as the notes. The owner picks which AI the app is; that labels what it
+  posts. A Claude.ai connection is "Claude app" (`claudeapp`), distinct from Claude's CLI.
+- Codes (5 min, single use), access tokens (1 h) and refresh tokens (90 days) are stored only as
+  hashes in closed Firestore collections. `atlas oauth revoke` turns off an app and its tokens.
+- The consent page returns to the app with a plain navigation, not a form post or 302, which
+  avoids a reported failure with Google's redirect relay. Per-AI keys still work alongside.
+
 ## 2026-10-17 — Hosted MCP server for any AI
 
 - The Atlas MCP server runs as a Cloud Function (asia-south1, 2nd gen) behind Firebase
