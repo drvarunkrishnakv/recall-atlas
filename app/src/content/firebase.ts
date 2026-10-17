@@ -17,13 +17,15 @@ import {
 } from "firebase/firestore";
 
 const env = import.meta.env;
-const hostingDomain = /\.(web\.app|firebaseapp\.com)$/.test(location.hostname);
+// The live site signs in through its own domain: phones and Safari block the cross-site
+// storage a redirect through another domain needs. That domain's /__/auth/handler must be an
+// authorised redirect URI on the project's Google OAuth client. Preview channels and local
+// runs sign in through the project's firebaseapp.com domain.
+const liveSite = location.hostname === `${env.VITE_FIREBASE_PROJECT_ID}.web.app`;
 
 export const firebaseApp = initializeApp({
   apiKey: env.VITE_FIREBASE_API_KEY,
-  // On Firebase Hosting, sign in through this same domain: phones and Safari block the
-  // cross-site storage a redirect through another domain needs.
-  authDomain: hostingDomain ? location.host : env.VITE_FIREBASE_AUTH_DOMAIN,
+  authDomain: liveSite ? location.host : env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
