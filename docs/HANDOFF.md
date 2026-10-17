@@ -1,5 +1,37 @@
 # Handoff
 
+## Firebase backend (M3) — 2026-10-17
+
+- **Branch:** `claude/firebase-m3`, from `main` (ef69311). Assisting tool: Claude Code.
+  Project `recall-atlas-511913`; web config in git-ignored `app/.env.local`, `.firebaserc` git-ignored.
+- **App:** `npm run dev:cloud` / `build:cloud` (`--mode cloud`) signs in with Google and
+  reads and writes Firestore through the same `api(path)` routes (`src/content/cloud.ts`).
+  Signed out you see only the sign-in screen; another account sees "can't open these notes"
+  with its account id. Sign-out (top bar) clears the device's offline copy. The local build
+  (`dev:fixture`, `dev:notes`, tests) is unchanged and bundles no Firebase.
+- **Rules:** `firestore.rules`, owner = custom claim `atlasOwner` (set with `atlas owner`).
+- **CLI and MCP:** `server/backend.ts` (files) and `server/firestore-backend.ts` (Admin SDK).
+  Without `ATLAS_CONTENT_DIR` they use Firestore and need `~/.config/mains-atlas/service-account.json`.
+  New: `atlas import <dir> [--force]`, `atlas export <dir>`, `atlas owner [uid|email] [--remove]`.
+- **PWA:** `public/manifest.webmanifest`, icons (green Atlas mark; the old blue favicon is
+  gone), `public/sw.js` (app shell only, registered in the cloud build).
+- **Hosting:** `firebase.json` (public `app/dist`, SPA rewrite, `build:cloud` predeploy).
+- **Checks:** `npm run check` (Prettier, `tsc -b`, 49 unit tests, build); `npm run test:cloud`
+  9 passed (rules: owner yes, other account and signed-out no, other collections closed; cloud
+  API; Admin backend import/export round trip); `npx playwright test` 41 passed + 10
+  desktop-only skips (local build). End-to-end against the
+  emulators with Playwright: sign in → refused → `atlas owner` → Try again → notes open, the
+  fixture's Markdown pages convert and the CLI sees them at v1; sign out → sign-in screen.
+- **Screenshots:** fixture only, `docs/design/m3/` (sign-in and note at desktop, iPad, phone;
+  phone refusal).
+- **Not done (needs the user):**
+  1. The Firestore database: `firebase firestore:databases:list` showed none on 2026-10-17.
+  2. A service-account key at `~/.config/mains-atlas/service-account.json`.
+  3. Say-so to deploy rules (`firebase deploy --only firestore:rules`), then
+     `npm run atlas -- import ../output/notes-pilot/content`, sign in, `npm run atlas -- owner <email>`.
+  4. Say-so for a Hosting preview channel, then live. Scheduled tasks keep `ATLAS_CONTENT_DIR`
+     until the switch; drop it then so Claude works on Firestore, and add `atlas export` to the routine.
+
 ## Discussions: Claude and Grok on each note — 2026-10-17
 
 - **Branch:** `claude/discussions`, from `claude/prose-and-citations` (674e091, PR #28). Assisting tool: Claude Code.

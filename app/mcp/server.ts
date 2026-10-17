@@ -3,14 +3,13 @@
 // turns, only in its own seats, only when it's its turn. It cannot edit notes, comments or
 // anything else. The transports are in atlas-mcp.ts.
 import { randomUUID } from "node:crypto";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { blocksToMarkdown, type PageDoc } from "../src/lib/blocks.ts";
 import { briefing, DiscussionOpError, nextUp, type Discussion } from "../src/lib/discussions.ts";
 import { GROK_BOTS, grokBot, MODE_INFO, role, speaker } from "../src/lib/personas.ts";
-import { changeDiscussions, loadAllDiscussions } from "../server/content-api.ts";
+import type { Backend } from "../server/backend.ts";
+import type { Collection } from "../src/lib/cloud-docs.ts";
 
 const INSTRUCTIONS = `Mains Atlas is a UPSC Mains revision app. Each note hosts discussions between
 Claude and Grok bots: debates (two sides, three rounds), roundtables (Claude moderates; each
@@ -25,10 +24,10 @@ const botId = z.string().describe(`Your Grok bot id: ${GROK_BOTS.map((b) => b.id
 const text = (t: string) => ({ content: [{ type: "text" as const, text: t }] });
 const fail = (t: string) => ({ content: [{ type: "text" as const, text: t }], isError: true });
 const guard =
-  <A>(fn: (args: A) => string) =>
+  <A>(fn: (args: A) => string | Promise<string>) =>
   async (args: A) => {
     try {
-      return text(fn(args));
+      return text(await fn(args));
     } catch (e) {
       return fail(e instanceof Error ? e.message : String(e));
     }
@@ -39,24 +38,24 @@ function checkBot(id: string) {
     throw new DiscussionOpError(`Unknown bot "${id}". Use one of: ${GROK_BOTS.map((b) => b.id).join(", ")}`);
 }
 
-function readPage(dir: string, collection: string, id: string): PageDoc | null {
-  const path = join(dir, collection, `${id}.json`);
-  return existsSync(path) ? (JSON.parse(readFileSync(path, "utf8")) as PageDoc) : null;
+async function readPage(db: Backend, collection: string, id: string): Promise<PageDoc | null> {
+  const page = await db.page(collection as Collection, id);
+  return page && Array.isArray(page.blocks) ? page : null;
 }
 
-function allDiscussions(dir: string): { page: string; d: Discussion }[] {
-  return Object.entries(loadAllDiscussions(dir)).flatMap(([page, list]) => list.map((d) => ({ page, d })));
+async function allDiscussions(db: Backend): Promise<{ page: string; d: Discussion }[]> {
+  return Object.entries(await db.allDiscussions()).flatMap(([page, list]) => list.map((d) => ({ page, d })));
 }
 
-function locate(dir: string, discussionId: string) {
-  const hit = allDiscussions(dir).find((x) => x.d.id === discussionId);
+async function locate(db: Backend, discussionId: string) {
+  const hit = (await allDiscussions(db)).find((x) => x.d.id === discussionId);
   if (!hit) throw new DiscussionOpError(`No discussion ${discussionId}`);
   const [collection, id] = hit.page.split(":");
-  return { collection, id, d: hit.d };
+  return { collection: collection as Collection, id, d: hit.d };
 }
 
-/** A fresh server over the content folder `dir`. */
-export function buildServer(dir: string): McpServer {
+/** A fresh server over `db` (the content folder or Firestore). */
+export function buildServer(db: Backend): McpServer {
   const server = new McpServer({ name: "mains-atlas", version: "0.2.0" }, { instructions: INSTRUCTIONS });
 
   server.registerTool(
@@ -66,9 +65,11 @@ export function buildServer(dir: string): McpServer {
       description: "List the open discussions where it's your bot's turn, then the others you have a seat in.",
       inputSchema: { persona: botId },
     },
-    guard(({ persona: me }: { persona: string }) => {
+    guard(async ({ persona: me }: { persona: string }) => {
       checkBot(me);
-      const mine = allDiscussions(dir).filter(({ d }) => d.status === "open" && d.seats.some((s) => s.by === me));
+      const mine = (await allDiscussions(db)).filter(
+        ({ d }) => d.status === "open" && d.seats.some((s) => s.by === me),
+      );
       if (!mine.length) return "No open discussions have a seat for you.";
       const rows = mine.map(({ page, d }) => {
         const up = nextUp(d);
@@ -95,10 +96,10 @@ export function buildServer(dir: string): McpServer {
         "Read one discussion: the topic, who sits where, every turn so far with its sources, the section of the note it is about, and, if it is your turn, exactly what to write.",
       inputSchema: { persona: botId, discussion_id: z.string() },
     },
-    guard(({ persona: me, discussion_id }: { persona: string; discussion_id: string }) => {
+    guard(async ({ persona: me, discussion_id }: { persona: string; discussion_id: string }) => {
       checkBot(me);
-      const { collection, id, d } = locate(dir, discussion_id);
-      return briefing(d, readPage(dir, collection, id), `${collection}/${id}`, me);
+      const { collection, id, d } = await locate(db, discussion_id);
+      return briefing(d, await readPage(db, collection, id), `${collection}/${id}`, me);
     }),
   );
 
@@ -118,7 +119,7 @@ export function buildServer(dir: string): McpServer {
       },
     },
     guard(
-      ({
+      async ({
         persona: me,
         discussion_id,
         body,
@@ -130,8 +131,8 @@ export function buildServer(dir: string): McpServer {
         sources: { label: string; url: string }[];
       }) => {
         checkBot(me);
-        const { collection, id } = locate(dir, discussion_id);
-        const list = changeDiscussions(dir, collection, id, {
+        const { collection, id } = await locate(db, discussion_id);
+        const list = await db.changeDiscussions(collection, id, {
           op: "turn",
           discussionId: discussion_id,
           turn: { id: randomUUID().slice(0, 12), by: me, body, sources },
@@ -149,9 +150,9 @@ export function buildServer(dir: string): McpServer {
       description: "Read a whole note as Markdown, for context beyond the section a discussion is about.",
       inputSchema: { note_id: z.string().describe("e.g. P06") },
     },
-    guard(({ note_id }: { note_id: string }) => {
+    guard(async ({ note_id }: { note_id: string }) => {
       if (!/^[A-Za-z0-9-]{1,80}$/.test(note_id)) throw new DiscussionOpError("Bad note id");
-      const page = readPage(dir, "notes", note_id);
+      const page = await readPage(db, "notes", note_id);
       if (!page) throw new DiscussionOpError(`No note ${note_id}`);
       return `# ${page.title}\n\n${blocksToMarkdown(page.blocks)}`.slice(0, 60_000);
     }),
@@ -160,19 +161,12 @@ export function buildServer(dir: string): McpServer {
   server.registerTool(
     "atlas_list_notes",
     { title: "List notes", description: "List the notes in the Atlas, with how many discussions are open on each." },
-    guard(() => {
-      const folder = join(dir, "notes");
-      const open = allDiscussions(dir).filter(({ d }) => d.status === "open");
-      const rows = existsSync(folder)
-        ? readdirSync(folder)
-            .filter((f) => f.endsWith(".json"))
-            .map((f) => f.slice(0, -5))
-            .sort()
-            .map((id) => {
-              const n = open.filter(({ page }) => page === `notes:${id}`).length;
-              return `- ${id}: ${readPage(dir, "notes", id)?.title ?? id}${n ? ` · ${n} open discussion${n > 1 ? "s" : ""}` : ""}`;
-            })
-        : [];
+    guard(async () => {
+      const open = (await allDiscussions(db)).filter(({ d }) => d.status === "open");
+      const rows = (await db.pages("notes")).map((p) => {
+        const n = open.filter(({ page }) => page === `notes:${p.id}`).length;
+        return `- ${p.id}: ${p.title}${n ? ` · ${n} open discussion${n > 1 ? "s" : ""}` : ""}`;
+      });
       return rows.join("\n") || "No notes yet.";
     }),
   );

@@ -178,6 +178,82 @@ a {
   height: 19px;
 }
 
+/* Cloud build: the sign-in screen, the only thing a signed-out visitor sees. */
+.signin {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem 1rem;
+}
+.signin-card {
+  width: min(100%, 26rem);
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 2rem 1.75rem;
+  text-align: center;
+}
+.signin-card .logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  margin: 0 auto 0.9rem;
+}
+.signin-card .logo svg {
+  width: 28px;
+  height: 28px;
+}
+.signin-card h1 {
+  font-family: var(--f-head);
+  font-size: 1.7rem;
+  margin: 0 0 0.6rem;
+}
+.signin-card p {
+  color: var(--muted);
+  margin: 0 0 1.2rem;
+}
+.signin-card b {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.signin-card code {
+  overflow-wrap: anywhere;
+}
+.signin-small {
+  font-size: 0.9rem;
+}
+.signin-btn {
+  border: 0;
+  border-radius: 999px;
+  background: var(--go);
+  color: var(--on-go);
+  font: 600 1rem var(--f-text);
+  padding: 0.75rem 1.4rem;
+  min-height: 44px;
+  cursor: pointer;
+}
+.signin-quiet {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: none;
+  color: var(--ink);
+  font: 500 0.95rem var(--f-text);
+  padding: 0.7rem 1.2rem;
+  min-height: 44px;
+  cursor: pointer;
+}
+.signin-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: center;
+}
+.signin-card .signin-error {
+  color: var(--danger);
+  margin: 1rem 0 0;
+}
+
 .main {
   min-width: 0;
   padding: 0 1.5rem 6rem;

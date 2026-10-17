@@ -17,6 +17,7 @@ const PATHS: Record<string, string> = {
   check: "M5 12l5 5 9-10",
   chevron: "M9 6l6 6-6 6",
   down: "M6 9l6 6 6-6",
+  signout: "M14 4h5v16h-5M10 8l-4 4 4 4M6 12h11",
   list: "M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01",
 };
 

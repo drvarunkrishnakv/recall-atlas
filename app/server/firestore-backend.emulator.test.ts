@@ -1,0 +1,78 @@
+// The CLI's Firestore backend (Admin SDK) against the emulator (npm run test:cloud): the
+// fixture imports and exports without loss, and saves and operations behave like the files.
+import { cpSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { beforeAll, describe, expect, it } from "vitest";
+import { fileBackend, snapshot, type Snapshot } from "./backend.ts";
+import { firestoreBackend } from "./firestore-backend.ts";
+
+const PROJECT = process.env.GCLOUD_PROJECT ?? "demo-atlas";
+const host = process.env.FIRESTORE_EMULATOR_HOST ?? "127.0.0.1:8080";
+const fixture = mkdtempSync(join(tmpdir(), "atlas-fs-"));
+cpSync(join(import.meta.dirname, "../fixtures/content"), fixture, { recursive: true });
+const files = fileBackend(fixture);
+const cloud = firestoreBackend();
+
+/** Deep copy with object keys sorted, so key order doesn't count. */
+const sorted = (v: unknown): unknown =>
+  Array.isArray(v)
+    ? v.map(sorted)
+    : v && typeof v === "object"
+      ? Object.fromEntries(
+          Object.keys(v)
+            .sort()
+            .map((k) => [k, sorted((v as Record<string, unknown>)[k])]),
+        )
+      : v;
+const norm = (s: Snapshot) => sorted({ ...s, pages: [...s.pages].sort((a, b) => a.id.localeCompare(b.id)) });
+
+beforeAll(async () => {
+  await fetch(`http://${host}/emulator/v1/projects/${PROJECT}/databases/(default)/documents`, { method: "DELETE" });
+});
+
+describe("Firestore backend", () => {
+  it("imports the fixture and exports it back unchanged", async () => {
+    const original = await snapshot(files);
+    expect(original.pages.length).toBeGreaterThan(0);
+    await cloud.restore(original);
+    const out = mkdtempSync(join(tmpdir(), "atlas-export-"));
+    await fileBackend(out).restore(await snapshot(cloud));
+    const round = await snapshot(fileBackend(out));
+    expect(norm(round)).toEqual(norm(original));
+  });
+
+  it("converts a Markdown page on its first save, then checks versions", async () => {
+    const [note] = await cloud.pages("notes");
+    expect(note.markdown).toBeTruthy();
+    const blocks = [{ id: "b1", type: "paragraph", content: [{ type: "text", text: "Converted" }] }];
+    const r = await cloud.savePage("notes", note.id, { ...note, blocks }, 0);
+    expect(r).toMatchObject({ conflict: false, version: 1 });
+    expect(await cloud.savePage("notes", note.id, { ...note, blocks }, 0)).toMatchObject({ conflict: true });
+    const saved = await cloud.page("notes", note.id);
+    expect(saved).toMatchObject({ version: 1, blocks });
+    expect(saved).not.toHaveProperty("markdown");
+  });
+
+  it("replies in threads and files captures as Claude", async () => {
+    const [note] = await cloud.pages("notes");
+    await cloud.changeThreads("notes", note.id, {
+      op: "create",
+      thread: { id: "q1", kind: "claude", anchor: { blockId: "b", quote: "q" } },
+      comment: { id: "c1", body: "Is this current?" },
+      by: "me",
+    });
+    const threads = await cloud.changeThreads("notes", note.id, {
+      op: "reply",
+      threadId: "q1",
+      comment: { id: "c2", body: "Yes." },
+      by: "claude",
+    });
+    expect(threads.find((t) => t.id === "q1")?.comments.map((c) => c.userId)).toEqual(["me", "claude"]);
+    expect((await cloud.allThreads())[`notes:${note.id}`].some((t) => t.id === "q1")).toBe(true);
+
+    await cloud.changeCaptures({ op: "add", id: "k9", text: "file me" });
+    const caps = await cloud.changeCaptures({ op: "done", id: "k9", reply: "Filed.", note: note.id });
+    expect(caps.find((c) => c.id === "k9")).toMatchObject({ status: "done", note: note.id });
+  });
+});

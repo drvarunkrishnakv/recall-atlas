@@ -25,6 +25,12 @@ jobs:
       - run: npm ci
       - name: Format, typecheck, unit tests, build (fixture content only)
         run: npm run check
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Firestore rules and cloud API in the Firebase emulators
+        run: npm run test:cloud
       - name: Browser tests at desktop, iPad and Android sizes
         run: |
           npx playwright install --with-deps chromium

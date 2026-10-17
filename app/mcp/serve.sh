@@ -3,12 +3,12 @@
 # 127.0.0.1:5190 and a Cloudflare quick tunnel to that port only. Prints the address to give
 # Grok Bot. Ctrl-C (or killing this script) stops both.
 #
-#   ATLAS_CONTENT_DIR=../output/notes-pilot/content npm run discuss:serve
+#   npm run discuss:serve                                            on Firestore
+#   ATLAS_CONTENT_DIR=../output/notes-pilot/content npm run discuss:serve   on the content folder
 #
 # A quick tunnel gets a new address each time; a named tunnel on your own domain replaces it later.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-: "${ATLAS_CONTENT_DIR:?Set ATLAS_CONTENT_DIR to the content folder of the notes repo}"
 command -v cloudflared >/dev/null || { echo "Install cloudflared first: brew install cloudflared" >&2; exit 1; }
 [ -f mcp/dist/atlas-mcp.mjs ] || npm run --silent mcp:build
 

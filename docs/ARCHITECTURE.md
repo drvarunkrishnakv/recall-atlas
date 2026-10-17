@@ -78,13 +78,17 @@ load and re-adds the highlight; a thread whose text is deleted becomes "detached
 
 ## Data model (Firestore)
 
-| Collection | Fields |
+Each document keeps its data as one JSON string, `json` (BlockNote's nested table cells and
+undefined fields aren't valid Firestore values). Shapes are in `app/src/lib/cloud-docs.ts`.
+
+| Document | Fields |
 |---|---|
-| `notes/{noteId}` | `title, paper, subject, topic, status (draft/in-review/live), blocks (BlockNote JSON), version, updated` |
-| `notes/{noteId}/history/{version}` | Full body snapshot, author, reason |
-| `cards/{cardId}` | `kind (case/body/provision/event/concept), title, summary, blocks, version` |
-| `comments/{id}` | `page, kind (comment/sticky/claude), anchor {blockId, quote}, resolved, detached, comments [{userId, body, createdAt}]` |
-| `proposals/{id}` | `noteId, section, change {find, replace} or {row}, source {title, url, date}, reason, status (pending/approved/rejected/applied)` |
+| `notes/{noteId}`, `cards/{cardId}` | `title, version, updated, snapshotAt` and `json` = the page (meta + `blocks`, or `markdown` until first opened) |
+| `notes/{noteId}/history/{ms}-v{n}` | The previous version (or `-original` Markdown), at most every 10 minutes of editing |
+| `comments/{collection}-{id}` | `json` = `{threads}` for that page |
+| `discussions/{collection}-{id}` | `json` = `{discussions}` for that page |
+| `study/progress`, `study/captures` | `json` = revision progress, and quick captures |
+| `proposals/{id}` (M4) | `noteId, section, change {find, replace} or {row}, source {title, url, date}, reason, status` |
 
 - The syllabus tree (papers, subjects, topics, planned notes) is not private, so it
   ships in the app as JSON.
@@ -94,13 +98,17 @@ load and re-adds the highlight; a thread whose text is deleted becomes "detached
 ## Privacy and security
 
 - This repository is public. It holds **no note content**, no credentials and no source text.
-- Firestore rules allow reads and writes only when `request.auth.uid` equals the owner's UID.
-- Until Firebase (M3), the Vite dev server's save API writes the files above. Writes are
-  accepted only from this Mac (loopback), only from the app's origin, and only with the
-  `X-Atlas` header; page ids are validated to block path tricks.
+- Firestore rules (`firestore.rules`) allow reads and writes only to an account carrying the
+  `atlasOwner` custom claim, which only the Admin SDK can set (`atlas owner <uid|email>`).
+  A signed-out visitor sees only the sign-in button. The web config in `app/.env.local`
+  identifies the project; it is not a secret.
+- Locally (`npm run dev:fixture`, `dev:notes`, the tests) the Vite dev server's save API
+  writes the files above. Writes are accepted only from this Mac (loopback), only from the
+  app's origin, and only with the `X-Atlas` header; page ids are validated to block path tricks.
 - Claude works through `app/cli/atlas.ts` (list comments, reply, show a page, replace one
-  exact phrase). In M3 it moves to the Firebase Admin SDK, with its service-account key
-  outside the repo (for example `~/.config/mains-atlas/`).
+  exact phrase). It runs on Firestore through the Firebase Admin SDK, with its
+  service-account key outside the repo (`~/.config/mains-atlas/service-account.json`), or on
+  a content folder when `ATLAS_CONTENT_DIR` is set.
 - Other bots (Grok Bot and the like) join note discussions through the Atlas MCP server
   (`app/mcp/`). Its only write is posting the bot's own turn, when it's that persona's turn,
   with a source. It never edits notes or comments. Over HTTP it listens on 127.0.0.1 only,
@@ -129,11 +137,11 @@ app/                 Vite React app (editor, side peek, comments, search)
 app/src/editor/      BlockNote schema, page view, one-time Markdown conversion
 app/src/comments/    Thread store, anchors, comments UI
 app/src/lib/         Pure helpers shared with the server and CLI (Markdown export, threads)
-app/server/          Local save API (Vite dev middleware) until Firestore
+app/server/          Local save API (Vite dev middleware); the CLI/MCP backends (files, Firestore)
 app/cli/atlas.ts     Node CLI for Claude: comments, replies, page text, exact edits, captures, progress
 app/src/dashboard.tsx Home, subject database, Revise today, Claude inbox
-app/src/content/     Syllabus tree (public structure only) and the content store
-firebase.json        Hosting + Firestore config
-firestore.rules      Owner-only rules
+app/src/content/     Syllabus tree (public structure only), the content store, Firebase and the cloud API
+firebase.json        Hosting, Firestore rules and emulator config
+firestore.rules      Owner-only rules (tested in the emulator: npm run test:cloud)
 docs/                Architecture, build plan, decisions, handoff
 ```

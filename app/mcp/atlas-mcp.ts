@@ -6,7 +6,8 @@
 //   npm run mcp:build                     bundle into mcp/dist/atlas-mcp.mjs (one file starts in
 //                                         a second; the SDK's many small files are slow on this drive)
 //
-// Reads and writes the same files as the dev save API (ATLAS_CONTENT_DIR). The HTTP key is
+// Works on the content folder in ATLAS_CONTENT_DIR when it's set (the dev save API's files),
+// otherwise on Firestore through the Admin SDK, like the CLI. The HTTP key is
 // ATLAS_MCP_KEY, or a random one kept in .atlas-local/mcp-key (git-ignored) and printed on start.
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -16,13 +17,21 @@ import { fileURLToPath } from "node:url";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { buildServer } from "./server.ts";
+import { fileBackend, type Backend } from "../server/backend.ts";
 
 // The app folder: one up from mcp/, or two up from the bundle in mcp/dist/.
 const here = dirname(fileURLToPath(import.meta.url));
 const appRoot = existsSync(join(here, "..", "package.json")) ? join(here, "..") : join(here, "..", "..");
-const dir = process.env.ATLAS_CONTENT_DIR ?? join(appRoot, ".atlas-local");
-if (!existsSync(dir)) {
-  console.error("Set ATLAS_CONTENT_DIR to the notes repo's content/ folder.");
+const dir = process.env.ATLAS_CONTENT_DIR;
+if (dir && !existsSync(dir)) {
+  console.error(`ATLAS_CONTENT_DIR ${dir} doesn't exist.`);
+  process.exit(1);
+}
+let db: Backend;
+try {
+  db = dir ? fileBackend(dir) : (await import("../server/firestore-backend.ts")).firestoreBackend();
+} catch (e) {
+  console.error(e instanceof Error ? e.message : String(e));
   process.exit(1);
 }
 
@@ -40,7 +49,7 @@ function httpKey(): string {
 
 const portArg = process.argv.indexOf("--http");
 if (portArg === -1) {
-  await buildServer(dir).connect(new StdioServerTransport());
+  await buildServer(db).connect(new StdioServerTransport());
 } else {
   const port = Number(process.argv[portArg + 1] ?? 5190);
   const key = Buffer.from(httpKey());
@@ -75,7 +84,7 @@ if (portArg === -1) {
     } catch {
       return deny(400, "Bad JSON");
     }
-    const server = buildServer(dir);
+    const server = buildServer(db);
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on("close", () => {
       void transport.close();

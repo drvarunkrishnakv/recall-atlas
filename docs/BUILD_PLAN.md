@@ -48,8 +48,11 @@ Moved ahead of Firebase at the user's request: try it on the Mac first.
 
 ## M3 · Firebase backend and first deploy
 
-- **You:** create a Firebase project (suggested ID `mains-atlas`), enable Google sign-in
-  and Firestore, and run `firebase login` once on this Mac.
+Built on `claude/firebase-m3` (2026-10-17): everything below except the deploy, which waits
+for the user's say-so. Project `recall-atlas-511913`.
+
+- **You:** create a Firebase project, enable Google sign-in and Firestore, and run
+  `firebase login` once on this Mac. Done. Still to do: a service-account key for the CLI.
 - Owner-only Firestore rules, plus tests for them in the Firestore emulator.
 - Swap the save API for Firestore behind the same store interface (`content/store.ts`,
   `AtlasThreadStore`); import the JSON pages and comment files.

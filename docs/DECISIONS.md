@@ -1,5 +1,30 @@
 # Decisions
 
+## 2026-10-17 — Firebase backend (M3): same routes, Firestore underneath
+
+- Firebase project `recall-atlas-511913` (named "Recall-atlas" by the user; the plan had
+  suggested `mains-atlas`). The web config lives only in git-ignored `app/.env.local`.
+- The app keeps its one API choke point (`api(path)` in `content/store.ts`). The cloud build
+  (`vite --mode cloud`) answers the same routes from Firestore (`content/cloud.ts`); the local
+  build keeps the dev save API, so local work, the fixture and every existing test are
+  unchanged. MODE is checked inline so the local bundle carries no Firebase code.
+- Each Firestore document stores its data as one JSON string (`json`). BlockNote table cells
+  are arrays inside arrays, which Firestore can't hold, and undefined fields would be refused.
+  Title, version and updated stay as plain fields for the console. A page must stay under
+  Firestore's 1 MiB document limit; the largest today (a study file) is about 270 KB.
+- Owner-only access is a custom claim, `atlasOwner`, set with the Admin SDK
+  (`atlas owner <uid|email>`), not a UID in `firestore.rules`: the public repo then holds no
+  account id, and rules need no extra document read.
+- Comments, discussions, progress and captures are one document per page (or one each),
+  changed in transactions over the same pure operations the file API uses.
+- The CLI and the MCP server share a `Backend` interface (`server/backend.ts`): files when
+  `ATLAS_CONTENT_DIR` is set, otherwise Firestore through the Admin SDK with a
+  service-account key kept outside the repo (`~/.config/mains-atlas/`). `atlas import` copies
+  the notes repo's content folder in once; `atlas export` writes the Markdown mirror back out.
+- Saves need a connection (they run in transactions); reading works offline from
+  Firestore's cache. Signing out clears that cache from the device.
+- A hand-written service worker caches only the app shell, never note content.
+
 ## 2026-10-17 — Study files are parented notes
 
 - The user is piloting a long "study file" beside each short note. It is a note page with a

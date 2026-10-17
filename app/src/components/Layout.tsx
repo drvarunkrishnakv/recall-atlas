@@ -234,6 +234,17 @@ export function Layout() {
             <Icon name="search" />
           </button>
           <ThemeToggle />
+          {import.meta.env.MODE === "cloud" && (
+            <button
+              type="button"
+              className="iconbtn"
+              aria-label="Sign out"
+              title="Sign out (clears this device's offline copy)"
+              onClick={() => void import("./AuthGate").then((m) => m.signOutAndClear())}
+            >
+              <Icon name="signout" />
+            </button>
+          )}
         </div>
         {status === "ready" ? (
           <Outlet />
