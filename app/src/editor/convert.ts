@@ -3,7 +3,7 @@
 // chart and flowchart blocks; a "> [!PRELIMS]" quote becomes a callout.
 import { BlockNoteEditor } from "@blocknote/core";
 import { schema } from "./schema";
-import type { Block, InlineItem } from "../lib/blocks";
+import { citeLinks, type Block, type InlineItem } from "../lib/blocks";
 
 const LINK_BASE = "https://atlas.invalid/";
 
@@ -58,5 +58,5 @@ let headless: BlockNoteEditor<typeof schema.blockSchema, typeof schema.inlineCon
 export async function markdownToBlocks(md: string): Promise<Block[]> {
   headless ??= BlockNoteEditor.create({ schema });
   const parsed = headless.tryParseMarkdownToBlocks(prepareMarkdown(md)) as unknown as Block[];
-  return fixBlocks(parsed);
+  return citeLinks(fixBlocks(parsed));
 }

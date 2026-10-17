@@ -30,7 +30,7 @@ import {
   type Page,
 } from "../content/store";
 import { locateNote } from "../content/syllabus";
-import { headings, type Block } from "../lib/blocks";
+import { headings, pageCites, type Block } from "../lib/blocks";
 import { markRevised, noteOpened, setPageThreads, undoRevised, useStudy } from "../content/study";
 import { dueLabel, nextDue, today } from "../lib/progress";
 import { ConfidenceSelect } from "../dashboard";
@@ -117,6 +117,19 @@ function slashItems(editor: AtlasEditor): DefaultReactSuggestionItem[] {
       onItemClick: () => insertOrUpdateBlockForSlashMenu(editor, { type: "callout", props: { tone: "note" } }),
     },
     {
+      title: "Cite a source",
+      subtext: "A numbered source marker after the sentence",
+      aliases: ["source", "cite", "citation", "reference"],
+      group: "Atlas",
+      icon: <span className="slash-ic">¹</span>,
+      onItemClick: () => {
+        const url = window.prompt("Source link (https://…)")?.trim();
+        if (!url || !/^https?:\/\//.test(url)) return;
+        const label = window.prompt("Short label, e.g. PRS, Gazette, SC judgment")?.trim() || new URL(url).hostname;
+        editor.insertInlineContent([{ type: "cite", props: { label, url } }]);
+      },
+    },
+    {
       title: "Link to card or note",
       subtext: "Type @ anywhere to link a concept card or note",
       aliases: ["link", "card", "mention", "@"],
@@ -174,6 +187,27 @@ function mentionItems(editor: AtlasEditor, query: string, self: string): Default
 }
 
 type SaveState = "saved" | "saving" | "error" | "conflict";
+
+/** The page's citations, numbered in the same order as the markers in the text. */
+function SourcesList({ blocks }: { blocks: Block[] }) {
+  const cites = pageCites(blocks ?? []);
+  if (!cites.length) return null;
+  return (
+    <details className="sources">
+      <summary>Sources ({cites.length})</summary>
+      <ol>
+        {cites.map((c, i) => (
+          <li key={i}>
+            <a href={c.url} target="_blank" rel="noopener noreferrer">
+              {c.label}
+            </a>{" "}
+            <span className="muted">{c.url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]}</span>
+          </li>
+        ))}
+      </ol>
+    </details>
+  );
+}
 
 export function PageView({ collection, id, inPeek = false }: { collection: Collection; id: string; inPeek?: boolean }) {
   const page = usePage(collection, id);
@@ -674,6 +708,8 @@ function PageEditor({ page: initial, inPeek }: { page: Page; inPeek: boolean }) 
           <CommentMargin threads={threads} store={store} selectedId={selectedId} onSelect={select} root={root} />
         )}
       </div>
+
+      <SourcesList blocks={pageRef.current.blocks} />
 
       {backlinks.length > 0 && (
         <section className="backlinks">

@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { backlinks, blocksToMarkdown, headings, pageRefs, pageToMarkdown, searchPages, type Block } from "./blocks";
+import {
+  backlinks,
+  blocksToMarkdown,
+  citeInline,
+  citeLinks,
+  headings,
+  pageCites,
+  pageRefs,
+  pageToMarkdown,
+  searchPages,
+  type Block,
+} from "./blocks";
 
 const term = (id: string, label: string, kind = "card") => ({ type: "term", props: { kind, id, label } });
 const doc: Block[] = [
@@ -96,4 +107,61 @@ describe("searchPages", () => {
     expect(searchPages(pages, "kihoto upheld")[0]).toMatchObject({ blockId: "p1" });
   });
   it("needs every word", () => expect(searchPages(pages, "kihoto zebra")).toEqual([]));
+});
+
+describe("citations", () => {
+  const link = (label: string, href: string) => ({
+    type: "link",
+    href,
+    content: [{ type: "text", text: label, styles: {} }],
+  });
+  const text = (t: string) => ({ type: "text", text: t, styles: {} });
+  it("moves parenthesised source links out of the sentence as markers", () => {
+    const out = citeInline([
+      text("Seats wait for the census ("),
+      link("PRS", "https://prs.example/a"),
+      text(", "),
+      link("Gazette", "https://gazette.example/b"),
+      text("). Next sentence."),
+    ]);
+    expect(out).toEqual([
+      text("Seats wait for the census"),
+      { type: "cite", props: { label: "PRS", url: "https://prs.example/a" } },
+      { type: "cite", props: { label: "Gazette", url: "https://gazette.example/b" } },
+      text(". Next sentence."),
+    ]);
+  });
+  it("handles two citations in one run of text, and page references", () => {
+    const out = citeInline([
+      text("Turnout was higher ("),
+      link("AIR", "https://air.example"),
+      text("). Few were candidates ("),
+      link("16th FC", "https://fc.example"),
+      text(", p.169–173). End."),
+    ]);
+    expect(out).toEqual([
+      text("Turnout was higher"),
+      { type: "cite", props: { label: "AIR", url: "https://air.example" } },
+      text(". Few were candidates"),
+      { type: "cite", props: { label: "16th FC, p.169–173", url: "https://fc.example" } },
+      text(". End."),
+    ]);
+  });
+  it("leaves ordinary links alone", () => {
+    const items = [text("See "), link("the report", "https://x.example"), text(" for more.")];
+    expect(citeInline(items)).toEqual(items);
+  });
+  it("works in table cells, writes markers back as Markdown and lists them in order", () => {
+    const blocks = citeLinks([
+      {
+        type: "table",
+        content: {
+          type: "tableContent",
+          rows: [{ cells: [[text("In force ("), link("Scroll", "https://s.example"), text(")")]] }],
+        } as unknown as Block["content"],
+      },
+    ]);
+    expect(pageCites(blocks)).toEqual([{ label: "Scroll", url: "https://s.example" }]);
+    expect(blocksToMarkdown(blocks)).toContain("| In force ([Scroll](https://s.example)) |");
+  });
 });

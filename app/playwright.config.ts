@@ -13,6 +13,7 @@ if (!process.env.ATLAS_E2E_DIR) {
 
 export default defineConfig({
   testDir: "e2e",
+  globalSetup: "./e2e/warmup.ts",
   timeout: 30_000,
   workers: 1,
   use: { baseURL: "http://localhost:4174", trace: "retain-on-failure" },

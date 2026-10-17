@@ -74,6 +74,8 @@ Moved ahead of Firebase at the user's request: try it on the Mac first.
 - Write more Polity notes directly in the app, then other GS2 subjects.
 - Make the Claude Docs copies a read-only archive, and drop the Docs mirror path.
 - Optional later: a "recently updated" list and printing to PDF.
+- Later (user's idea, 2026-10-16): a bank of ready introductions and conclusions for each
+  microtheme, for answer writing.
 
 ## Testing on every milestone
 

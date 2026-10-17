@@ -9,11 +9,19 @@
 //   node cli/atlas.ts captures [--all]              your scratch-pad captures (open ones by default)
 //   node cli/atlas.ts file-capture <id> "…" [P10]   mark a capture done, saying what Claude did
 //   node cli/atlas.ts progress                      read / revised / confidence / next due per note
+//   node cli/atlas.ts cite-sources cards/<id>       move "(Source)" links out of sentences into citation markers
 //
 // Claude never resolves your threads and only edits facts you approved or asked for.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { blocksToMarkdown, type Block, type InlineItem, type PageDoc } from "../src/lib/blocks.ts";
+import {
+  blocksToMarkdown,
+  citeLinks,
+  pageCites,
+  type Block,
+  type InlineItem,
+  type PageDoc,
+} from "../src/lib/blocks.ts";
 import { waitingForClaude, type StoredThread } from "../src/lib/threads.ts";
 import {
   changeCaptures,
@@ -182,8 +190,24 @@ switch (cmd) {
     break;
   }
 
+  case "cite-sources": {
+    const { collection, id } = parseRef(args[0]);
+    const page = readPage(collection, id);
+    const before = pageCites(page.blocks).length;
+    const blocks = citeLinks(page.blocks);
+    const after = pageCites(blocks).length;
+    if (after === before) {
+      console.log(`${collection}/${id}: no inline source links to move.`);
+      break;
+    }
+    const r = savePage(dir!, collection, id, { ...page, blocks }, page.version);
+    if (r.conflict) fail("The page changed while editing; try again.");
+    console.log(`${collection}/${id}: ${after - before} sources moved into markers; saved as v${r.version}.`);
+    break;
+  }
+
   default:
     fail(
-      "Commands: pages | show <ref> [--ids] | comments [--waiting|--all] | reply <ref> <thread> <text> | replace <ref> <old> <new> | captures [--all] | file-capture <id> <text> [note] | progress",
+      "Commands: pages | show <ref> [--ids] | comments [--waiting|--all] | reply <ref> <thread> <text> | replace <ref> <old> <new> | captures [--all] | file-capture <id> <text> [note] | progress | cite-sources <ref>",
     );
 }

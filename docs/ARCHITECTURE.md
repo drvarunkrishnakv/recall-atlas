@@ -56,8 +56,10 @@ gamification, or any Notion feature we don't use.
 
 Each page (note or card) is **BlockNote block JSON**, the source of truth:
 `content/<notes|cards>/<id>.json` = `{id, title, version, updated, …meta, blocks}`.
-Atlas adds four schema items: `chart` (JSON spec, drawn as SVG), `flowchart` (Mermaid),
-`callout` (note / prelims / warning) and the inline `term` chip (`{kind: card|note, id, label}`).
+Atlas adds five schema items: `chart` (JSON spec, drawn as SVG), `flowchart` (Mermaid),
+`callout` (note / prelims / warning), the inline `term` chip (`{kind: card|note, id, label}`)
+and the inline `cite` marker (`{label, url}`): a small numbered source marker after the
+sentence, with a Sources list at the foot of the page (docs/STYLE_GUIDE.md).
 
 Every save also writes `<id>.md`, a **Markdown copy** in the Atlas dialect (`[[card-id|label]]`,
 ```` ```chart ````, ```` ```mermaid ````, `> [!PRELIMS]`), for git diffs, other agents and as

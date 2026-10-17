@@ -1,6 +1,7 @@
 # Content conventions
 
-These apply to every topic note and concept card, wherever they are stored.
+These apply to every topic note and concept card, wherever they are stored. How the prose
+reads (sentences, words to avoid, analysis, numbers, citations) is in docs/STYLE_GUIDE.md.
 
 ## Topic notes
 
@@ -22,10 +23,12 @@ It is a revision note for Mains, not a textbook chapter. Sections, in order:
 
 ## Facts and sources
 
-- Every fact has a source link. Prefer primary sources: the Constitution, Acts, judgments,
-  PIB, PRS, commission reports. Then reputable press.
+- Every fact has a source, shown as a citation marker after its sentence, never inside it.
+  Prefer primary sources: the Constitution, Acts, judgments, PIB, PRS, commission reports.
+  Then reputable press.
 - Anything that can change carries a date ("as of Oct 2026"). Nothing is "recent" without a date.
-- Analysis reads as analysis ("arguably", "critics argue") and needs no source.
+- Analysis names who holds the view, or is stated plainly as a takeaway (see the style
+  guide); it needs no source.
 - A fact that can't be verified goes to Open checks, not into the text.
 - Paraphrase; quotes stay under 15 words.
 
