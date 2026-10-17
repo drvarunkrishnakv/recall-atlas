@@ -17,15 +17,21 @@ import {
 } from "firebase/firestore";
 
 const env = import.meta.env;
-// The live site signs in through its own domain: phones and Safari block the cross-site
-// storage a redirect through another domain needs. That domain's /__/auth/handler must be an
-// authorised redirect URI on the project's Google OAuth client. Preview channels and local
-// runs sign in through the project's firebaseapp.com domain.
-const liveSite = location.hostname === `${env.VITE_FIREBASE_PROJECT_ID}.web.app`;
+// On Firebase Hosting (the live site and preview channels) sign in through the page's own
+// domain: Android Chrome and Safari partition storage per site, so a redirect through another
+// domain loses its state ("missing initial state"). Hosting serves /__/auth/handler on every
+// one of the project's domains; each must be an authorised redirect URI on the project's
+// Google OAuth client. Local runs sign in through the project's firebaseapp.com domain.
+const project = env.VITE_FIREBASE_PROJECT_ID;
+const host = location.hostname;
+const onHosting =
+  host === `${project}.web.app` ||
+  host === `${project}.firebaseapp.com` ||
+  (host.startsWith(`${project}--`) && host.endsWith(".web.app"));
 
 export const firebaseApp = initializeApp({
   apiKey: env.VITE_FIREBASE_API_KEY,
-  authDomain: liveSite ? location.host : env.VITE_FIREBASE_AUTH_DOMAIN,
+  authDomain: onHosting ? location.host : env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,

@@ -29,9 +29,12 @@
   25 discussions, progress, 1 capture); owner claim set on the user's Google account;
   Hosting preview channel `preview` (expires 2026-10-24). Signed-out Firestore REST reads
   return 403. The live site is not deployed.
-- **Next:** the user tries the preview on desktop, Android and iPad. Before going live, add
-  `https://recall-atlas-511913.web.app/__/auth/handler` as a redirect URI on the project's
-  Google OAuth web client (the live site signs in through its own domain), then
+- **Sign-in on Android:** the first preview sent the redirect through firebaseapp.com and
+  Android Chrome's storage partitioning lost its state ("missing initial state"). Every
+  Hosting domain now signs in through itself, so each needs its `/__/auth/handler` as a
+  redirect URI on the Google OAuth web client: the live `web.app` one and the preview
+  channel's (`recall-atlas-511913--preview-2lcp01pe.web.app`, stable for the `preview` channel).
+- **Next:** the user tries the preview on desktop, Android and iPad. Then
   `firebase deploy --only hosting` on the user's say-so. At the switch, drop
   `ATLAS_CONTENT_DIR` from the scheduled tasks and add `atlas export` to the routine.
 
