@@ -40,9 +40,15 @@
   home-screen apps (where a popup opens in Safari, outside the app). Not yet retried on the phone.
 - **Sync checked:** a comment the user left on Android (Ask Claude, P06) was read from
   Firestore with the CLI, and Claude's reply was written back the same way.
-- **Next:** the user tries the preview on desktop, Android and iPad. Then
-  `firebase deploy --only hosting` on the user's say-so. At the switch, drop
-  `ATLAS_CONTENT_DIR` from the scheduled tasks and add `atlas export` to the routine.
+- **Checked by the user:** sign-in and comments from Android (Chrome and the home-screen app)
+  and iPad (Chrome); Claude read both comments from Firestore and replied.
+- **Live 2026-10-17** (on the user's say-so): `firebase deploy --only hosting` from
+  `claude/firebase-m3` (99bd375), https://recall-atlas-511913.web.app. Google accepts its
+  sign-in address; signed-out Firestore reads return 403. Redirect URIs on the OAuth web
+  client: firebaseapp.com, web.app and the `preview` channel.
+- **Next:** merge PR #33 (live is ahead of `main` until then). Drop `ATLAS_CONTENT_DIR` from
+  the scheduled tasks so Claude works on Firestore, and add `atlas export` to the routine to
+  refresh the notes repo's mirror. Not yet tried: the iPad home-screen app (redirect sign-in).
 
 ## Discussions: Claude and Grok on each note — 2026-10-17
 
