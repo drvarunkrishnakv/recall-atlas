@@ -28,7 +28,22 @@ if (!CLOUD) {
 if (import.meta.env.MODE === "cloud" && import.meta.env.PROD && "serviceWorker" in navigator)
   window.addEventListener("load", () => void navigator.serviceWorker.register("/sw.js").catch(() => undefined));
 
+// An AI app asking to connect to the MCP server (OAuth); cloud build only, behind its sign-in.
+const Consent = import.meta.env.MODE === "cloud" ? lazy(() => import("./oauth/Consent")) : null;
+
 const router = createBrowserRouter([
+  ...(Consent
+    ? [
+        {
+          path: "/oauth/authorize",
+          element: (
+            <Suspense>
+              <Consent />
+            </Suspense>
+          ),
+        },
+      ]
+    : []),
   {
     element: <Layout />,
     children: [

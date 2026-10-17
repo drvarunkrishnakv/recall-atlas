@@ -1,5 +1,25 @@
 # Handoff
 
+## OAuth for the MCP server — 2026-10-17
+
+- **Branch:** `claude/mcp-oauth`, from `main` (089d8c8). Assisting tool: Claude Code.
+- **Why:** the Gemini app's custom connected apps and Claude's custom connectors only take an
+  address plus OAuth, not a key.
+- **Server:** `server/oauth.ts` (metadata, `/oauth/register`, `/oauth/client`,
+  `/oauth/approve`, `/oauth/token`, token checks), wired into `mcp/function.ts`; Hosting
+  rewrites `/.well-known/**` and those `/oauth/*` paths to the function. `/mcp` 401s carry
+  `WWW-Authenticate: Bearer resource_metadata=…`.
+- **App:** `/oauth/authorize` consent page (`src/oauth/Consent.tsx`, cloud build only) behind
+  the Google sign-in; the owner picks the AI. New AI id `claudeapp` ("Claude app").
+- **CLI:** `atlas oauth list | revoke <id>`.
+- **Checks:** `npm run check` (56 unit tests, build); `npm run test:cloud` 19 passed (6 new:
+  metadata and 401 hint, https-only registration, owner-only approval from the app's origin,
+  single-use code with PKCE, MCP call with the token labelled "Claude app", refresh rotation,
+  revocation, confidential-client secret). Consent flow driven in the emulator build: sign in,
+  approve, back to the app with code and state. Screenshots: `docs/design/oauth/`.
+- **Not tested against the real apps yet:** Gemini app and Claude.ai, after deploy. Gemini
+  users report OAuth failures in its relay that aren't on the server side.
+
 ## Hosted MCP server for any AI — 2026-10-17
 
 - **Branch:** `claude/mcp-hosted`, from `main` (fb0254a), with `claude/grok-flags` (PR #32)

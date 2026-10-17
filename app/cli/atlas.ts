@@ -23,6 +23,7 @@
 //   node cli/atlas.ts owner [uid|email] [--remove]   list accounts, or mark the one that may open the app
 //   node cli/atlas.ts mcp-key add <grok|gemini|chatgpt> ["label"]   a key for one AI (shown once)
 //   node cli/atlas.ts mcp-key list | revoke <id>      the MCP server's keys
+//   node cli/atlas.ts oauth list | revoke <id>        apps connected by OAuth (Gemini app, Claude…)
 //
 // Claude never resolves your threads and only edits facts you approved or asked for.
 import { existsSync, readFileSync } from "node:fs";
@@ -58,8 +59,8 @@ async function cloud(): Promise<Backend> {
   }
 }
 
-// import, export, owner and mcp-key always work on Firestore; the rest on ATLAS_CONTENT_DIR when it's set.
-const CLOUD_ONLY = ["import", "export", "owner", "mcp-key"];
+// import, export, owner, mcp-key and oauth always work on Firestore; the rest on ATLAS_CONTENT_DIR when it's set.
+const CLOUD_ONLY = ["import", "export", "owner", "mcp-key", "oauth"];
 if (dir && !existsSync(dir)) fail(`ATLAS_CONTENT_DIR ${dir} doesn't exist.`);
 const db: Backend = dir && !CLOUD_ONLY.includes(cmd ?? "") ? fileBackend(dir) : await cloud();
 
@@ -391,8 +392,29 @@ switch (cmd) {
     break;
   }
 
+  case "oauth": {
+    const { getFirestore } = await import("firebase-admin/firestore");
+    const { adminApp } = await import("../server/firestore-backend.ts");
+    const { listClients, revokeClient } = await import("../server/oauth.ts");
+    const fs = getFirestore(adminApp());
+    if (args[0] === "list") {
+      const list = await listClients(fs);
+      if (!list.length) console.log("No apps connected by OAuth yet.");
+      for (const c of list)
+        console.log(
+          `${c.id.slice(0, 14)}\t${c.ai ?? "(not approved)"}\t${c.name}\t${new URL(c.redirectUris[0]).host}\t` +
+            `${c.revokedAt ? `revoked ${c.revokedAt.slice(0, 10)}` : `last used ${c.lastUsedAt?.slice(0, 16) ?? "never"}`}`,
+        );
+    } else if (args[0] === "revoke") {
+      const c = await revokeClient(fs, args[1] ?? "");
+      if (!c) fail("Give the id (or its start) of exactly one app, from oauth list.");
+      console.log(`Revoked "${c.name}" and its tokens. It must sign in again to reconnect.`);
+    } else fail("Usage: oauth list | revoke <id>");
+    break;
+  }
+
   default:
     fail(
-      "Commands: pages | show <ref> [--ids] | comments [--waiting|--all] | reply <ref> <thread> <text> | replace <ref> <old> <new> | captures [--all] | file-capture <id> <text> [note] | progress | cite-sources <ref> | discussions [--all] | turns | post <id> <text> | conclude <id> <text> | discuss-import <ref> <file> | import <dir> | export <dir> | owner [uid|email] | mcp-key add|list|revoke",
+      "Commands: pages | show <ref> [--ids] | comments [--waiting|--all] | reply <ref> <thread> <text> | replace <ref> <old> <new> | captures [--all] | file-capture <id> <text> [note] | progress | cite-sources <ref> | discussions [--all] | turns | post <id> <text> | conclude <id> <text> | discuss-import <ref> <file> | import <dir> | export <dir> | owner [uid|email] | mcp-key add|list|revoke | oauth list|revoke",
     );
 }

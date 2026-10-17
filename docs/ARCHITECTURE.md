@@ -114,7 +114,9 @@ undefined fields aren't valid Firestore values). Shapes are in `app/src/lib/clou
   are a bot's own turn (when it's that persona's turn, with a source) and flags on exact quotes
   (capped per note). It never edits notes or comments. Each AI has its own key (a SHA-256 hash
   in Firestore `mcpKeys/`, closed to the app), which also names the AI on what it posts;
-  browser requests are refused. On the Mac it can also run locally (`npm run mcp:http`).
+  browser requests are refused. Apps that sign in by OAuth (the Gemini app, Claude.ai) get
+  tokens instead, after the owner approves them on the app's `/oauth/authorize` page
+  (`server/oauth.ts`). On the Mac it can also run locally (`npm run mcp:http`).
   Bots' text is shown as plain text and treated as material, never as instructions to Claude.
 - The private notes repo (`drvarunkrishnakv/upsc-mains-atlas-notes`) keeps a Markdown
   mirror exported from Firestore, so other agents can read it and git keeps the history.

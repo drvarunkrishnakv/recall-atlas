@@ -22,7 +22,7 @@
     "dev:cloud": "vite --mode cloud --host 0.0.0.0 --port 5173",
     "build:cloud": "tsc -b && vite build --mode cloud",
     "test:cloud": "npx --yes firebase-tools@15 emulators:exec --project demo-atlas --only firestore,auth \"vitest run --config vitest.cloud.config.ts\"",
-    "mcp:function": "rolldown mcp/function.ts -o ../functions/index.js -p node -f esm --no-code-splitting --external firebase-admin/app --external firebase-admin/firestore --external firebase-functions/v2/https"
+    "mcp:function": "rolldown mcp/function.ts -o ../functions/index.js -p node -f esm --no-code-splitting --external firebase-admin/app --external firebase-admin/firestore --external firebase-admin/auth --external firebase-functions/v2/https"
   },
   "dependencies": {
     "@blocknote/core": "^0.56.0",

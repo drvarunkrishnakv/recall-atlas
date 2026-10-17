@@ -17,6 +17,41 @@
         }
       },
       {
+        "source": "/.well-known/**",
+        "function": {
+          "functionId": "mcp",
+          "region": "asia-south1"
+        }
+      },
+      {
+        "source": "/oauth/register",
+        "function": {
+          "functionId": "mcp",
+          "region": "asia-south1"
+        }
+      },
+      {
+        "source": "/oauth/client",
+        "function": {
+          "functionId": "mcp",
+          "region": "asia-south1"
+        }
+      },
+      {
+        "source": "/oauth/approve",
+        "function": {
+          "functionId": "mcp",
+          "region": "asia-south1"
+        }
+      },
+      {
+        "source": "/oauth/token",
+        "function": {
+          "functionId": "mcp",
+          "region": "asia-south1"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

@@ -31,6 +31,8 @@ export const AIS = {
   grok: { name: "Grok", color: "#16161a", mark: "G" },
   gemini: { name: "Gemini", color: "#1f6feb", mark: "✦" },
   chatgpt: { name: "ChatGPT", color: "#10a37f", mark: "◎" },
+  /** Claude through a Claude.ai or phone-app connector, as opposed to Claude's own CLI ("claude"). */
+  claudeapp: { name: "Claude app", color: "#c4663f", mark: "✳" },
 } as const;
 export type AiId = keyof typeof AIS;
 export const AI_IDS = Object.keys(AIS) as AiId[];

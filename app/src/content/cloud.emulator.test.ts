@@ -83,7 +83,8 @@ describe("Firestore rules", () => {
   it("keep collections outside the Atlas closed, even to the owner", async () => {
     await denied(setDoc(doc(owner, "meta/owner"), { uid: "owner-uid" }));
     await denied(getDoc(doc(owner, "anything/else")));
-    await denied(getDoc(doc(owner, "mcpKeys/x")));
+    for (const closed of ["mcpKeys/x", "oauthClients/x", "oauthCodes/x", "oauthTokens/x"])
+      await denied(getDoc(doc(owner, closed)));
   });
 });
 

@@ -43,6 +43,13 @@ The tools: `atlas_list_notes`, `atlas_search`, `atlas_read_note`, `atlas_read_ca
 `atlas_my_turns`, `atlas_get_discussion`, `atlas_post_turn`, `atlas_flag`, `atlas_list_flags`.
 A bot can only post its own turns and raise flags; it can't edit notes or comments.
 
+**Apps that only sign in by OAuth** (the Gemini app's custom connected apps, Claude.ai and
+the Claude phone app's custom connectors, ChatGPT) need no key. Give them only the address
+above and leave any client ID and secret blank: they register themselves and send you to your
+Atlas site, where you sign in with your Google account, choose which AI it is, and press Allow.
+`atlas oauth list` shows connected apps; `atlas oauth revoke <id>` disconnects one and all its
+tokens.
+
 For local testing, `npm run discuss:serve` still runs the server on this Mac behind a quick
 tunnel (its address changes each run).
 

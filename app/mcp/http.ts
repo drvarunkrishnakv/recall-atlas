@@ -1,7 +1,8 @@
 // The Atlas MCP server over HTTP (Streamable HTTP, stateless, JSON responses), shared by the
-// hosted Cloud Function and `atlas-mcp.ts --http` on this Mac. Every request needs a key
-// ("Authorization: Bearer <key>", or "X-API-Key: <key>" for clients that only offer an API-key
-// field); the key decides which AI is calling. Browser requests (with an Origin) are refused.
+// hosted Cloud Function and `atlas-mcp.ts --http` on this Mac. Every request needs a key or an
+// OAuth access token ("Authorization: Bearer <…>", or "X-API-Key: <key>" for clients that only
+// offer an API-key field); it decides which AI is calling. Browser requests (with an Origin)
+// are refused.
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { Backend } from "../server/backend.ts";
@@ -10,12 +11,15 @@ import { buildServer } from "./server.ts";
 
 export interface McpHttpOptions {
   db: Backend;
-  /** The AI a key belongs to, or null for a wrong or revoked key. */
+  /** The AI a key or OAuth access token belongs to, or null for a wrong, expired or revoked one. */
   checkKey: (key: string) => Promise<AiId | null>;
+  /** Where OAuth clients find how to sign in (sent on a 401, per the MCP authorization spec). */
+  resourceMetadata?: string;
 }
 
-function deny(res: ServerResponse, status: number, msg: string) {
+function deny(res: ServerResponse, status: number, msg: string, headers: Record<string, string> = {}) {
   res.statusCode = status;
+  for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
   res.setHeader("Content-Type", "application/json");
   res.end(JSON.stringify({ error: msg }));
 }
@@ -36,7 +40,7 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
  * (Cloud Functions does); otherwise it is read here.
  */
 export async function handleMcp(
-  { db, checkKey }: McpHttpOptions,
+  { db, checkKey, resourceMetadata }: McpHttpOptions,
   req: IncomingMessage,
   res: ServerResponse,
   body?: unknown,
@@ -45,7 +49,13 @@ export async function handleMcp(
   const apiKey = req.headers["x-api-key"];
   const key = typeof apiKey === "string" ? apiKey : (req.headers.authorization ?? "").replace(/^Bearer\s+/i, "");
   const ai = key ? await checkKey(key.trim()) : null;
-  if (!ai) return deny(res, 401, "Missing or wrong key");
+  if (!ai)
+    return deny(
+      res,
+      401,
+      "Missing or wrong key",
+      resourceMetadata ? { "WWW-Authenticate": `Bearer resource_metadata="${resourceMetadata}"` } : {},
+    );
   if (req.method !== "POST") return deny(res, 405, "Use POST");
   let message = body;
   if (message === undefined)
