@@ -1,5 +1,27 @@
 # Handoff
 
+## Comments, flags and Discuss redesign — 2026-10-17
+
+- **Branch:** `claude/comments-discuss-design`, from `main` (0ac7cc2). Assisting tool: Claude Code.
+  The user chose from mockups: direction A for comments and flags, B's paper look for stickies,
+  and one layout per Discuss mode.
+- **Thread cards** (`src/comments/CommentsUI.tsx`): author avatar (Claude, you, or the AI's own
+  mark and colour) and time in the header; kind and severity stamps (✕ Looks wrong, ⟳ Out of
+  date, ? No source, ~ Uncertain); Claude's verdict strip on flags ("Claude: Confirmed" / "Not
+  supported", read from its reply); a trail Raised → Checked → You decide → Applied (Dismissed
+  when Claude found it unsupported); replies threaded under a rail; animated waiting dots.
+- **Sticky notes:** paper colour, a pin, a small fixed tilt per note that straightens on hover
+  or when opened.
+- **Discuss** (`src/discuss/Discuss.tsx`): debate stage (For and Against facing across the
+  motion, next speaker ringed), roundtable ring of seats with the next speaker lit and the
+  moderator's turns as centred framing cards, devil's-advocate claim card with "Attack n" and
+  "Defence n" turns. Rounds are chapter lines ("Round 2 · Rebuttal"). Claude's verdict closes a
+  debate; a devil's round ends with "Did the claim hold?" (Holds / Partly / Falls, stored in the
+  existing vote). "To note" is now "Save to note". No made-up percentages.
+- **Checks:** `npm run check` (56 unit tests, build); `npx playwright test` 43 passed + 14 skips
+  (one test updated for the "Save to note" label). Screenshots (fixture, light and dark, three
+  sizes): `docs/design/comments-discuss/`.
+
 ## OAuth for the MCP server — 2026-10-17
 
 - **Branch:** `claude/mcp-oauth`, from `main` (089d8c8). Assisting tool: Claude Code.
