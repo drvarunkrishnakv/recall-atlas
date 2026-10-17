@@ -1,5 +1,31 @@
 # Handoff
 
+## Study file pages — 2026-10-17
+
+- **Branch:** `claude/study-file-pages`, from `claude/prose-and-citations` (674e091, PR #28 still
+  open), so the PR is stacked on #28. Assisting tool: Claude Code.
+- **Scope:** navigation only for the user's "study file" pilot (a long companion page per note).
+  A study file is a note with id `<note>-study` and `parent: "<note>"` in its front matter.
+  - `locateNote(id, parent)` (`app/src/content/syllabus.ts`) places it under the parent's
+    paper › subject › topic; the breadcrumb ends with a link back to the parent note (on
+    phones, that link is the one crumb shown). The doc bar shows the parent's topic.
+  - Subject tables and counts list only syllabus notes, so study files are not counted.
+  - Opening a study file does not mark it read and it has no revision bar: revision stays on
+    the parent note.
+  - Fixture `app/fixtures/content/notes/P06-study.md` (synthetic); unit test
+    `src/content/syllabus.test.ts`; e2e "a study file sits under its parent note…".
+  - Recorded in DECISIONS and CONTENT_CONVENTIONS ("Study files (pilot)").
+- **Checks:** `npm run check` (Prettier, `tsc -b`, 33 unit tests, build) passed;
+  `npx playwright test` 34 passed + 8 desktop-only skips (one earlier run had two context
+  teardown timeouts in the citation test on this slow drive; it passed alone and on the
+  clean rerun); `tooling/check-public.sh` passed.
+- **Screenshots:** fixture only, `docs/design/study-file/` (desktop, iPad, phone; light).
+- **Known issue (not from this change):** in Editing mode a long title can show only its first
+  line, because the title box is sized before the heading web font loads (box 43 px tall,
+  text needs 87 px). Visible in `desktop-study-light.png`. Left for a follow-up.
+- **Not committed:** anything in `output/notes-pilot` (the real P06 study file stays private).
+- **Next:** user review; merge #28 first, then this PR.
+
 ## Prose style and citation markers — 2026-10-16
 
 - **Branch:** `claude/prose-and-citations`, from `main` (7fcc48c). Assisting tool: Claude Code.

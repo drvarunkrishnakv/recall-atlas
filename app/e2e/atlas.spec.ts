@@ -104,6 +104,33 @@ test("the subject database has table, board and due views", async ({ page }) => 
   await expect(page).toHaveURL(/view=due/);
 });
 
+test("a study file sits under its parent note and is not counted as a note", async ({ page }) => {
+  await page.goto("/gs2/polity");
+  const main = page.locator("main");
+  // 24 planned notes; on desktop (first, before a note is started) only the fixture note is written.
+  const banner = main.locator(".subject-banner");
+  await expect(banner.getByText("24 notes")).toBeVisible();
+  if (isDesktop(page)) await expect(banner.getByText("1 written")).toBeVisible();
+  await expect(main.getByText("Fixture study file: the long companion page")).toHaveCount(0);
+
+  await page.goto("/notes/P06-study");
+  await expectTitle(main, "Fixture study file: the long companion page");
+  await expect(main.locator(".doc-bar").getByText("GS2 · Polity · 01")).toBeVisible();
+  await expect(main.locator(".study-bar")).toHaveCount(0);
+  const crumbs = page.getByRole("navigation", { name: "Breadcrumb" });
+  if (isDesktop(page))
+    await expect(crumbs.getByRole("link")).toHaveText([
+      "GS2",
+      "Polity",
+      "01 Constitution & its foundations",
+      "Women's political representation & reservation",
+    ]);
+  await noSideScroll(page);
+  await crumbs.getByRole("link", { name: "Women's political representation & reservation" }).click();
+  await expect(page).toHaveURL(/\/notes\/P06$/);
+  await expectTitle(main, "Fixture note: how a sample topic reads");
+});
+
 test("quick capture lands in the scratch pad, and Claude's filing shows in the inbox", async ({ page }, info) => {
   await page.goto("/");
   const text = `Capture from ${info.project.name}`;

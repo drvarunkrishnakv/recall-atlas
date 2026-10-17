@@ -259,9 +259,11 @@ function PageEditor({ page: initial, inPeek }: { page: Page; inPeek: boolean }) 
   const [contents, setContents] = useState<null | { id: string; level: number; text: string }[]>(null);
 
   // Opening a note marks it read (starting its revision cycle) and lists it under Continue reading.
+  // A study file is revised with its parent note, so it has no cycle of its own.
+  const studyFile = !!initial.parent;
   useEffect(() => {
-    if (initial.collection === "notes" && !inPeek) noteOpened(initial.id);
-  }, [initial.collection, initial.id, inPeek]);
+    if (initial.collection === "notes" && !inPeek && !studyFile) noteOpened(initial.id);
+  }, [initial.collection, initial.id, inPeek, studyFile]);
   useEffect(
     () => setPageThreads(`${initial.collection}:${initial.id}`, threads),
     [threads, initial.collection, initial.id],
@@ -494,7 +496,7 @@ function PageEditor({ page: initial, inPeek }: { page: Page; inPeek: boolean }) 
   };
 
   const p = pageRef.current;
-  const loc = p.collection === "notes" ? locateNote(p.id) : null;
+  const loc = p.collection === "notes" ? locateNote(p.id, p.parent) : null;
   const self = `${p.collection}:${p.id}`;
   const open = threads.filter((t) => !t.resolved).length;
   const wide = width >= 1280 && !inPeek && showMargin;
@@ -618,7 +620,7 @@ function PageEditor({ page: initial, inPeek }: { page: Page; inPeek: boolean }) 
         </div>
       </div>
 
-      {p.collection === "notes" && (
+      {p.collection === "notes" && !studyFile && (
         <div className="study-bar">
           {(() => {
             const np = progress.notes[p.id];

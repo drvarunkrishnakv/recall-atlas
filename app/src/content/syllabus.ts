@@ -154,12 +154,18 @@ export const PAPERS: Paper[] = [
 ];
 export const COMING_PAPERS = ["GS Paper 1", "GS Paper 3"];
 
-/** Where a planned note sits in the tree. */
-export function locateNote(noteId: string) {
+/**
+ * Where a planned note sits in the tree. A study file (a long companion page with
+ * `parent: "P06"` in its front matter) sits under its parent note, which is returned as `parent`.
+ */
+export function locateNote(noteId: string, parentId?: unknown) {
+  const id = typeof parentId === "string" && parentId ? parentId : noteId;
   for (const paper of PAPERS)
     for (const subject of paper.subjects)
-      for (const topic of subject.topics)
-        if (topic.notes.some((n) => n.id === noteId)) return { paper, subject, topic };
+      for (const topic of subject.topics) {
+        const note = topic.notes.find((n) => n.id === id);
+        if (note) return { paper, subject, topic, parent: id === noteId ? undefined : note };
+      }
   return null;
 }
 
