@@ -1623,6 +1623,100 @@ kbd {
 .side-nav .soon .swatch {
   opacity: 0.45;
 }
+/* The gear at the foot of the sidebar. */
+.nav-foot {
+  margin-top: auto;
+  padding-top: 1rem;
+}
+.nav-foot a {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 12px;
+  color: var(--muted);
+  text-decoration: none;
+}
+.nav-foot a:hover {
+  background: color-mix(in srgb, var(--raised) 60%, transparent);
+  color: var(--ink);
+}
+.nav-foot a.active {
+  background: var(--raised);
+  color: var(--ink);
+  font-weight: 700;
+}
+.nav-foot svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Settings page. */
+.settings-sec {
+  margin-top: 1.6rem;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 1rem 1.1rem;
+}
+.settings-row p {
+  margin: 0.2rem 0 0;
+  font-size: 0.88rem;
+}
+.segmented {
+  display: inline-flex;
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+}
+.segmented button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: 500 0.9rem var(--f-text);
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  min-height: 38px;
+  cursor: pointer;
+}
+.segmented button svg {
+  width: 16px;
+  height: 16px;
+}
+.segmented button.on {
+  background: var(--raised);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(30, 31, 36, 0.12);
+}
+.settings-signout {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid var(--line);
+  background: none;
+  color: var(--danger);
+  font: 600 0.92rem var(--f-text);
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  min-height: 40px;
+  cursor: pointer;
+}
+.settings-signout svg {
+  width: 17px;
+  height: 17px;
+}
+
 .side-label {
   margin: 1rem 0.7rem 0.2rem;
   font-size: 0.72rem;

@@ -8,7 +8,6 @@ import { Capture } from "./Capture";
 import { Icon } from "./Icon";
 import { Peek, usePeekHost } from "./SidePeek";
 import { Search } from "./Search";
-import { ThemeToggle } from "./ThemeToggle";
 
 /** Counts for the sidebar badges. */
 export function useBadges() {
@@ -109,6 +108,12 @@ function Sidebar({ onCapture, onSearch }: { onCapture: () => void; onSearch: () 
           </span>
         ))}
       </nav>
+      <div className="nav-foot">
+        <NavLink to="/settings">
+          <Icon name="settings" />
+          Settings
+        </NavLink>
+      </div>
     </>
   );
 }
@@ -131,6 +136,8 @@ function Crumbs() {
     add("/inbox", "Claude inbox");
   } else if (pathname === "/revise") {
     add("/revise", "Revise today");
+  } else if (pathname === "/settings") {
+    add("/settings", "Settings");
   } else {
     const located = params.noteId ? locateNote(params.noteId, note?.parent) : null;
     const loc = located ?? (params.topicId ? findTopic(params.paperId!, params.subjectId!, params.topicId) : null);
@@ -233,18 +240,6 @@ export function Layout() {
           <button type="button" className="iconbtn" aria-label="Search" onClick={() => setSearching(true)}>
             <Icon name="search" />
           </button>
-          <ThemeToggle />
-          {import.meta.env.MODE === "cloud" && (
-            <button
-              type="button"
-              className="iconbtn"
-              aria-label="Sign out"
-              title="Sign out (clears this device's offline copy)"
-              onClick={() => void import("./AuthGate").then((m) => m.signOutAndClear())}
-            >
-              <Icon name="signout" />
-            </button>
-          )}
         </div>
         {status === "ready" ? (
           <Outlet />
