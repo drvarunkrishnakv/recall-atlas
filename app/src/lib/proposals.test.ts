@@ -82,7 +82,10 @@ describe("proposals", () => {
   });
 
   it("adds a table row, a sibling after a nested block, and an open check", () => {
-    const row = applyToBlocks(blocks, make({ kind: "row", blockId: "t", cells: ["SASCI", "₹1.5 lakh cr in FY27"] }));
+    const row = applyToBlocks(
+      blocks,
+      make({ kind: "row", blockId: "t", cells: ["SASCI", "₹1.5 lakh cr in FY27", "Feb 2026"] }),
+    );
     const rows = (row[1].content as unknown as { rows: { cells: { type: string; content: { type: string }[] }[] }[] })
       .rows;
     expect(rows).toHaveLength(3);

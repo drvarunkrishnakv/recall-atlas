@@ -221,7 +221,9 @@ export function applyToBlocks(blocks: Block[], p: Proposal): Block[] {
     const template = c.rows.at(-1)?.cells[0];
     const cells: Cell[] = Array.from({ length: width }, (_, i) => {
       const t = p.cells![i] ?? "";
-      const content = t ? [run(t), ...(i === Math.min(width, p.cells!.length) - 1 ? [cite(p.source)] : [])] : [];
+      // The source marker goes after the main cell (the second, as in "Issue | Where it stands | Since").
+      const citeAt = Math.min(width, p.cells!.length) >= 2 ? 1 : 0;
+      const content = t ? [run(t), ...(i === citeAt ? [cite(p.source)] : [])] : [];
       return Array.isArray(template) || !template
         ? content
         : { type: "tableCell", props: { ...(template.props ?? {}) }, content };
