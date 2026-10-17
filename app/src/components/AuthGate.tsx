@@ -73,8 +73,12 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     setError("");
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: "select_account" });
-    // Home-screen apps can't open a popup; they sign in by redirect instead.
-    if (matchMedia("(display-mode: standalone)").matches) return signInWithRedirect(auth, provider);
+    // A popup everywhere except an iPhone or iPad home-screen app, where it would open in
+    // Safari, outside the app's storage. On Android a redirect from the home-screen app can come
+    // back in another window that has lost the pending sign-in, so it uses the popup too.
+    const appleDevice =
+      /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent));
+    if (appleDevice && matchMedia("(display-mode: standalone)").matches) return signInWithRedirect(auth, provider);
     try {
       await signInWithPopup(auth, provider);
     } catch (e) {

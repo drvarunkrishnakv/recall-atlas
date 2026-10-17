@@ -34,6 +34,12 @@
   Hosting domain now signs in through itself, so each needs its `/__/auth/handler` as a
   redirect URI on the Google OAuth web client: the live `web.app` one and the preview
   channel's (`recall-atlas-511913--preview-2lcp01pe.web.app`, stable for the `preview` channel).
+- **Android home-screen app:** redirect sign-in was flaky there (one hang, one return to the
+  sign-in button, then success): Chrome can bring the redirect back into another window that
+  has lost the pending state. Sign-in now uses a popup everywhere except iPhone/iPad
+  home-screen apps (where a popup opens in Safari, outside the app). Not yet retried on the phone.
+- **Sync checked:** a comment the user left on Android (Ask Claude, P06) was read from
+  Firestore with the CLI, and Claude's reply was written back the same way.
 - **Next:** the user tries the preview on desktop, Android and iPad. Then
   `firebase deploy --only hosting` on the user's say-so. At the switch, drop
   `ATLAS_CONTENT_DIR` from the scheduled tasks and add `atlas export` to the routine.
