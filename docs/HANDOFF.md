@@ -25,6 +25,17 @@
   `npx playwright test` 42 passed + 12 desktop-only skips. The bundled function answered
   through the Hosting rewrite in the Functions/Hosting emulators (401 without a key; 9 tools).
 - **Screenshots:** fixture only, `docs/design/mcp-ai/`.
+- **Deployed 2026-10-17** (user approved Blaze and asked for it): function `mcp` (asia-south1)
+  and Hosting, from `claude/mcp-hosted`; image cleanup policy 3 days. Live check through
+  `https://recall-atlas-511913.web.app/mcp`: 401 without a key, 403 with a browser Origin, a
+  test Gemini key identified as Gemini and listed the real notes, then was revoked (401).
+  Grok's key `d99d2d20` is in git-ignored `app/.atlas-local/mcp-keys/grok.txt` for the user
+  to paste into Grok Bot. Live is ahead of `main` until PR #35 merges.
+- **Claude's twice-daily task:** desktop scheduled task `mains-atlas-twice-daily`, 7 am and
+  7 pm IST (cron `0 7,19 * * *`), saved in Bypass permissions mode. It answers Ask Claude,
+  checks AI flags (no note edits without approval), takes Claude's turns, files captures as
+  suggestions, then exports the mirror to the notes repo and pushes it. Runs only while the
+  Claude app is open; a missed run happens on next launch.
 
 ## Firebase backend (M3) — 2026-10-17
 
