@@ -37,7 +37,7 @@ import {
 import type { Collection } from "../src/lib/cloud-docs.ts";
 import { waitingForClaude, type StoredThread } from "../src/lib/threads.ts";
 import { briefing, nextUp, progress } from "../src/lib/discussions.ts";
-import { MODE_INFO, speaker, type Mode, type Seat } from "../src/lib/personas.ts";
+import { AIS, isAi, MODE_INFO, speaker, type Mode, type Seat } from "../src/lib/personas.ts";
 import { fileBackend, snapshot, type Backend } from "../server/backend.ts";
 import { nextDue } from "../src/lib/progress.ts";
 
@@ -90,7 +90,7 @@ function showThread(ref: string, t: StoredThread) {
   console.log(`> ${t.anchor.quote.replace(/\n/g, " ")}   (block ${t.anchor.blockId})`);
   for (const c of t.comments)
     console.log(
-      `- ${c.userId === "claude" ? "Claude" : c.userId === "grok" ? "Grok" : "User"} (${c.createdAt}): ${c.body}`,
+      `- ${c.userId === "claude" ? "Claude" : isAi(c.userId) ? AIS[c.userId].name : "User"} (${c.createdAt}): ${c.body}`,
     );
   if (t.flag?.sources.length) console.log(`  sources: ${t.flag.sources.map((s) => `${s.label} ${s.url}`).join(" · ")}`);
 }
@@ -369,7 +369,7 @@ switch (cmd) {
     const { getFirestore } = await import("firebase-admin/firestore");
     const { adminApp } = await import("../server/firestore-backend.ts");
     const keys = await import("../server/mcp-keys.ts");
-    const { AI_IDS, isAi } = await import("../src/lib/personas.ts");
+    const { AI_IDS } = await import("../src/lib/personas.ts");
     const fs = getFirestore(adminApp());
     const [sub, a1, a2] = args;
     if (sub === "add") {

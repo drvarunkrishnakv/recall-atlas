@@ -100,7 +100,8 @@ export function ThreadCard({
   style?: React.CSSProperties;
   cardRef?: (el: HTMLDivElement | null) => void;
 }) {
-  const info = KIND_INFO[thread.kind];
+  // A kind this build doesn't know (added by a newer app or server) shows as a plain comment.
+  const info = KIND_INFO[thread.kind] ?? KIND_INFO.comment;
   const waiting = isWaitingForClaude(thread);
   const full = selected || thread.kind === "sticky";
   const shown = full ? thread.comments : thread.comments.slice(0, 1);
