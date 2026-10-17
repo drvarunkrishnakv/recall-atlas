@@ -727,10 +727,11 @@ function PageEditor({ page: initial, inPeek }: { page: Page; inPeek: boolean }) 
               type="button"
               className={`chip-btn${history ? " on" : ""}`}
               aria-pressed={history}
+              aria-label="History"
               onClick={() => setHistory((v) => !v)}
             >
               <Icon name="history" />
-              History
+              <span className="wide-only">History</span>
             </button>
           )}
           <button

@@ -807,8 +807,14 @@ a.tile:hover {
 }
 .doc-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem;
+}
+@media (max-width: 600px) {
+  .wide-only {
+    display: none;
+  }
 }
 .save-state {
   font-size: 0.75rem;
