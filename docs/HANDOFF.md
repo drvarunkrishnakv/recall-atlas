@@ -46,9 +46,16 @@
   `claude/firebase-m3` (99bd375), https://recall-atlas-511913.web.app. Google accepts its
   sign-in address; signed-out Firestore reads return 403. Redirect URIs on the OAuth web
   client: firebaseapp.com, web.app and the `preview` channel.
-- **Next:** merge PR #33 (live is ahead of `main` until then). Drop `ATLAS_CONTENT_DIR` from
-  the scheduled tasks so Claude works on Firestore, and add `atlas export` to the routine to
-  refresh the notes repo's mirror. Not yet tried: the iPad home-screen app (redirect sign-in).
+- **Scheduled tasks:** none exist yet (no desktop scheduled task, cloud routine, crontab or
+  workflow runs the CLI), so nothing reads the stale file copy. The twice-daily task is M4's.
+  Checked 2026-10-17 without `ATLAS_CONTENT_DIR`: `atlas comments --waiting`, `atlas turns`,
+  `atlas captures` and `atlas export <scratch>` all read Firestore (the Android comment, P05,
+  which exists only there). When the task is created it runs the CLI with no
+  `ATLAS_CONTENT_DIR` (`env -u ATLAS_CONTENT_DIR` if needed) and ends with
+  `npm run atlas -- export ../output/notes-pilot/content` from `app/`, then commits and pushes
+  the private notes repo only.
+- **Merged:** PR #33 into `main` (7b7ba2c).
+- **Next:** not yet tried: the iPad home-screen app (redirect sign-in).
 
 ## Discussions: Claude and Grok on each note — 2026-10-17
 
