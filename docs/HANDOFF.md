@@ -17,8 +17,12 @@
 - **Scheduled task:** `mains-atlas-twice-daily` now files proposals from confirmed flags and
   from the feed, and never approves.
 - **Checks:** `npm run check` (63 unit tests, build); `npm run test:cloud` 20 passed (incl.
-  approve, stale and restore through Firestore); `npx playwright test` 45 passed + 16 skips
+  approve, stale and restore through Firestore); `npx playwright test` 47 passed + 16 skips
   (incl. approve → history → restore). Screenshots: `docs/design/proposals/`.
+- **Phone toolbar:** the note toolbar (`.doc-actions`) now wraps, and History is icon-only under
+  600px. Without that the extra button overflowed on Android and two tests timed out in CI.
+- **First real proposals:** the 18 Oct feed run had no honest matches; the four undecided items
+  from the 16 Oct digest were re-checked and filed on P10 (five proposals, two marked digest-only).
 
 ## Comments, flags and Discuss redesign — 2026-10-17
 
