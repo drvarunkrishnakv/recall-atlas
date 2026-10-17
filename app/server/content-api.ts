@@ -13,6 +13,11 @@
 //   GET  /api/discussions/:collection/:id     the page's debates, roundtables and devil's-advocate rounds
 //   POST /api/discussions/:collection/:id     apply one DiscussionOp, return the discussions
 //   GET  /api/discussions                     every page's discussions
+//   GET  /api/proposals                       every page's proposed changes
+//   GET  /api/proposals/:collection/:id       the page's proposals
+//   POST /api/proposals/:collection/:id       a ProposalOp, or {op: "approve", proposalId} (applies it, saves history)
+//   GET  /api/history/:collection/:id[/:hid]  the page's past versions, or one of them
+//   POST /api/history/:collection/:id         {historyId}: restore that version as a new one
 //
 // Writes are accepted only from this machine (unless ATLAS_ALLOW_LAN_WRITES=1) and only
 // from the app's own origin.
@@ -33,6 +38,9 @@ import { parseFrontMatter } from "../src/lib/content-parse.ts";
 import { PAGE_FIELDS, pageToMarkdown, type PageDoc } from "../src/lib/blocks.ts";
 import { applyThreadOp, ThreadOpError, type StoredThread, type ThreadOp } from "../src/lib/threads.ts";
 import { applyDiscussionOp, DiscussionOpError, type Discussion, type DiscussionOp } from "../src/lib/discussions.ts";
+import { applyProposalOp, ProposalError, type Proposal, type ProposalOp } from "../src/lib/proposals.ts";
+import { approveProposal, restoreVersion, type ProposalIO } from "../src/lib/approve.ts";
+import { historyEntry, type HistoryEntry } from "../src/lib/cloud-docs.ts";
 import {
   applyCaptureOp,
   applyProgressOp,
@@ -89,7 +97,15 @@ export function loadAll(dir: string) {
   return out;
 }
 
-export function savePage(dir: string, collection: Collection, id: string, page: PageDoc, baseVersion: number) {
+export function savePage(
+  dir: string,
+  collection: Collection,
+  id: string,
+  page: PageDoc,
+  baseVersion: number,
+  /** Why it changed (approved proposal, restore): always keeps a labelled snapshot. */
+  reason?: string,
+) {
   const folder = join(dir, collection);
   mkdirSync(folder, { recursive: true });
   const jsonPath = join(folder, id + ".json");
@@ -108,8 +124,11 @@ export function savePage(dir: string, collection: Collection, id: string, page: 
     mkdirSync(history, { recursive: true });
     const snaps = readdirSync(history).filter((f) => f.endsWith(".json"));
     const last = snaps.map((f) => Number(f.split("-")[0])).sort((a, b) => b - a)[0] ?? 0;
-    if (Date.now() - last > SNAPSHOT_EVERY_MS)
-      writeAtomic(join(history, `${Date.now()}-v${currentVersion}.json`), JSON.stringify(current, null, 1));
+    if (reason || Date.now() - last > SNAPSHOT_EVERY_MS)
+      writeAtomic(
+        join(history, `${Date.now()}-v${currentVersion}.json`),
+        JSON.stringify({ ...current, ...(reason ? { historyReason: reason.slice(0, 300) } : {}) }, null, 1),
+      );
   }
 
   const meta = Object.fromEntries(Object.entries(page).filter(([k]) => !["markdown", "collection"].includes(k)));
@@ -205,6 +224,68 @@ export function loadAllDiscussions(dir: string): Record<string, Discussion[]> {
   return out;
 }
 
+const proposalsPath = (dir: string, collection: string, id: string) =>
+  join(dir, "proposals", `${collection}-${id}.json`);
+
+export function loadProposals(dir: string, collection: string, id: string): Proposal[] {
+  return readJson<{ proposals: Proposal[] }>(proposalsPath(dir, collection, id), { proposals: [] }).proposals;
+}
+
+export function changeProposals(dir: string, collection: string, id: string, op: ProposalOp): Proposal[] {
+  const next = applyProposalOp(loadProposals(dir, collection, id), op);
+  mkdirSync(join(dir, "proposals"), { recursive: true });
+  writeAtomic(proposalsPath(dir, collection, id), JSON.stringify({ proposals: next }, null, 1) + "\n");
+  return next;
+}
+
+/** Every page's proposals, keyed `notes:P06`. */
+export function loadAllProposals(dir: string): Record<string, Proposal[]> {
+  const folder = join(dir, "proposals");
+  if (!existsSync(folder)) return {};
+  const out: Record<string, Proposal[]> = {};
+  for (const f of readdirSync(folder).filter((f) => f.endsWith(".json"))) {
+    const m = /^(notes|cards)-(.+)\.json$/.exec(f);
+    if (m) out[`${m[1]}:${m[2]}`] = readJson<{ proposals: Proposal[] }>(join(folder, f), { proposals: [] }).proposals;
+  }
+  return out;
+}
+
+/** A page's past versions, newest first. */
+export function listHistory(dir: string, collection: string, id: string): HistoryEntry[] {
+  const folder = join(dir, "history", `${collection}-${id}`);
+  if (!existsSync(folder)) return [];
+  return readdirSync(folder)
+    .filter((f) => /^\d+-v\d+\.json$/.test(f))
+    .map((f) => {
+      const rec = readJson<PageDoc & { historyReason?: string }>(join(folder, f), {} as PageDoc);
+      return historyEntry(f.slice(0, -5), { version: rec.version, title: rec.title, reason: rec.historyReason });
+    })
+    .sort((a, b) => b.savedAt - a.savedAt);
+}
+
+export function readHistory(dir: string, collection: string, id: string, historyId: string): PageDoc | null {
+  if (!/^\d+-v\d+$/.test(historyId)) return null;
+  const path = join(dir, "history", `${collection}-${id}`, `${historyId}.json`);
+  if (!existsSync(path)) return null;
+  const { historyReason: _r, ...page } = readJson<PageDoc & { historyReason?: string }>(path, {} as PageDoc);
+  void _r;
+  return { ...page, collection: collection as Collection, id };
+}
+
+/** The approve and restore steps (src/lib/approve.ts) over this content folder. */
+export function fileProposalIO(dir: string, collection: Collection, id: string): ProposalIO {
+  return {
+    page: async () => {
+      const path = join(dir, collection, `${id}.json`);
+      return existsSync(path) ? { ...readJson<PageDoc>(path, {} as PageDoc), collection, id } : null;
+    },
+    save: async (page, base, reason) => savePage(dir, collection, id, page, base, reason),
+    proposals: async () => loadProposals(dir, collection, id),
+    proposalOp: async (op) => changeProposals(dir, collection, id, op),
+    threadOp: async (op) => changeThreads(dir, collection, id, op),
+  };
+}
+
 export function loadProgress(dir: string): Progress {
   return readJson<Progress>(join(dir, "progress.json"), { notes: {} });
 }
@@ -266,6 +347,7 @@ export function contentApi(appRoot: string): Connect.NextHandleFunction {
       if (req.method === "GET" && url.pathname === "/api/content") return send(res, 200, loadAll(dir));
       if (req.method === "GET" && url.pathname === "/api/comments") return send(res, 200, loadAllThreads(dir));
       if (req.method === "GET" && url.pathname === "/api/discussions") return send(res, 200, loadAllDiscussions(dir));
+      if (req.method === "GET" && url.pathname === "/api/proposals") return send(res, 200, loadAllProposals(dir));
       if (url.pathname === "/api/progress" || url.pathname === "/api/captures") {
         const progress = url.pathname === "/api/progress";
         if (req.method === "GET") return send(res, 200, progress ? loadProgress(dir) : { captures: loadCaptures(dir) });
@@ -280,9 +362,20 @@ export function contentApi(appRoot: string): Connect.NextHandleFunction {
         );
       }
 
-      const [, kind, collection, id] = parts;
-      if (!COLLECTIONS.includes(collection as Collection) || !ID.test(id ?? "") || parts.length !== 4)
+      const [, kind, collection, id, extra] = parts;
+      if (
+        !COLLECTIONS.includes(collection as Collection) ||
+        !ID.test(id ?? "") ||
+        !(parts.length === 4 || (parts.length === 5 && kind === "history"))
+      )
         return send(res, 404, { error: "Not found" });
+      if (kind === "history" && req.method === "GET") {
+        if (!extra) return send(res, 200, { versions: listHistory(dir, collection, id) });
+        const old = readHistory(dir, collection, id, extra);
+        return old ? send(res, 200, old) : send(res, 404, { error: "Not found" });
+      }
+      if (kind === "proposals" && req.method === "GET")
+        return send(res, 200, { proposals: loadProposals(dir, collection, id) });
 
       if (kind === "comments" && req.method === "GET")
         return send(res, 200, { threads: loadThreads(dir, collection, id) });
@@ -310,13 +403,35 @@ export function contentApi(appRoot: string): Connect.NextHandleFunction {
         const op = (await readBody(req)) as ThreadOp;
         return send(res, 200, { threads: changeThreads(dir, collection, id, op) });
       }
+      if (kind === "proposals" && req.method === "POST") {
+        const op = (await readBody(req)) as ProposalOp | { op: "approve"; proposalId: string };
+        const io = fileProposalIO(dir, collection as Collection, id);
+        if (op.op === "approve") {
+          const r = await approveProposal(io, op.proposalId);
+          return send(res, 200, { ...r, page: await io.page() });
+        }
+        return send(res, 200, { proposals: changeProposals(dir, collection, id, op) });
+      }
+      if (kind === "history" && req.method === "POST") {
+        const { historyId } = (await readBody(req)) as { historyId: string };
+        const old = readHistory(dir, collection, id, historyId);
+        if (!old) return send(res, 404, { error: "No such version" });
+        const io = fileProposalIO(dir, collection as Collection, id);
+        const r = await restoreVersion(io, old, `v${old.version}`);
+        return send(res, 200, { ...r, page: await io.page() });
+      }
       if (kind === "discussions" && req.method === "POST") {
         const op = (await readBody(req)) as DiscussionOp;
         return send(res, 200, { discussions: changeDiscussions(dir, collection, id, op) });
       }
       return send(res, 405, { error: "Method not allowed" });
     } catch (e) {
-      if (e instanceof ThreadOpError || e instanceof ProgressOpError || e instanceof DiscussionOpError)
+      if (
+        e instanceof ThreadOpError ||
+        e instanceof ProgressOpError ||
+        e instanceof DiscussionOpError ||
+        e instanceof ProposalError
+      )
         return send(res, 400, { error: e.message });
       return send(res, 500, { error: e instanceof Error ? e.message : String(e) });
     }

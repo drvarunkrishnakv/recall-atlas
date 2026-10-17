@@ -18,8 +18,13 @@ import {
   encodePage,
   pageKeyDoc,
   planSave,
+  historyEntry,
+  type Collection,
   type PageRecord,
+  type StoredPage,
 } from "../src/lib/cloud-docs.ts";
+import { applyProposalOp, type Proposal } from "../src/lib/proposals.ts";
+import { approveProposal, restoreVersion, type ProposalIO } from "../src/lib/approve.ts";
 import { applyThreadOp, type StoredThread } from "../src/lib/threads.ts";
 import { applyDiscussionOp, type Discussion } from "../src/lib/discussions.ts";
 import { applyCaptureOp, applyProgressOp, type Capture, type Progress } from "../src/lib/progress.ts";
@@ -62,6 +67,44 @@ export function firestoreBackend(db: Firestore = getFirestore(adminApp())): Back
   };
   const progressRef = db.doc("study/progress");
   const capturesRef = db.doc("study/captures");
+  const saveTx = (collection: Collection, id: string, page: StoredPage, baseVersion: number, reason?: string) =>
+    db.runTransaction(async (tx) => {
+      const ref = db.doc(`${collection}/${id}`);
+      const plan = planSave(
+        collection,
+        id,
+        (await tx.get(ref)).data() as PageRecord | undefined,
+        page,
+        baseVersion,
+        Date.now(),
+        reason,
+      );
+      if (plan.conflict) return plan;
+      if (plan.snapshot) tx.set(ref.collection("history").doc(plan.snapshot.id), plan.snapshot.record);
+      tx.set(ref, plan.record);
+      return { conflict: false as const, version: plan.version, updated: plan.updated };
+    });
+  const io = (collection: Collection, id: string): ProposalIO => ({
+    page: async () => {
+      const snap = await db.doc(`${collection}/${id}`).get();
+      return snap.exists ? decodePage(collection, id, snap.data()!) : null;
+    },
+    save: (page, base, reason) => saveTx(collection, id, page as StoredPage, base, reason),
+    proposals: async () =>
+      decodeJson((await db.doc(`proposals/${pageKeyDoc(collection, id)}`).get()).data(), {
+        proposals: [] as Proposal[],
+      }).proposals,
+    proposalOp: async (op) =>
+      (
+        await change(db.doc(`proposals/${pageKeyDoc(collection, id)}`), { proposals: [] as Proposal[] }, (v) => ({
+          proposals: applyProposalOp(v.proposals, op),
+        }))
+      ).proposals,
+    threadOp: (op) =>
+      change(db.doc(`comments/${pageKeyDoc(collection, id)}`), { threads: [] as StoredThread[] }, (v) => ({
+        threads: applyThreadOp(v.threads, op),
+      })),
+  });
 
   return {
     kind: "firestore",
@@ -73,15 +116,23 @@ export function firestoreBackend(db: Firestore = getFirestore(adminApp())): Back
       const snap = await db.doc(`${collection}/${id}`).get();
       return snap.exists ? decodePage(collection, id, snap.data()!) : null;
     },
-    savePage: (collection, id, page, baseVersion) =>
-      db.runTransaction(async (tx) => {
-        const ref = db.doc(`${collection}/${id}`);
-        const plan = planSave(collection, id, (await tx.get(ref)).data() as PageRecord | undefined, page, baseVersion);
-        if (plan.conflict) return plan;
-        if (plan.snapshot) tx.set(ref.collection("history").doc(plan.snapshot.id), plan.snapshot.record);
-        tx.set(ref, plan.record);
-        return { conflict: false, version: plan.version, updated: plan.updated };
-      }),
+    savePage: (collection, id, page, baseVersion) => saveTx(collection, id, page, baseVersion),
+    allProposals: () => keyed<Proposal>("proposals", "proposals"),
+    changeProposals: (collection, id, op) => io(collection, id).proposalOp(op),
+    approve: (collection, id, proposalId) => approveProposal(io(collection, id), proposalId),
+    async history(collection, id) {
+      return (await db.collection(`${collection}/${id}/history`).get()).docs
+        .filter((d) => !d.id.endsWith("-original"))
+        .map((d) => historyEntry(d.id, d.data()))
+        .sort((a, b) => b.savedAt - a.savedAt);
+    },
+    async restore(collection, id, historyId) {
+      if (!/^\d+-v\d+$/.test(historyId)) throw new Error(`No version ${historyId}`);
+      const snap = await db.doc(`${collection}/${id}/history/${historyId}`).get();
+      if (!snap.exists) throw new Error(`No version ${historyId}`);
+      const old = decodePage(collection, id, snap.data()!);
+      return restoreVersion(io(collection, id), old, `v${old.version}`);
+    },
     threads: async (collection, id) =>
       decodeJson((await db.doc(`comments/${pageKeyDoc(collection, id)}`).get()).data(), {
         threads: [] as StoredThread[],
@@ -106,7 +157,7 @@ export function firestoreBackend(db: Firestore = getFirestore(adminApp())): Back
     changeCaptures: async (op) =>
       (await change(capturesRef, { captures: [] as Capture[] }, (v) => ({ captures: applyCaptureOp(v.captures, op) })))
         .captures,
-    async restore(data) {
+    async restoreAll(data) {
       // Small batches: a long page is close to a megabyte on its own.
       const writes: [DocumentReference, Record<string, unknown>][] = [];
       const now = Date.now();
@@ -118,6 +169,11 @@ export function firestoreBackend(db: Firestore = getFirestore(adminApp())): Back
         writes.push([
           db.doc(`comments/${key.replace(":", "-")}`),
           { json: JSON.stringify({ threads }), updatedAt: now },
+        ]);
+      for (const [key, proposals] of Object.entries(data.proposals ?? {}))
+        writes.push([
+          db.doc(`proposals/${key.replace(":", "-")}`),
+          { json: JSON.stringify({ proposals }), updatedAt: now },
         ]);
       for (const [key, discussions] of Object.entries(data.discussions))
         writes.push([

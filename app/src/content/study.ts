@@ -4,12 +4,15 @@ import { useSyncExternalStore } from "react";
 import { api } from "./store";
 import { today, type Capture, type CaptureOp, type Confidence, type Progress, type ProgressOp } from "../lib/progress";
 import { isWaitingForClaude, type StoredThread } from "../lib/threads";
+import type { Proposal } from "../lib/proposals";
 
 interface StudyState {
   progress: Progress;
   captures: Capture[];
   /** `notes:P06` → threads. */
   threads: Record<string, StoredThread[]>;
+  /** `notes:P06` → proposed changes. */
+  proposals: Record<string, Proposal[]>;
   recent: string[];
 }
 
@@ -23,7 +26,7 @@ function readRecent(): string[] {
   }
 }
 
-let state: StudyState = { progress: { notes: {} }, captures: [], threads: {}, recent: readRecent() };
+let state: StudyState = { progress: { notes: {} }, captures: [], threads: {}, proposals: {}, recent: readRecent() };
 const listeners = new Set<() => void>();
 const set = (next: Partial<StudyState>) => {
   state = { ...state, ...next };
@@ -41,12 +44,13 @@ export function useStudy(): StudyState {
 }
 
 export async function loadStudy() {
-  const [progress, captures, threads] = await Promise.all([
+  const [progress, captures, threads, proposals] = await Promise.all([
     api("/api/progress") as Promise<Progress>,
     api("/api/captures") as Promise<{ captures: Capture[] }>,
     api("/api/comments") as Promise<Record<string, StoredThread[]>>,
+    api("/api/proposals") as Promise<Record<string, Proposal[]>>,
   ]);
-  set({ progress, captures: captures.captures, threads });
+  set({ progress, captures: captures.captures, threads, proposals });
 }
 
 /** Re-reads threads and captures (Claude may have replied); cheap enough to call on focus. */

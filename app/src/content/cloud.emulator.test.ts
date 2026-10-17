@@ -62,6 +62,7 @@ describe("Firestore rules", () => {
       "notes/R1/history/1-v1",
       "comments/notes-R1",
       "discussions/notes-R1",
+      "proposals/notes-R1",
       "study/probe",
     ]) {
       await setDoc(doc(owner, path), { json: "{}" });
@@ -113,6 +114,50 @@ describe("cloud API", () => {
     const history = await getDocs(collection(owner, "notes/M1/history"));
     expect(history.docs.map((d) => d.id)).toEqual([expect.stringMatching(/-original$/)]);
     expect(JSON.parse(String((await getDoc(doc(owner, "notes/M1"))).get("json")))).not.toHaveProperty("markdown");
+  });
+
+  it("approves a proposal into the page with a labelled history entry, then restores the old version", async () => {
+    const before = (await api("/api/pages/notes/T1")) as { version: number; blocks: { id: string }[] };
+    const create = (pid: string, extra: Record<string, unknown>) =>
+      post("/api/proposals/notes/T1", {
+        op: "create",
+        proposal: {
+          id: pid,
+          blockId: "b1",
+          source: { label: "PIB", url: "https://pib.gov.in/x" },
+          reason: "The release adds a figure.",
+          origin: "feed:pib-1",
+          ...extra,
+        },
+      });
+    await create("p1", { kind: "check", text: "Confirm the figure" });
+    await create("p2", { kind: "edit", find: "not in the page", replace: "y" });
+    expect(await api("/api/proposals")).toMatchObject({ "notes:T1": [{ id: "p1" }, { id: "p2" }] });
+
+    const ok = (await post("/api/proposals/notes/T1", { op: "approve", proposalId: "p1" })) as {
+      version: number;
+      proposals: { id: string; status: string }[];
+      page: { blocks: { type: string }[] };
+    };
+    expect(ok.version).toBe(before.version + 1);
+    expect(ok.proposals[0]).toMatchObject({ status: "applied" });
+    expect(ok.page.blocks.map((b) => b.type)).toContain("checkListItem");
+    // A proposal that no longer fits is marked stale, not applied.
+    await expect(post("/api/proposals/notes/T1", { op: "approve", proposalId: "p2" })).rejects.toThrow(
+      /no longer there/,
+    );
+    expect(((await api("/api/proposals/notes/T1")) as { proposals: { status: string }[] }).proposals[1].status).toBe(
+      "stale",
+    );
+
+    const { versions } = (await api("/api/history/notes/T1")) as { versions: { id: string; reason?: string }[] };
+    expect(versions[0].reason).toBe("Approved: The release adds a figure.");
+    const restored = (await post("/api/history/notes/T1", { historyId: versions[0].id })) as {
+      version: number;
+      page: { blocks: { type: string }[] };
+    };
+    expect(restored.version).toBe(before.version + 2);
+    expect(restored.page.blocks.map((b) => b.type)).not.toContain("checkListItem");
   });
 
   it("applies comment, progress, capture and discussion operations", async () => {

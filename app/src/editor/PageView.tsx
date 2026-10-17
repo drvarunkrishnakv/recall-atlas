@@ -23,6 +23,7 @@ import {
   linksTo,
   getPage,
   refreshPage,
+  api,
   savePage,
   STATUS_LABEL,
   usePage,
@@ -43,6 +44,7 @@ import { openPeek } from "../components/peek";
 import { useResolvedTheme } from "../components/ThemeToggle";
 import { Discuss } from "../discuss/Discuss";
 import { AI_IDS, AIS } from "../lib/personas";
+import { HistoryPanel, ProposalsBar, ReviewPanel, useProposals } from "../proposals/Review";
 
 const USERS = [
   { id: "me", username: "You", avatarUrl: "" },
@@ -518,6 +520,73 @@ function PageEditor({ page: initial, inPeek }: { page: Page; inPeek: boolean }) 
     return () => window.clearTimeout(t);
   }, [location.state, inPeek]);
 
+  // ---- proposed changes and version history ----
+  const proposals = useProposals(initial.collection, initial.id);
+  const pendingProposals = proposals.list.filter((x) => x.status === "pending");
+  const [review, setReview] = useState(() => new URLSearchParams(location.search).has("review"));
+  const [history, setHistory] = useState(false);
+
+  /** Puts a version saved by the API (approval, restore) into the editor. */
+  const takeServerVersion = async () => {
+    const pg = pageRef.current;
+    const fresh = await refreshPage(pg.collection, pg.id);
+    if (!fresh) return;
+    pageRef.current = fresh;
+    editor.replaceBlocks(editor.document, fresh.blocks as AtlasPartialBlock[]);
+    lastSaved.current = JSON.stringify(editor.document);
+    await store.load();
+    attachMarks(editor, store.stored);
+  };
+  const approve = async (proposalId: string) => {
+    await flush();
+    const pg = pageRef.current;
+    const r = (await api(`/api/proposals/${pg.collection}/${pg.id}`, {
+      method: "POST",
+      body: JSON.stringify({ op: "approve", proposalId }),
+    }).catch(async (e: unknown) => {
+      await proposals.reload(); // it may have gone stale
+      throw e;
+    })) as { proposals: typeof proposals.list };
+    proposals.setList(r.proposals);
+    await takeServerVersion();
+  };
+  const restore = async (historyId: string) => {
+    await flush();
+    const pg = pageRef.current;
+    await api(`/api/history/${pg.collection}/${pg.id}`, { method: "POST", body: JSON.stringify({ historyId }) });
+    await takeServerVersion();
+    setHistory(false);
+  };
+  /** The heading a block sits under, for the review card. */
+  const sectionOf = (blockId: string) => {
+    let last = "";
+    let found = "";
+    const walk = (bs: Block[]) => {
+      for (const b of bs) {
+        if (found) return;
+        if (b.type === "heading") last = headings([b])[0]?.text ?? last;
+        if (b.id === blockId) found = last || "Top of the note";
+        if (b.children) walk(b.children);
+      }
+    };
+    walk(editor.document as unknown as Block[]);
+    return found;
+  };
+  const showBlock = (blockId: string) => {
+    if (width < 1280) setReview(false);
+    const el = rootRef.current?.querySelector<HTMLElement>(`[data-id="${blockId}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    el?.classList.add("flash");
+    window.setTimeout(() => el?.classList.remove("flash"), 1600);
+  };
+  // Blocks with a pending change get a dashed outline in the text.
+  const proposalCss = pendingProposals
+    .map(
+      (x) =>
+        `.bn-block-outer[data-id="${x.blockId}"]>.bn-block>.bn-block-content{outline:2px dashed var(--accent);outline-offset:3px;border-radius:6px}`,
+    )
+    .join("\n");
+
   const toggleEditing = () => {
     const next = !editing;
     setEditing(next);
@@ -538,6 +607,7 @@ function PageEditor({ page: initial, inPeek }: { page: Page; inPeek: boolean }) 
   return (
     <article className={`page doc${wide && threads.some((t) => !t.resolved && !t.detached) ? " with-margin" : ""}`}>
       {markCss && <style>{markCss}</style>}
+      {proposalCss && <style>{proposalCss}</style>}
       <div className="doc-bar">
         <div className="meta">
           {p.collection === "notes" ? (
@@ -652,6 +722,17 @@ function PageEditor({ page: initial, inPeek }: { page: Page; inPeek: boolean }) 
           >
             💬 {open}
           </button>
+          {!inPeek && (
+            <button
+              type="button"
+              className={`chip-btn${history ? " on" : ""}`}
+              aria-pressed={history}
+              onClick={() => setHistory((v) => !v)}
+            >
+              <Icon name="history" />
+              History
+            </button>
+          )}
           <button
             type="button"
             className={`chip-btn${editing ? " on" : ""}`}
@@ -662,6 +743,8 @@ function PageEditor({ page: initial, inPeek }: { page: Page; inPeek: boolean }) 
           </button>
         </div>
       </div>
+
+      {!inPeek && <ProposalsBar count={pendingProposals.length} onOpen={() => setReview(true)} />}
 
       {p.collection === "notes" && !studyFile && (
         <div className="study-bar">
@@ -796,6 +879,30 @@ function PageEditor({ page: initial, inPeek }: { page: Page; inPeek: boolean }) 
             at={composer.at}
             onSubmit={submitComment}
             onCancel={() => setComposer(null)}
+          />,
+          document.body,
+        )}
+      {review &&
+        createPortal(
+          <ReviewPanel
+            proposals={proposals.list}
+            blocks={editor.document as unknown as Block[]}
+            sectionOf={sectionOf}
+            onApprove={approve}
+            onReject={proposals.reject}
+            onShow={showBlock}
+            onClose={() => setReview(false)}
+          />,
+          document.body,
+        )}
+      {history &&
+        createPortal(
+          <HistoryPanel
+            collection={p.collection}
+            id={p.id}
+            current={editor.document as unknown as Block[]}
+            onRestore={restore}
+            onClose={() => setHistory(false)}
           />,
           document.body,
         )}

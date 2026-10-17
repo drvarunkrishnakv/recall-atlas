@@ -1,5 +1,25 @@
 # Handoff
 
+## Proposals, history and the feed (M4) — 2026-10-18
+
+- **Branch:** `claude/proposals-history-feed`, from `main` (a0b03af). Assisting tool: Claude Code.
+- **Proposals:** `src/lib/proposals.ts` (kinds, ops, `applyToBlocks`, `planApproval`),
+  `src/lib/approve.ts` (approve and restore over a storage interface). Routes in the dev API
+  and the cloud API: `/api/proposals[/c/id]` (ops and `{op: "approve"}`), `/api/history/c/id[/hid]`
+  (list, read, restore). Rules: `proposals/{id}` owner-only. Snapshots carry `reason`/`savedAt`.
+- **App:** "N changes proposed" bar and review drawer (`src/proposals/Review.tsx`), dashed
+  outline on affected blocks, History drawer with a line diff and Restore, inbox section
+  "Changes to approve" (counted in the sidebar badge), `?review=1` opens the drawer.
+- **CLI:** `proposals`, `propose`, `approve`, `reject`, `history`, `restore`; export/import carry
+  proposals.
+- **Feed (private repo):** `updater.config.json` reads `content/notes` (the mirror); the matcher
+  skips study files; `UPDATER.md` describes the new flow (Claude files `atlas propose --feed`).
+- **Scheduled task:** `mains-atlas-twice-daily` now files proposals from confirmed flags and
+  from the feed, and never approves.
+- **Checks:** `npm run check` (63 unit tests, build); `npm run test:cloud` 20 passed (incl.
+  approve, stale and restore through Firestore); `npx playwright test` 45 passed + 16 skips
+  (incl. approve → history → restore). Screenshots: `docs/design/proposals/`.
+
 ## Comments, flags and Discuss redesign — 2026-10-17
 
 - **Branch:** `claude/comments-discuss-design`, from `main` (0ac7cc2). Assisting tool: Claude Code.

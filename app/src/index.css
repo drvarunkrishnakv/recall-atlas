@@ -3671,3 +3671,215 @@ tr.planned .title-cell {
     animation: none;
   }
 }
+
+/* ---------- Proposed changes and version history ---------- */
+.proposals-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  margin: 0 0 0.8rem;
+  padding: 0.6rem 0.9rem;
+  border: 1.5px dashed color-mix(in srgb, var(--accent) 55%, var(--line));
+  border-radius: var(--r);
+  background: var(--accent-soft);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.proposals-bar .pb-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: var(--bg);
+  font-size: 0.85rem;
+}
+.proposals-bar span:last-child {
+  margin-left: auto;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+.proposal {
+  background: var(--raised);
+  border: 1.5px dashed color-mix(in srgb, var(--accent) 45%, var(--line));
+  border-radius: 14px;
+  padding: 0.7rem 0.8rem;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+.proposal.applied,
+.proposal.rejected,
+.proposal.stale {
+  border-style: solid;
+  border-color: var(--line);
+  opacity: 0.8;
+}
+.proposal header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.pr-kind {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.pr-section {
+  font-size: 0.75rem;
+}
+.pr-status {
+  margin-left: auto;
+  border-radius: 999px;
+  padding: 0 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  background: var(--surface);
+  color: var(--muted);
+}
+.pr-status.applied {
+  background: var(--go-soft);
+  color: var(--go-ink);
+}
+.pr-status.stale {
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+}
+.pr-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0.5rem 0 0.4rem;
+}
+.pr-diff del,
+.pr-diff ins {
+  display: block;
+  padding: 0.3rem 0.5rem;
+  border-radius: 8px;
+  text-decoration: none;
+}
+.pr-diff del {
+  background: var(--weak-soft);
+  color: var(--weak-ink);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--weak-ink) 50%, transparent);
+}
+.pr-diff ins {
+  background: var(--go-soft);
+  color: var(--go-ink);
+}
+.pr-diff ins.empty {
+  font-style: italic;
+}
+.pr-why {
+  margin: 0.2rem 0;
+  color: var(--ink);
+}
+.pr-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.6rem;
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+.pr-src {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 0.55rem;
+  color: var(--ink);
+  font-weight: 600;
+  line-height: 1.8;
+  text-decoration: none;
+}
+.pr-warn {
+  color: var(--warn-ink);
+}
+.pr-note {
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  color: var(--warn-ink);
+}
+.pr-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+.version {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--raised);
+}
+.version-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.6rem;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.86rem;
+  text-align: left;
+  cursor: pointer;
+}
+.version-head span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.version-head em {
+  flex-basis: 100%;
+  font-style: normal;
+  font-size: 0.78rem;
+  color: var(--accent);
+}
+.version-body {
+  padding: 0 0.75rem 0.7rem;
+}
+.diff {
+  max-height: 22rem;
+  overflow: auto;
+  border-radius: 8px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  font:
+    0.74rem/1.5 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.diff > div {
+  padding: 0 0.5rem;
+}
+.d-added {
+  background: var(--go-soft);
+  color: var(--go-ink);
+}
+.d-removed {
+  background: var(--weak-soft);
+  color: var(--weak-ink);
+}
+.d-same {
+  color: var(--muted);
+}
+.d-fold {
+  color: var(--muted);
+  text-align: center;
+}
+.d-legend {
+  margin: 0.35rem 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+}

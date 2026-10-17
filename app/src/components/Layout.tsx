@@ -12,11 +12,12 @@ import { Search } from "./Search";
 /** Counts for the sidebar badges. */
 export function useBadges() {
   const { pages } = useContent();
-  const { progress, threads, captures } = useStudy();
+  const { progress, threads, captures, proposals } = useStudy();
   const due = [...pages.values()].filter((p) => p.collection === "notes" && isDue(progress.notes[p.id])).length;
   const replied = Object.values(threads).reduce((n, t) => n + claudeState(t).replied, 0);
   const filed = captures.filter((c) => c.status === "done").length;
-  return { due, inbox: replied + filed };
+  const changes = Object.values(proposals).reduce((n, l) => n + l.filter((p) => p.status === "pending").length, 0);
+  return { due, inbox: replied + filed + changes };
 }
 
 function Sidebar({ onCapture, onSearch }: { onCapture: () => void; onSearch: () => void }) {

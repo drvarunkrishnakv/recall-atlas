@@ -21,6 +21,9 @@ service cloud.firestore {
     match /discussions/{id} {
       allow read, write: if isOwner();
     }
+    match /proposals/{id} {
+      allow read, write: if isOwner();
+    }
     match /study/{id} {
       allow read, write: if isOwner();
     }

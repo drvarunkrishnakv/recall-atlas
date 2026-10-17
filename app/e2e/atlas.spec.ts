@@ -433,3 +433,42 @@ test("Settings: the gear in the sidebar opens the theme choice, which sticks", a
   await expect(page.locator("html")).not.toHaveAttribute("data-theme", /./);
   await noSideScroll(page);
 });
+
+test("a proposed change is approved into the note, recorded in history, and can be restored away", async ({ page }) => {
+  test.skip(!isDesktop(page), "Once is enough");
+  await page.goto("/notes/P06");
+  await page.locator(".bn-editor").first().waitFor();
+  const { blocks } = await (await page.request.get("/api/pages/notes/P06")).json();
+  const r = await page.request.post("/api/proposals/notes/P06", {
+    headers: { "X-Atlas": "1" },
+    data: {
+      op: "create",
+      proposal: {
+        id: "e2e-prop",
+        kind: "check",
+        blockId: blocks[0].id,
+        text: "Confirm the e2e figure",
+        source: { label: "PIB", url: "https://pib.gov.in/e2e" },
+        reason: "A release adds a figure to confirm.",
+        origin: "feed:e2e",
+      },
+    },
+  });
+  expect(r.ok()).toBe(true);
+  await page.reload();
+  await page.getByRole("button", { name: /1 change proposed/ }).click();
+  const card = page.locator(".proposal", { hasText: "Confirm the e2e figure" });
+  await expect(card).toContainText("From the official-source feed");
+  await card.getByRole("button", { name: /Approve/ }).click();
+  await expect(page.locator(".bn-editor").getByText("Confirm the e2e figure")).toBeVisible();
+  await expect(page.getByRole("button", { name: /change proposed/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "Close" }).click();
+
+  await page.getByRole("button", { name: "History" }).click();
+  const latest = page.locator(".version").first();
+  await expect(latest).toContainText("Approved: A release adds a figure to confirm.");
+  await latest.locator(".version-head").click();
+  await expect(latest.locator(".d-added", { hasText: "Confirm the e2e figure" })).toBeVisible();
+  await latest.getByRole("button", { name: /Restore/ }).click();
+  await expect(page.locator(".bn-editor").getByText("Confirm the e2e figure")).toHaveCount(0);
+});

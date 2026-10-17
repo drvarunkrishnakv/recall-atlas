@@ -17,6 +17,12 @@
 //   node cli/atlas.ts post <discussion> "…" [--source "Label|url"]…      take Claude's turn
 //   node cli/atlas.ts conclude <discussion> "…" [--source "Label|url"]…  write the conclusion
 //   node cli/atlas.ts discuss-import notes/P06 <file.json>   add Claude's prepared questions
+//   node cli/atlas.ts proposals [--all]             proposed changes waiting for the user (--all: every status)
+//   node cli/atlas.ts propose notes/P10 <edit|add|row|check> --block <id> --source "Label|url[|YYYY-MM-DD]"
+//        --reason "…" [--find "…" --replace "…"] [--text "…"] [--cells "a|b|c"] [--type paragraph]
+//        [--flag <thread>] [--feed <article-id>] [--secondary]
+//   node cli/atlas.ts approve <proposal-id> | reject <proposal-id>   only when the user said so in chat
+//   node cli/atlas.ts history notes/P10             past versions;  restore notes/P10 <version-id>
 //   node cli/atlas.ts import <content-dir> [--force]  copy a content folder into Firestore (once, at the switch)
 //   node cli/atlas.ts export <content-dir>           write Firestore out as files: the notes repo's mirror
 //                                                    (files for pages, comments and discussions gone from Firestore are removed)
@@ -317,6 +323,106 @@ switch (cmd) {
     break;
   }
 
+  case "proposals": {
+    const all = await db.allProposals();
+    let n = 0;
+    for (const key of sortedKeys(all))
+      for (const p of all[key]) {
+        if (p.status !== "pending" && !args.includes("--all")) continue;
+        n++;
+        const what =
+          p.kind === "edit"
+            ? `"${p.find}" → "${p.replace}"`
+            : p.kind === "row"
+              ? `row: ${p.cells?.join(" | ")}`
+              : `${p.kind}: ${p.text}`;
+        console.log(
+          `\n## ${key.replace(":", "/")} · ${p.id} · ${p.kind} · ${p.status} · block ${p.blockId} · from ${p.origin}`,
+        );
+        console.log(
+          `${what}\n  Why: ${p.reason}\n  Source: ${p.source.label} ${p.source.url}${p.note ? `\n  Note: ${p.note}` : ""}`,
+        );
+      }
+    if (!n) console.log("No proposals waiting.");
+    break;
+  }
+
+  case "propose": {
+    const { collection, id } = parseRef(args[0]);
+    const kind = args[1];
+    const opt = (name: string) => {
+      const i = args.indexOf(`--${name}`);
+      return i === -1 ? undefined : args[i + 1];
+    };
+    const [label, url, date] = (opt("source") ?? "").split("|").map((x) => x.trim());
+    const flag = opt("flag");
+    const feed = opt("feed");
+    const list = await db.changeProposals(collection, id, {
+      op: "create",
+      proposal: {
+        id: crypto.randomUUID().slice(0, 12),
+        kind: kind as "edit",
+        blockId: opt("block") ?? "",
+        find: opt("find"),
+        replace: opt("replace"),
+        text: opt("text"),
+        cells: opt("cells")
+          ?.split("|")
+          .map((c) => c.trim()),
+        blockType: opt("type"),
+        source: { label, url, date },
+        reason: opt("reason") ?? "",
+        origin: flag ? `flag:${flag}` : feed ? `feed:${feed}` : "claude",
+        verification: args.includes("--secondary") ? "secondary" : "primary",
+      },
+    });
+    // Check now that it would apply, so a bad proposal never reaches the user.
+    const created = list.at(-1)!;
+    const page = await readPage(collection, id);
+    try {
+      (await import("../src/lib/proposals.ts")).applyToBlocks(page.blocks, created);
+    } catch (e) {
+      await db.changeProposals(collection, id, { op: "delete", proposalId: created.id });
+      fail(`Not proposed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    console.log(`Proposed ${created.id} on ${collection}/${id} (${created.kind}).`);
+    break;
+  }
+
+  case "approve":
+  case "reject": {
+    const pid = args[0];
+    const all = await db.allProposals();
+    const key = Object.keys(all).find((k) => all[k].some((p) => p.id === pid));
+    if (!pid || !key) fail(`No proposal ${pid ?? ""}`);
+    const [collection, id] = key.split(":") as [Collection, string];
+    if (cmd === "reject") {
+      await db.changeProposals(collection, id, { op: "reject", proposalId: pid });
+      console.log(`Rejected ${pid}.`);
+    } else {
+      const r = await db.approve(collection, id, pid);
+      console.log(`Applied ${pid} to ${collection}/${id} as version ${r.version}.`);
+    }
+    break;
+  }
+
+  case "history": {
+    const { collection, id } = parseRef(args[0]);
+    const list = await db.history(collection, id);
+    if (!list.length) console.log("No past versions yet.");
+    for (const h of list)
+      console.log(`${h.id}\tv${h.version}\t${new Date(h.savedAt).toISOString().slice(0, 16)}\t${h.reason ?? ""}`);
+    break;
+  }
+
+  case "restore": {
+    const { collection, id } = parseRef(args[0]);
+    if (!args[1]) fail("Usage: restore notes/P10 <version-id> (from atlas history)");
+    const r = await db.restore(collection, id, args[1]);
+    console.log(`Restored ${args[1]} as version ${r.version} of ${collection}/${id}.`);
+    break;
+  }
+
   case "import": {
     const from = args[0];
     if (!from || !existsSync(from)) fail("Usage: import <content-dir> [--force]");
@@ -324,7 +430,7 @@ switch (cmd) {
     if (existing && !args.includes("--force"))
       fail(`Firestore already has ${existing} pages. Use --force to overwrite them with ${from}.`);
     const data = await snapshot(fileBackend(from));
-    await db.restore(data);
+    await db.restoreAll(data);
     console.log(
       `Imported ${data.pages.length} pages, ${Object.values(data.threads).flat().length} threads, ` +
         `${Object.values(data.discussions).flat().length} discussions, progress and ${data.captures.length} captures.`,
@@ -336,7 +442,7 @@ switch (cmd) {
     const to = args[0];
     if (!to) fail("Usage: export <content-dir>");
     const data = await snapshot(db);
-    await fileBackend(to).restore(data, { prune: true });
+    await fileBackend(to).restoreAll(data, { prune: true });
     console.log(
       `Exported ${data.pages.length} pages with their Markdown copies, threads and discussions to ${to}, ` +
         `removing files for anything deleted from Firestore.`,
@@ -415,6 +521,6 @@ switch (cmd) {
 
   default:
     fail(
-      "Commands: pages | show <ref> [--ids] | comments [--waiting|--all] | reply <ref> <thread> <text> | replace <ref> <old> <new> | captures [--all] | file-capture <id> <text> [note] | progress | cite-sources <ref> | discussions [--all] | turns | post <id> <text> | conclude <id> <text> | discuss-import <ref> <file> | import <dir> | export <dir> | owner [uid|email] | mcp-key add|list|revoke | oauth list|revoke",
+      "Commands: pages | show <ref> [--ids] | comments [--waiting|--all] | reply <ref> <thread> <text> | replace <ref> <old> <new> | captures [--all] | file-capture <id> <text> [note] | progress | cite-sources <ref> | discussions [--all] | turns | post <id> <text> | conclude <id> <text> | discuss-import <ref> <file> | import <dir> | export <dir> | owner [uid|email] | mcp-key add|list|revoke | oauth list|revoke | proposals | propose | approve | reject | history | restore",
     );
 }

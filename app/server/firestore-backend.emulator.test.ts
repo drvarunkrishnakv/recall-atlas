@@ -35,7 +35,7 @@ describe("Firestore backend", () => {
   it("imports the fixture and exports it back unchanged", async () => {
     const original = await snapshot(files);
     expect(original.pages.length).toBeGreaterThan(0);
-    await cloud.restore(original);
+    await cloud.restoreAll(original);
     const out = mkdtempSync(join(tmpdir(), "atlas-export-"));
     // Files for things deleted from Firestore are pruned from the mirror.
     mkdirSync(join(out, "notes"), { recursive: true });
@@ -43,7 +43,7 @@ describe("Firestore backend", () => {
     writeFileSync(join(out, "notes", "GONE.json"), "{}");
     writeFileSync(join(out, "notes", "GONE.md"), "");
     writeFileSync(join(out, "comments", "notes-GONE.json"), "{}");
-    await fileBackend(out).restore(await snapshot(cloud), { prune: true });
+    await fileBackend(out).restoreAll(await snapshot(cloud), { prune: true });
     expect(existsSync(join(out, "notes", "GONE.md")) || existsSync(join(out, "comments", "notes-GONE.json"))).toBe(
       false,
     );
