@@ -1,5 +1,20 @@
 # Decisions
 
+## 2026-10-17 — Hosted MCP server for any AI
+
+- The Atlas MCP server runs as a Cloud Function (asia-south1, 2nd gen) behind Firebase
+  Hosting at `https://recall-atlas-511913.web.app/mcp`: one fixed address that works with the
+  Mac off, replacing quick tunnels whose address changed each run. Needs the Blaze plan.
+- Any MCP client can connect, not only Grok. Bots are AI-neutral personas (Debater, Reviewer…);
+  which AI is calling comes from its key. Turns record `ai`, a flag's first comment is
+  authored by the AI, and the app names the AI ("Gemini · Reviewer"). A seat can be pinned to
+  one AI.
+- One key per AI, stored only as a SHA-256 hash in Firestore `mcpKeys/` (closed to the app by
+  the rules), revocable at once (`atlas mcp-key revoke`). Browser requests are refused.
+- The flag tools from PR #32 moved onto the shared backend (files or Firestore).
+- `atlas export` now prunes files for pages, comments and discussions deleted from
+  Firestore, so the notes repo mirrors Firestore exactly.
+
 ## 2026-10-17 — Firebase backend (M3): same routes, Firestore underneath
 
 - Firebase project `recall-atlas-511913` (named "Recall-atlas" by the user; the plan had

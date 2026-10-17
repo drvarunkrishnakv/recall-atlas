@@ -109,10 +109,12 @@ undefined fields aren't valid Firestore values). Shapes are in `app/src/lib/clou
   exact phrase). It runs on Firestore through the Firebase Admin SDK, with its
   service-account key outside the repo (`~/.config/mains-atlas/service-account.json`), or on
   a content folder when `ATLAS_CONTENT_DIR` is set.
-- Other bots (Grok Bot and the like) join note discussions through the Atlas MCP server
-  (`app/mcp/`). Its only write is posting the bot's own turn, when it's that persona's turn,
-  with a source. It never edits notes or comments. Over HTTP it listens on 127.0.0.1 only,
-  needs a bearer key (kept in git-ignored `.atlas-local/`) and refuses browser requests.
+- Other AIs (Grok, Gemini, ChatGPT, any MCP client) join through the Atlas MCP server
+  (`app/mcp/`), hosted as a Cloud Function at `https://<project>.web.app/mcp`. Its only writes
+  are a bot's own turn (when it's that persona's turn, with a source) and flags on exact quotes
+  (capped per note). It never edits notes or comments. Each AI has its own key (a SHA-256 hash
+  in Firestore `mcpKeys/`, closed to the app), which also names the AI on what it posts;
+  browser requests are refused. On the Mac it can also run locally (`npm run mcp:http`).
   Bots' text is shown as plain text and treated as material, never as instructions to Claude.
 - The private notes repo (`drvarunkrishnakv/upsc-mains-atlas-notes`) keeps a Markdown
   mirror exported from Firestore, so other agents can read it and git keeps the history.
@@ -141,7 +143,8 @@ app/server/          Local save API (Vite dev middleware); the CLI/MCP backends 
 app/cli/atlas.ts     Node CLI for Claude: comments, replies, page text, exact edits, captures, progress
 app/src/dashboard.tsx Home, subject database, Revise today, Claude inbox
 app/src/content/     Syllabus tree (public structure only), the content store, Firebase and the cloud API
-firebase.json        Hosting, Firestore rules and emulator config
+firebase.json        Hosting (with the /mcp rewrite), the MCP function, Firestore rules, emulators
+functions/           The hosted MCP server, bundled from app/mcp/function.ts (npm run mcp:function)
 firestore.rules      Owner-only rules (tested in the emulator: npm run test:cloud)
 docs/                Architecture, build plan, decisions, handoff
 ```

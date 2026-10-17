@@ -10,7 +10,7 @@ import {
   turnTask,
   type Discussion,
 } from "./discussions";
-import { DEFAULT_SEATS, type Mode } from "./personas";
+import { DEFAULT_SEATS, speaker, type Mode } from "./personas";
 
 const src = [{ label: "PRS", url: "https://prsindia.org/x" }];
 const body = "A point long enough to count as a real turn.";
@@ -24,7 +24,11 @@ const start = (mode: Mode, seats = DEFAULT_SEATS[mode]) =>
     "T0",
   );
 const say = (list: Discussion[], by: string, n: number, sources = src) =>
-  applyDiscussionOp(list, { op: "turn", discussionId: "d1", turn: { id: `t${n}`, by, body, sources } });
+  applyDiscussionOp(list, {
+    op: "turn",
+    discussionId: "d1",
+    turn: { id: `t${n}`, by, ...(by === "claude" || by === "me" ? {} : { ai: "grok" as const }), body, sources },
+  });
 const conclude = (list: Discussion[]) =>
   applyDiscussionOp(list, {
     op: "conclude",
@@ -33,6 +37,23 @@ const conclude = (list: Discussion[]) =>
   });
 
 describe("discussions", () => {
+  it("records which AI took a bot's turn, and keeps a pinned seat for its AI", () => {
+    let l = start("devil", [
+      { role: "devil", by: "devil", ai: "gemini" },
+      { role: "defender", by: "claude" },
+    ]);
+    const turn = (ai?: "grok" | "gemini") =>
+      applyDiscussionOp(l, { op: "turn", discussionId: "d1", turn: { id: "g1", by: "devil", ai, body, sources: src } });
+    expect(() => turn()).toThrow(/needs the AI/);
+    expect(() => turn("grok")).toThrow(/can't take it/);
+    l = turn("gemini");
+    expect(l[0].turns[0]).toMatchObject({ by: "devil", ai: "gemini" });
+    expect(speaker(l[0].turns[0])).toBe("Gemini · Devil's advocate");
+    expect(() =>
+      start("devil", [{ role: "devil", by: "devil", ai: "nobody" as never }, DEFAULT_SEATS.devil[1]]),
+    ).toThrow(/Bad AI/);
+  });
+
   it("starts a debate with Claude for and Grok's debater against", () => {
     const [d] = start("debate");
     expect(d.topic).toBe("This House would rotate reserved seats");

@@ -1,23 +1,26 @@
-// The Atlas MCP server: how bots (Grok Bot, Claude, any MCP client) take part in a note's
-// discussions — debate club, expert roundtable, devil's advocate. The tools are in server.ts.
+// The Atlas MCP server on this Mac: how other AIs (Grok, Gemini, ChatGPT, any MCP client)
+// take part in discussions and flag passages. The tools are in server.ts; the hosted server
+// at a fixed address (Firebase) is in functions/ and shares http.ts.
 //
-//   node mcp/atlas-mcp.ts                 stdio, for a client that runs a command on this Mac
-//   node mcp/atlas-mcp.ts --http 5190     HTTP on 127.0.0.1:5190/mcp, needs the bearer key
-//   npm run mcp:build                     bundle into mcp/dist/atlas-mcp.mjs (one file starts in
-//                                         a second; the SDK's many small files are slow on this drive)
+//   node mcp/atlas-mcp.ts [--ai grok]          stdio, for a client that runs a command on this Mac
+//   node mcp/atlas-mcp.ts --http 5190          HTTP on 127.0.0.1:5190/mcp, needs a key
+//   npm run mcp:build                          bundle into mcp/dist/atlas-mcp.mjs (one file starts in
+//                                              a second; the SDK's many small files are slow on this drive)
 //
 // Works on the content folder in ATLAS_CONTENT_DIR when it's set (the dev save API's files),
-// otherwise on Firestore through the Admin SDK, like the CLI. The HTTP key is
-// ATLAS_MCP_KEY, or a random one kept in .atlas-local/mcp-key (git-ignored) and printed on start.
+// otherwise on Firestore through the Admin SDK, like the CLI. On Firestore, HTTP keys are the
+// same per-AI keys as the hosted server (`atlas mcp-key add`). On files, the key is
+// ATLAS_MCP_KEY, or a random one kept in .atlas-local/mcp-key (git-ignored), and acts as --ai.
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { buildServer } from "./server.ts";
+import { handleMcp } from "./http.ts";
 import { fileBackend, type Backend } from "../server/backend.ts";
+import { AI_IDS, isAi, type AiId } from "../src/lib/personas.ts";
 
 // The app folder: one up from mcp/, or two up from the bundle in mcp/dist/.
 const here = dirname(fileURLToPath(import.meta.url));
@@ -27,9 +30,29 @@ if (dir && !existsSync(dir)) {
   console.error(`ATLAS_CONTENT_DIR ${dir} doesn't exist.`);
   process.exit(1);
 }
+const aiArg = process.argv.indexOf("--ai");
+const ai = (aiArg === -1 ? (process.env.ATLAS_MCP_AI ?? "grok") : process.argv[aiArg + 1]) as AiId;
+if (!isAi(ai)) {
+  console.error(`--ai must be one of: ${AI_IDS.join(", ")}`);
+  process.exit(1);
+}
 let db: Backend;
+let checkKey: (key: string) => Promise<AiId | null>;
 try {
-  db = dir ? fileBackend(dir) : (await import("../server/firestore-backend.ts")).firestoreBackend();
+  if (dir) {
+    db = fileBackend(dir);
+    const local = Buffer.from(localKey());
+    checkKey = async (key) => {
+      const given = Buffer.from(key);
+      return given.length === local.length && timingSafeEqual(given, local) ? ai : null;
+    };
+  } else {
+    const fb = await import("../server/firestore-backend.ts");
+    const { keyChecker } = await import("../server/mcp-keys.ts");
+    const { getFirestore } = await import("firebase-admin/firestore");
+    db = fb.firestoreBackend();
+    checkKey = keyChecker(getFirestore(fb.adminApp()));
+  }
 } catch (e) {
   console.error(e instanceof Error ? e.message : String(e));
   process.exit(1);
@@ -37,7 +60,7 @@ try {
 
 // ---------- transports ----------
 
-function httpKey(): string {
+function localKey(): string {
   if (process.env.ATLAS_MCP_KEY) return process.env.ATLAS_MCP_KEY;
   const path = join(appRoot, ".atlas-local", "mcp-key");
   if (existsSync(path)) return readFileSync(path, "utf8").trim();
@@ -49,51 +72,21 @@ function httpKey(): string {
 
 const portArg = process.argv.indexOf("--http");
 if (portArg === -1) {
-  await buildServer(db).connect(new StdioServerTransport());
+  await buildServer(db, { ai }).connect(new StdioServerTransport());
 } else {
   const port = Number(process.argv[portArg + 1] ?? 5190);
-  const key = Buffer.from(httpKey());
-  // The key comes as "Authorization: Bearer <key>", or as "X-API-Key: <key>" for clients
-  // that only offer an API-key field.
-  const authorised = (bearer: string | undefined, apiKey: string | string[] | undefined) => {
-    const given = Buffer.from(typeof apiKey === "string" ? apiKey : (bearer ?? "").replace(/^Bearer\s+/i, ""));
-    return given.length === key.length && timingSafeEqual(given, key);
-  };
-  createServer(async (req, res) => {
-    const deny = (status: number, msg: string) => {
-      res.statusCode = status;
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ error: msg }));
-    };
-    if (new URL(req.url ?? "/", "http://local").pathname !== "/mcp") return deny(404, "Not found");
-    // Browsers send an Origin; bots don't. Refusing browser pages stops a web page on this Mac
-    // from talking to the server.
-    if (req.headers.origin) return deny(403, "Browser requests are not accepted");
-    if (!authorised(req.headers.authorization, req.headers["x-api-key"])) return deny(401, "Missing or wrong key");
-    if (req.method !== "POST") return deny(405, "Use POST");
-    let size = 0;
-    const chunks: Buffer[] = [];
-    for await (const c of req) {
-      size += (c as Buffer).length;
-      if (size > 1_000_000) return deny(413, "Body too large");
-      chunks.push(c as Buffer);
+  createServer((req, res) => {
+    if (new URL(req.url ?? "/", "http://local").pathname !== "/mcp") {
+      res.statusCode = 404;
+      return res.end();
     }
-    let body: unknown;
-    try {
-      body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-    } catch {
-      return deny(400, "Bad JSON");
-    }
-    const server = buildServer(db);
-    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
-    res.on("close", () => {
-      void transport.close();
-      void server.close();
+    void handleMcp({ db, checkKey }, req, res).catch((e) => {
+      if (!res.headersSent) res.statusCode = 500;
+      res.end(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }));
     });
-    await server.connect(transport);
-    await transport.handleRequest(req, res, body);
   }).listen(port, "127.0.0.1", () => {
-    console.error(`Atlas MCP on http://127.0.0.1:${port}/mcp`);
-    console.error(`Bearer key: ${process.env.ATLAS_MCP_KEY ? "(from ATLAS_MCP_KEY)" : key.toString()}`);
+    console.error(
+      `Atlas MCP on http://127.0.0.1:${port}/mcp (${dir ? `files, key acts as ${ai}` : "Firestore, per-AI keys"})`,
+    );
   });
 }

@@ -1,8 +1,22 @@
 // Comment threads as stored in `content/comments/<collection>-<id>.json`, and the
-// operations that change them. Shared by the dev save API, the app and the Claude CLI.
+// operations that change them. Shared by the dev save API, the app, the Claude CLI and the
+// Atlas MCP server (which adds flags from AI reviewer bots).
 
-export type ThreadKind = "comment" | "sticky" | "claude";
-export type Author = "me" | "claude";
+export type ThreadKind = "comment" | "sticky" | "claude" | "flag";
+import { isAi, type AiId } from "./personas.ts";
+
+export type Author = "me" | "claude" | AiId;
+
+/** How sure a reviewer bot is that a passage has a problem. */
+export type FlagLevel = "uncertain" | "wrong" | "outdated" | "unsourced";
+export const FLAG_LEVELS: FlagLevel[] = ["uncertain", "wrong", "outdated", "unsourced"];
+
+/** A reviewer bot's flag on a passage: which bot (persona), how serious, and its sources. The AI is the first comment's author. */
+export interface Flag {
+  by: string;
+  level: FlagLevel;
+  sources: { label: string; url: string }[];
+}
 
 /** Where a thread points: the block it's in and the exact text it highlights. */
 export interface Anchor {
@@ -24,6 +38,8 @@ export interface StoredThread {
   anchor: Anchor;
   /** True once the highlighted text is gone from the page; the thread then lists under "Detached". */
   detached?: boolean;
+  /** Set on flags raised by an AI reviewer bot through the Atlas MCP server. */
+  flag?: Flag;
   resolved: boolean;
   resolvedAt?: string;
   createdAt: string;
@@ -34,7 +50,7 @@ export interface StoredThread {
 export type ThreadOp =
   | {
       op: "create";
-      thread: { id: string; kind: ThreadKind; anchor: Anchor };
+      thread: { id: string; kind: ThreadKind; anchor: Anchor; flag?: Flag };
       comment: { id: string; body: string };
       by: Author;
     }
@@ -67,10 +83,14 @@ export function applyThreadOp(threads: StoredThread[], op: ThreadOp, now = new D
   switch (op.op) {
     case "create": {
       if (threads.some((t) => t.id === op.thread.id)) throw new ThreadOpError("Thread exists");
+      // Only an AI bot raises a flag, and a flag is all an AI bot can start.
+      if ((op.thread.kind === "flag") !== isAi(op.by) || (op.thread.kind === "flag" && !op.thread.flag))
+        throw new ThreadOpError("Flags come from reviewer bots only");
       const t: StoredThread = {
         id: op.thread.id,
         kind: op.thread.kind,
         anchor: op.thread.anchor,
+        ...(op.thread.flag ? { flag: op.thread.flag } : {}),
         resolved: false,
         createdAt: now,
         updatedAt: now,
@@ -121,7 +141,14 @@ export function applyThreadOp(threads: StoredThread[], op: ThreadOp, now = new D
   }
 }
 
-/** Open threads where Claude is asked and hasn't had the last word. */
+/** An open "Ask Claude" thread without Claude's last word, or an open flag Claude hasn't checked. */
+export const isWaitingForClaude = (t: StoredThread) =>
+  !t.resolved &&
+  (t.kind === "claude"
+    ? t.comments.at(-1)?.userId !== "claude"
+    : t.kind === "flag" && !t.comments.some((c) => c.userId === "claude"));
+
+/** Open threads where Claude is asked and hasn't had the last word, and flags it hasn't checked. */
 export function waitingForClaude(threads: StoredThread[]): StoredThread[] {
-  return threads.filter((t) => t.kind === "claude" && !t.resolved && t.comments.at(-1)?.userId !== "claude");
+  return threads.filter(isWaitingForClaude);
 }

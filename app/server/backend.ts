@@ -1,7 +1,7 @@
 // Where the CLI and the MCP server keep content: the content folder (the dev save API's
 // files, ATLAS_CONTENT_DIR) or Firestore (firestore-backend.ts, through the Admin SDK).
 // Both offer the same operations, so the commands don't care which one they run on.
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Collection, StoredPage } from "../src/lib/cloud-docs.ts";
 import type { StoredThread, ThreadOp } from "../src/lib/threads.ts";
@@ -43,8 +43,12 @@ export interface Backend {
   changeProgress(op: ProgressOp): Promise<Progress>;
   captures(): Promise<Capture[]>;
   changeCaptures(op: CaptureOp): Promise<Capture[]>;
-  /** Writes everything as given, without version checks: for `atlas import` and `atlas export`. */
-  restore(data: Snapshot): Promise<void>;
+  /**
+   * Writes everything as given, without version checks: for `atlas import` and `atlas export`.
+   * `prune` (files only) also removes pages, comments and discussions that `data` no longer has,
+   * so the notes repo's mirror matches Firestore.
+   */
+  restore(data: Snapshot, opts?: { prune?: boolean }): Promise<void>;
 }
 
 /** All of a backend's content, as `atlas import` and `atlas export` move it. */
@@ -86,7 +90,27 @@ export function fileBackend(dir: string): Backend {
     changeProgress: async (op) => changeProgress(dir, op),
     captures: async () => loadCaptures(dir),
     changeCaptures: async (op) => changeCaptures(dir, op),
-    async restore(data) {
+    async restore(data, opts) {
+      if (opts?.prune) {
+        const keep = new Set(data.pages.map((p) => `${p.collection}/${p.id}`));
+        for (const c of ["notes", "cards"]) {
+          const folder = join(dir, c);
+          if (!existsSync(folder)) continue;
+          for (const f of readdirSync(folder)) {
+            const m = /^(.+)\.(json|md)$/.exec(f);
+            if (m && !keep.has(`${c}/${m[1]}`)) rmSync(join(folder, f));
+          }
+        }
+        for (const [name, map] of [
+          ["comments", data.threads],
+          ["discussions", data.discussions],
+        ] as const) {
+          const folder = join(dir, name);
+          if (!existsSync(folder)) continue;
+          for (const f of readdirSync(folder))
+            if (f.endsWith(".json") && !Object.hasOwn(map, f.slice(0, -5).replace("-", ":"))) rmSync(join(folder, f));
+        }
+      }
       for (const p of data.pages) writePageFiles(dir, p);
       for (const [name, map, field] of [
         ["comments", data.threads, "threads"],

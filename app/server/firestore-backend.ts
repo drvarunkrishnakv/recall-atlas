@@ -4,7 +4,7 @@
 //
 // Credentials: a service-account key at ~/.config/mains-atlas/service-account.json (or
 // GOOGLE_APPLICATION_CREDENTIALS). With FIRESTORE_EMULATOR_HOST set, the local emulator is
-// used instead and no key is needed.
+// used instead, and on Cloud Functions the runtime's service account; neither needs a key.
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -33,6 +33,8 @@ export function adminApp(): App {
   if (existing) return existing;
   if (process.env.FIRESTORE_EMULATOR_HOST)
     return initializeApp({ projectId: process.env.GCLOUD_PROJECT ?? "demo-atlas" });
+  // On Cloud Functions the runtime's own service account is used; no key file.
+  if (process.env.K_SERVICE || process.env.FUNCTION_TARGET) return initializeApp();
   const path = process.env.GOOGLE_APPLICATION_CREDENTIALS ?? KEY_PATH;
   if (!existsSync(path))
     throw new Error(

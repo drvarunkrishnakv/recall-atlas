@@ -1,6 +1,6 @@
 // The Discuss sidebar: a Notion-style panel that floats over the note (it never pushes the
 // text). Three tabs — Debate, Roundtable, Devil's advocate — list the questions Claude
-// prepared for this note, plus any you add. Opening one shows Claude and Grok's bots talking
+// prepared for this note, plus any you add. Opening one shows Claude and other AIs' bots talking
 // it through, turn by turn, ending in Claude's conclusion. Turns arrive on a timer through
 // the Atlas MCP server and Claude's scheduled task; this panel shows them as they land.
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
@@ -11,6 +11,12 @@ import type { AtlasEditor } from "../editor/schema";
 import type { Anchor } from "../lib/threads";
 import { nextUp, progress, ROUND_NAMES, type Discussion, type DiscussionOp, type Turn } from "../lib/discussions";
 import { AGENTS, agentOf, DEFAULT_SEATS, MODE_INFO, role, speaker, type Mode, type Seat } from "../lib/personas";
+
+/** A seat with the AI that fills it: the one it is pinned to, or the one that has spoken in it. */
+const withAi = (d: Discussion, s: Seat): Seat => ({
+  ...s,
+  ai: s.ai ?? d.turns.find((t) => t.by === s.by && t.role === s.role)?.ai,
+});
 
 const uid = () => crypto.randomUUID().slice(0, 12);
 const MODES: Mode[] = ["debate", "roundtable", "devil"];
@@ -78,18 +84,18 @@ function pickContext(
   return { anchor: blockId && section ? { blockId, quote: section } : null, section };
 }
 
-/** Claude's or Grok's mark (or yours), as a small round avatar. */
-function Orb({ by, size = 30 }: { by: string; size?: number }) {
-  const agent = agentOf(by);
+/** Claude's, an AI's or your mark, as a small round avatar. */
+function Orb({ by, ai, size = 30 }: { by: string; ai?: string; size?: number }) {
+  const agent = agentOf(by, ai);
   return (
     <span className={`ds-orb ${agent}`} style={{ width: size, height: size, fontSize: size * 0.5 }} aria-hidden>
-      {agent === "claude" ? "✳" : agent === "grok" ? "G" : "🙂"}
+      {AGENTS[agent].mark}
     </span>
   );
 }
 
 function Who({ seat }: { seat: Seat }) {
-  const agent = agentOf(seat.by);
+  const agent = agentOf(seat.by, seat.ai);
   const r = role(seat.role);
   return (
     <span className="ds-who">
@@ -121,10 +127,10 @@ const side = (d: Discussion, t: Pick<Turn, "by" | "role">) =>
 function Message({ d, t, onPin }: { d: Discussion; t: Turn; onPin: (t: Turn) => void }) {
   const s = side(d, t);
   return (
-    <div className={`ds-msg ${s} ${agentOf(t.by)}`}>
-      {s !== "me" && <Orb by={t.by} />}
+    <div className={`ds-msg ${s} ${agentOf(t.by, t.ai)}`}>
+      {s !== "me" && <Orb by={t.by} ai={t.ai} />}
       <div className="ds-bubble">
-        <div className="ds-head">{s === "me" ? <b>You</b> : <Who seat={{ role: t.role, by: t.by }} />}</div>
+        <div className="ds-head">{s === "me" ? <b>You</b> : <Who seat={{ role: t.role, by: t.by, ai: t.ai }} />}</div>
         {t.body.split(/\n{2,}/).map((p, i) => (
           <p key={i}>{p}</p>
         ))}
@@ -152,14 +158,16 @@ function Waiting({ d }: { d: Discussion }) {
   const up = nextUp(d);
   const [copied, setCopied] = useState(false);
   if (!up) return null;
-  const grok = agentOf(up.seat.by) === "grok";
+  const seat = withAi(d, up.seat);
+  const agent = agentOf(seat.by, seat.ai);
+  const bot = agent !== "claude" && agent !== "me";
   const prompt = `It's your turn in Mains Atlas discussion ${d.id}. Read it with atlas_get_discussion (persona "${up.seat.by}"), then post with atlas_post_turn.`;
   return (
-    <div className={`ds-msg ${side(d, up.seat)} ${agentOf(up.seat.by)} waiting`}>
-      <Orb by={up.seat.by} />
+    <div className={`ds-msg ${side(d, up.seat)} ${agent} waiting`}>
+      <Orb by={seat.by} ai={seat.ai} />
       <div className="ds-bubble">
         <div className="ds-head">
-          <Who seat={up.seat} />
+          <Who seat={seat} />
         </div>
         <span className="ds-dots" aria-label="Waiting">
           <i />
@@ -169,11 +177,11 @@ function Waiting({ d }: { d: Discussion }) {
         <span className="ds-hint">
           {up.kind === "conclusion"
             ? "Claude writes the conclusion on its next run."
-            : grok
-              ? "Grok answers on its next routine run."
+            : bot
+              ? `${agent === "ai" ? "An AI" : AGENTS[agent].name} answers on its next routine run.`
               : "Claude answers on its next run."}
         </span>
-        {grok && (
+        {bot && (
           <button
             type="button"
             className="ds-nudge"
@@ -182,7 +190,7 @@ function Waiting({ d }: { d: Discussion }) {
               window.setTimeout(() => setCopied(false), 1800);
             }}
           >
-            {copied ? "Copied ✓" : "Copy a nudge for Grok Bot"}
+            {copied ? "Copied ✓" : "Copy a nudge for the bot"}
           </button>
         )}
       </div>
@@ -259,8 +267,8 @@ function Conversation({
           <div className="ds-cast">
             {d.seats.map((s, i) => (
               <span key={i} className="ds-chip">
-                <Orb by={s.by} size={18} />
-                {speaker(s).replace(/^(\w+) · /, "$1 · ")}
+                <Orb by={s.by} ai={withAi(d, s).ai} size={18} />
+                {speaker(withAi(d, s))}
               </span>
             ))}
           </div>
@@ -304,9 +312,9 @@ function Conversation({
                   onClick={() => void send({ op: "vote", discussionId: d.id, vote: d.vote === v ? null : v })}
                 >
                   {v === "for"
-                    ? `👍 ${AGENTS[agentOf(d.seats[0].by)].name}`
+                    ? `👍 ${speaker(withAi(d, d.seats[0])).split(" · ")[0]}`
                     : v === "against"
-                      ? `👎 ${AGENTS[agentOf(d.seats[1].by)].name}`
+                      ? `👎 ${speaker(withAi(d, d.seats[1])).split(" · ")[0]}`
                       : "🤝 Draw"}
                 </button>
               ))}
@@ -367,8 +375,8 @@ function Card({ d, onOpen }: { d: Discussion; onOpen: () => void }) {
       : d.conclusion
         ? "Conclusion ready"
         : done === 0
-          ? `Starting soon · ${speaker(up!.seat)} opens`
-          : `${speaker(up!.seat)} is up`;
+          ? `Starting soon · ${speaker(withAi(d, up!.seat))} opens`
+          : `${speaker(withAi(d, up!.seat))} is up`;
   const cast = [...new Map(d.seats.map((s) => [s.by, s])).values()];
   return (
     <button type="button" className={`ds-card${d.conclusion ? " done" : ""}`} onClick={onOpen}>
@@ -378,7 +386,7 @@ function Card({ d, onOpen }: { d: Discussion; onOpen: () => void }) {
       <span className="ds-card-meta">
         <span className="ds-faces">
           {cast.map((s) => (
-            <Orb key={s.by} by={s.by} size={20} />
+            <Orb key={s.by} by={s.by} ai={withAi(d, s).ai} size={20} />
           ))}
         </span>
         {state}
@@ -523,7 +531,7 @@ export function Discuss({
         type="button"
         className={`chip-btn ds-toggle${open ? " on" : ""}`}
         aria-pressed={open}
-        aria-label="Discuss with Claude and Grok"
+        aria-label="Discuss with Claude and other AIs"
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => {
           if (!open) setCtx(pickContext(editor, root));
@@ -541,7 +549,7 @@ export function Discuss({
               <div>
                 <b>Discuss</b>
                 <span className="ds-sub">
-                  <Orb by="claude" size={15} /> Claude and <Orb by="grok" size={15} /> Grok on “{title}”
+                  <Orb by="claude" size={15} /> Claude and <Orb by="bot" size={15} /> other AIs on “{title}”
                 </span>
               </div>
               <button type="button" className="ds-close" aria-label="Close" onClick={() => setOpen(false)}>

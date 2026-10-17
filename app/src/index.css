@@ -26,6 +26,7 @@
   --mark-comment: rgba(232, 176, 34, 0.28);
   --mark-sticky: rgba(47, 160, 110, 0.22);
   --mark-claude: rgba(91, 91, 214, 0.18);
+  --mark-flag: rgba(220, 70, 60, 0.2);
   --sticky-bg: #fcf3c4;
   --danger: #b4372f;
   --f-text: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -62,6 +63,8 @@
     --mark-comment: rgba(232, 176, 34, 0.26);
     --mark-sticky: rgba(92, 192, 140, 0.24);
     --mark-claude: rgba(165, 165, 247, 0.24);
+    --mark-flag: rgba(240, 120, 110, 0.26);
+    --mark-flag: rgba(240, 120, 110, 0.26);
     --sticky-bg: #36311a;
     --danger: #f08a80;
     color-scheme: dark;
@@ -1115,6 +1118,49 @@ a.tile:hover {
 }
 .thread.kind-claude .badge:first-child {
   color: var(--accent);
+}
+.thread.kind-flag {
+  border-left: 3px solid var(--danger);
+}
+.thread.kind-flag .badge:first-child {
+  color: var(--danger);
+  font-weight: 600;
+}
+.badge.level {
+  border-radius: 4px;
+  padding: 0 0.3rem;
+  background: var(--surface);
+}
+.badge.level.wrong,
+.badge.level.outdated {
+  background: var(--weak-soft);
+  color: var(--weak-ink);
+}
+.badge.level.uncertain,
+.badge.level.unsourced {
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+}
+.comment.by-grok .who,
+.comment.by-gemini .who,
+.comment.by-chatgpt .who {
+  font-weight: 600;
+}
+.flag-srcs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.3rem;
+}
+.flag-srcs a {
+  border-radius: 6px;
+  padding: 0 0.4rem;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.7;
+  text-decoration: none;
 }
 .badge.muted {
   background: var(--surface);
@@ -2709,6 +2755,15 @@ tr.planned .title-cell {
   background: radial-gradient(circle at 35% 30%, #4a4a52, #16161a 65%);
   box-shadow: inset 0 0 0 1.5px #ffffff30;
 }
+.ds-orb.gemini {
+  background: radial-gradient(circle at 35% 30%, #6ea8fe, #1f6feb 60%, #174ea6);
+}
+.ds-orb.chatgpt {
+  background: radial-gradient(circle at 35% 30%, #4fd1a5, #10a37f 60%, #0b7a5f);
+}
+.ds-orb.ai {
+  background: radial-gradient(circle at 35% 30%, #9a9aa3, #6b6b75 65%);
+}
 .ds-orb.me {
   background: var(--accent-soft);
 }
@@ -2918,7 +2973,10 @@ tr.planned .title-cell {
   background: color-mix(in srgb, #d97757 9%, var(--raised));
   border-color: color-mix(in srgb, #d97757 24%, var(--line));
 }
-.ds-msg.grok .ds-bubble {
+.ds-msg.grok .ds-bubble,
+.ds-msg.gemini .ds-bubble,
+.ds-msg.chatgpt .ds-bubble,
+.ds-msg.ai .ds-bubble {
   background: color-mix(in srgb, var(--ink) 5%, var(--raised));
   border-color: color-mix(in srgb, var(--ink) 16%, var(--line));
 }

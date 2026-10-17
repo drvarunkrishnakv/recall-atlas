@@ -42,10 +42,12 @@ import type { Anchor, ThreadKind } from "../lib/threads";
 import { openPeek } from "../components/peek";
 import { useResolvedTheme } from "../components/ThemeToggle";
 import { Discuss } from "../discuss/Discuss";
+import { AI_IDS, AIS } from "../lib/personas";
 
 const USERS = [
   { id: "me", username: "You", avatarUrl: "" },
   { id: "claude", username: "Claude", avatarUrl: "" },
+  ...AI_IDS.map((id) => ({ id, username: AIS[id].name, avatarUrl: "" })),
 ];
 
 const isNarrow = () => window.innerWidth < 1280;

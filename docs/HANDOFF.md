@@ -1,5 +1,42 @@
 # Handoff
 
+## Hosted MCP server for any AI — 2026-10-17
+
+- **Branch:** `claude/mcp-hosted`, from `main` (fb0254a), with `claude/grok-flags` (PR #32)
+  merged in and adapted. Assisting tool: Claude Code.
+- **Data cleanup (user's request):** every comment thread (4 Grok flags, 3 Ask Claude tests),
+  all 25 discussions, the test capture and the empty P05 were deleted from Firestore. Backup:
+  `output/backups/firestore-2026-10-17-before-cleanup/` (git-ignored). The notes repo mirror
+  was refreshed with the new pruning export and pushed (8be95b8).
+- **Any AI:** bots are AI-neutral (`BOTS` in `src/lib/personas.ts`); `AIS` = grok, gemini,
+  chatgpt. Turns carry `ai`; a seat may be pinned with `ai`; a flag's first comment is
+  authored by the AI. UI: "AI flag", "Gemini · Reviewer", "Flags from AI reviewers", AI
+  colours in the Discuss panel.
+- **Server:** `mcp/server.ts` (9 tools: list_notes, search, read_note, read_card, my_turns,
+  get_discussion, post_turn, flag, list_flags) over `server/backend.ts`; `mcp/http.ts` shared
+  by `mcp/function.ts` (Cloud Function `mcp`, asia-south1, max 2 instances) and
+  `mcp/atlas-mcp.ts`. Keys: `server/mcp-keys.ts`, `atlas mcp-key add|list|revoke`.
+- **Hosting:** `/mcp` rewrites to the function; `functions/index.js` is built by the
+  functions predeploy (`npm run mcp:function`). Use firebase-tools 15 (v13 can't load
+  firebase-functions v7).
+- **Checks:** `npm run check` (Prettier, `tsc -b`, 56 unit tests, build); `npm run test:cloud`
+  13 passed (rules incl. `mcpKeys` closed; cloud API; Admin backend with pruning export;
+  HTTP MCP with per-AI keys, refusals, Gemini labelling, seat pinning, revocation);
+  `npx playwright test` 42 passed + 12 desktop-only skips. The bundled function answered
+  through the Hosting rewrite in the Functions/Hosting emulators (401 without a key; 9 tools).
+- **Screenshots:** fixture only, `docs/design/mcp-ai/`.
+- **Deployed 2026-10-17** (user approved Blaze and asked for it): function `mcp` (asia-south1)
+  and Hosting, from `claude/mcp-hosted`; image cleanup policy 3 days. Live check through
+  `https://recall-atlas-511913.web.app/mcp`: 401 without a key, 403 with a browser Origin, a
+  test Gemini key identified as Gemini and listed the real notes, then was revoked (401).
+  Grok's key `d99d2d20` is in git-ignored `app/.atlas-local/mcp-keys/grok.txt` for the user
+  to paste into Grok Bot. Live is ahead of `main` until PR #35 merges.
+- **Claude's twice-daily task:** desktop scheduled task `mains-atlas-twice-daily`, 7 am and
+  7 pm IST (cron `0 7,19 * * *`), saved in Bypass permissions mode. It answers Ask Claude,
+  checks AI flags (no note edits without approval), takes Claude's turns, files captures as
+  suggestions, then exports the mirror to the notes repo and pushes it. Runs only while the
+  Claude app is open; a missed run happens on next launch.
+
 ## Firebase backend (M3) — 2026-10-17
 
 - **Branch:** `claude/firebase-m3`, from `main` (ef69311). Assisting tool: Claude Code.
@@ -56,6 +93,24 @@
   the private notes repo only.
 - **Merged:** PR #33 into `main` (7b7ba2c).
 - **Next:** not yet tried: the iPad home-screen app (redirect sign-in).
+## Grok's flags on notes — 2026-10-17
+
+- **Branch:** `claude/grok-flags`, from `main` (ef69311). Assisting tool: Claude Code.
+- **What:** Grok Bot's new **Grok Reviewer** bot (`reviewer`) reviews a note through the
+  Atlas MCP server and flags doubtful passages with `atlas_flag`: an exact quote, a level
+  (wrong, outdated, unsourced, uncertain), a reason and sources (required for wrong and
+  outdated). The server anchors the flag to the block holding the quote, which must appear
+  exactly once. Refused: duplicates, more than 10 open flags per bot per note, bad links.
+  `atlas_list_flags` shows a note's flags with Claude's verdicts.
+- **App:** flags are a new thread kind, `flag` (author `grok`), shown as a red "Grok flag"
+  in the margin and panel (new Flags tab), with the level, the bot's name and its sources.
+  The quote is highlighted in red. Claude's inbox has a "Flags from Grok" section, and the
+  subject table counts flags (⚑). Margin cards now also re-stack when a card's own height changes.
+- **Claude's side:** `atlas comments --waiting` lists flags Claude hasn't checked; Claude
+  answers with `atlas reply` ("Confirmed" or "Not supported", with a source).
+- **Prompt:** `docs/AGENT_PERSONAS.md` → Grok Reviewer.
+- **Checks:** 55 unit tests, build, `npx playwright test` 42 passed + 12 desktop-only skips.
+
 
 ## Discussions: Claude and Grok on each note — 2026-10-17
 

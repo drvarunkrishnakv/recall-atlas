@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { api } from "./store";
 import { today, type Capture, type CaptureOp, type Confidence, type Progress, type ProgressOp } from "../lib/progress";
-import type { StoredThread } from "../lib/threads";
+import { isWaitingForClaude, type StoredThread } from "../lib/threads";
 
 interface StudyState {
   progress: Progress;
@@ -97,12 +97,14 @@ export function noteOpened(noteId: string) {
 export function claudeState(threads: StoredThread[] = []) {
   const open = threads.filter((t) => t.kind === "claude" && !t.resolved);
   const replied = open.filter((t) => t.comments.at(-1)?.userId === "claude").length;
-  return { waiting: open.length - replied, replied };
+  const flags = threads.filter((t) => t.kind === "flag" && isWaitingForClaude(t)).length;
+  return { waiting: open.length - replied + flags, replied };
 }
 
 export function commentCounts(threads: StoredThread[] = []) {
   return {
     open: threads.filter((t) => !t.resolved && t.kind === "comment").length,
+    flags: threads.filter((t) => !t.resolved && t.kind === "flag").length,
     sticky: threads.filter((t) => t.kind === "sticky").length,
   };
 }
