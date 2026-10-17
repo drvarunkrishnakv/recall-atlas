@@ -1,12 +1,12 @@
 // Discussions on a note, stored in `content/discussions/<collection>-<id>.json`: debates,
-// roundtables and devil's-advocate rounds between Claude and Grok Bot's bots. Claude writes
+// roundtables and devil's-advocate rounds between Claude and other AIs' bots. Claude writes
 // most of them in advance, chosen to deepen the note; you can add your own. Turns arrive on a
-// timer (Claude's scheduled task, Grok Bot's routines through the Atlas MCP server), and
+// timer (Claude's scheduled task, other AIs' routines through the Atlas MCP server), and
 // every discussion ends with Claude's conclusion. Shared by the dev save API, the MCP server,
 // the app and the Claude CLI.
 import { blocksToMarkdown, type Block } from "./blocks.ts";
 import type { Anchor } from "./threads.ts";
-import { grokBot, MODE_INFO, role, speaker, type Mode, type Seat } from "./personas.ts";
+import { bot, isAi, MODE_INFO, role, speaker, type AiId, type Mode, type Seat } from "./personas.ts";
 
 export interface Source {
   label: string;
@@ -17,8 +17,10 @@ export interface Turn {
   id: string;
   /** The seat's role, or "you" for your own turns. */
   role: string;
-  /** "claude", a Grok Bot bot id, or "me". */
+  /** "claude", a bot id, or "me". */
   by: string;
+  /** For a bot's turn: the AI that wrote it. */
+  ai?: AiId;
   body: string;
   sources: Source[];
   round?: number;
@@ -58,7 +60,11 @@ export type DiscussionOp =
         seats: Seat[];
       };
     }
-  | { op: "turn"; discussionId: string; turn: { id: string; by: string; body: string; sources?: Source[] } }
+  | {
+      op: "turn";
+      discussionId: string;
+      turn: { id: string; by: string; ai?: AiId; body: string; sources?: Source[] };
+    }
   | { op: "conclude"; discussionId: string; body: string; sources?: Source[] }
   | { op: "vote"; discussionId: string; vote: "for" | "against" | "draw" | null }
   | { op: "close"; discussionId: string }
@@ -152,8 +158,9 @@ function checkSeats(mode: Mode, seats: Seat[]) {
     const r = role(s?.role);
     if (!r || !r.modes.includes(mode))
       throw new DiscussionOpError(`${s?.role} isn't a role in a ${MODE_INFO[mode].title}`);
-    if (s.by !== "claude" && !grokBot(s.by)?.roles.includes(s.role))
+    if (s.by !== "claude" && !bot(s.by)?.roles.includes(s.role))
       throw new DiscussionOpError(`${s.by} can't play ${r.label}`);
+    if (s.ai !== undefined && (s.by === "claude" || !isAi(s.ai))) throw new DiscussionOpError(`Bad AI for ${r.label}`);
   }
   const roles = seats.map((s) => s.role);
   const ok =
@@ -202,7 +209,7 @@ export function applyDiscussionOp(list: Discussion[], op: DiscussionOp, now = ne
         ...(why ? { why: String(why).trim().slice(0, 300) } : {}),
         anchor: anchor ?? null,
         ...(section ? { section: String(section).slice(0, 200) } : {}),
-        seats: seats.map((s) => ({ role: s.role, by: s.by })),
+        seats: seats.map((s) => ({ role: s.role, by: s.by, ...(s.ai ? { ai: s.ai } : {}) })),
         status: "open",
         turns: [],
         createdAt: now,
@@ -231,10 +238,15 @@ export function applyDiscussionOp(list: Discussion[], op: DiscussionOp, now = ne
       if (up.kind === "conclusion") throw new DiscussionOpError("All turns are in; only Claude's conclusion is left");
       if (up.seat.by !== by)
         throw new DiscussionOpError(`It's ${speaker(up.seat)}'s turn (${up.seat.by}), not ${by}'s`);
+      const ai = op.turn.ai;
+      if (by !== "claude" && !isAi(ai)) throw new DiscussionOpError("A bot's turn needs the AI that wrote it");
+      if (up.seat.ai && ai !== up.seat.ai)
+        throw new DiscussionOpError(`This seat is ${speaker(up.seat)}'s; ${ai} can't take it`);
       const turn: Turn = {
         id,
         role: up.seat.role,
         by,
+        ...(by !== "claude" ? { ai } : {}),
         body: cleanBody(op.turn.body, 20),
         sources: cleanSources(op.turn.sources, up.kind === "turn"),
         round: up.round,
@@ -281,7 +293,7 @@ export function turnTask(d: Discussion): string {
   if (!up) return "Nothing to do: the discussion is concluded or closed.";
   const me = speaker(up.seat);
   const last = [...d.turns].reverse().find((t) => t.by !== "me" && t.role !== up.seat.role);
-  const lastName = last ? speaker({ role: last.role, by: last.by }) : "the other side";
+  const lastName = last ? speaker(last) : "the other side";
   const yours = d.turns.filter((t) => t.by === "me").at(-1);
   const userBit = yours ? ` The user also said: "${yours.body.slice(0, 300)}". Take it into account.` : "";
   let task: string;
@@ -334,7 +346,7 @@ export function sectionBlocks(blocks: Block[], blockId: string | undefined): Blo
   return blocks.slice(j, k);
 }
 
-const who = (t: Pick<Turn, "role" | "by">) => (t.by === "me" ? "The user" : speaker(t));
+const who = (t: Pick<Turn, "role" | "by" | "ai">) => (t.by === "me" ? "The user" : speaker(t));
 
 /** Everything a speaker needs to take their turn: topic, seats, turns so far, the note's
  *  section, and the task if it's theirs. Used by the MCP server and the Claude CLI. */

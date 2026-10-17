@@ -1,6 +1,6 @@
 // The CLI's Firestore backend (Admin SDK) against the emulator (npm run test:cloud): the
 // fixture imports and exports without loss, and saves and operations behave like the files.
-import { cpSync, mkdtempSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -37,7 +37,16 @@ describe("Firestore backend", () => {
     expect(original.pages.length).toBeGreaterThan(0);
     await cloud.restore(original);
     const out = mkdtempSync(join(tmpdir(), "atlas-export-"));
-    await fileBackend(out).restore(await snapshot(cloud));
+    // Files for things deleted from Firestore are pruned from the mirror.
+    mkdirSync(join(out, "notes"), { recursive: true });
+    mkdirSync(join(out, "comments"), { recursive: true });
+    writeFileSync(join(out, "notes", "GONE.json"), "{}");
+    writeFileSync(join(out, "notes", "GONE.md"), "");
+    writeFileSync(join(out, "comments", "notes-GONE.json"), "{}");
+    await fileBackend(out).restore(await snapshot(cloud), { prune: true });
+    expect(existsSync(join(out, "notes", "GONE.md")) || existsSync(join(out, "comments", "notes-GONE.json"))).toBe(
+      false,
+    );
     const round = await snapshot(fileBackend(out));
     expect(norm(round)).toEqual(norm(original));
   });

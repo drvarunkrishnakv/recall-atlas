@@ -23,6 +23,7 @@ import {
 } from "./content/study";
 import { dueLabel, isDue, nextDue, today, type Confidence, type NoteProgress } from "./lib/progress";
 import type { Block } from "./lib/blocks";
+import { AIS, bot, isAi } from "./lib/personas";
 import type { StoredThread } from "./lib/threads";
 import { Icon } from "./components/Icon";
 
@@ -83,15 +84,10 @@ export function ClaudeChip({ threads }: { threads?: StoredThread[] }) {
 }
 
 function CommentsCell({ threads }: { threads?: StoredThread[] }) {
-  const { open, sticky } = commentCounts(threads);
-  if (!open && !sticky) return <span className="faint">—</span>;
-  return (
-    <span>
-      {open > 0 && `${open} open`}
-      {open > 0 && sticky > 0 && " · "}
-      {sticky > 0 && `${sticky} sticky`}
-    </span>
-  );
+  const { open, sticky, flags } = commentCounts(threads);
+  const parts = [open && `${open} open`, sticky && `${sticky} sticky`, flags && `${flags} ⚑`].filter(Boolean);
+  if (!parts.length) return <span className="faint">—</span>;
+  return <span>{parts.join(" · ")}</span>;
 }
 
 // Section order from docs/CONTENT_CONVENTIONS.md, for a note started in the app.
@@ -757,6 +753,7 @@ export function InboxPage() {
   const items = Object.entries(threads).flatMap(([key, ts]) => ts.map((t) => ({ key, t })));
   const replied = items.filter(({ t }) => t.kind === "claude" && !t.resolved && t.comments.at(-1)?.userId === "claude");
   const waiting = items.filter(({ t }) => t.kind === "claude" && !t.resolved && t.comments.at(-1)?.userId !== "claude");
+  const flags = items.filter(({ t }) => t.kind === "flag" && !t.resolved);
   const openCaptures = captures.filter((c) => c.status === "open");
   const filed = captures.filter((c) => c.status === "done");
   const title = (key: string) => {
@@ -787,6 +784,28 @@ export function InboxPage() {
           </Link>
         ))}
       </section>
+      {flags.length > 0 && (
+        <section className="inbox-sec">
+          <h2 className="sec-h">Flags from AI reviewers</h2>
+          {flags.map(({ key, t }) => {
+            const verdict = t.comments.filter((c) => c.userId === "claude").at(-1)?.body;
+            const author = t.comments[0]?.userId;
+            const ai = isAi(author) ? AIS[author].name : "AI";
+            return (
+              <Link key={t.id} className={`inbox-card${verdict ? "" : " quiet"}`} to={href(key)}>
+                <span className="kicker">
+                  ⚑ {ai} · {bot(t.flag?.by ?? "")?.name ?? "Reviewer"} · {t.flag?.level} · {title(key)}
+                </span>
+                <blockquote>{t.anchor.quote}</blockquote>
+                <span className="q">
+                  {ai}: {t.comments[0]?.body}
+                </span>
+                <span className={verdict ? "a" : "q"}>{verdict ? `Claude: ${verdict}` : "Claude will check this"}</span>
+              </Link>
+            );
+          })}
+        </section>
+      )}
       <section className="inbox-sec">
         <h2 className="sec-h">Waiting for Claude</h2>
         {waiting.length + openCaptures.length === 0 && <p className="muted">Nothing waiting.</p>}

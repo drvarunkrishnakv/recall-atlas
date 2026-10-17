@@ -4,7 +4,8 @@
 //
 //   node cli/atlas.ts pages                         list notes and cards
 //   node cli/atlas.ts show notes/P06 [--ids]        a page as Markdown (--ids: block ids as comments)
-//   node cli/atlas.ts comments [--waiting] [--all]  open threads (--waiting: Ask Claude without a reply)
+//   node cli/atlas.ts comments [--waiting] [--all]  open threads (--waiting: Ask Claude without a reply,
+//                                                    and Grok's flags Claude hasn't checked)
 //   node cli/atlas.ts reply notes/P06 <thread> "…"  reply in a thread as Claude
 //   node cli/atlas.ts replace notes/P06 "old" "new" change one exact phrase (must match once)
 //   node cli/atlas.ts captures [--all]              your scratch-pad captures (open ones by default)
@@ -18,7 +19,10 @@
 //   node cli/atlas.ts discuss-import notes/P06 <file.json>   add Claude's prepared questions
 //   node cli/atlas.ts import <content-dir> [--force]  copy a content folder into Firestore (once, at the switch)
 //   node cli/atlas.ts export <content-dir>           write Firestore out as files: the notes repo's mirror
+//                                                    (files for pages, comments and discussions gone from Firestore are removed)
 //   node cli/atlas.ts owner [uid|email] [--remove]   list accounts, or mark the one that may open the app
+//   node cli/atlas.ts mcp-key add <grok|gemini|chatgpt> ["label"]   a key for one AI (shown once)
+//   node cli/atlas.ts mcp-key list | revoke <id>      the MCP server's keys
 //
 // Claude never resolves your threads and only edits facts you approved or asked for.
 import { existsSync, readFileSync } from "node:fs";
@@ -54,8 +58,8 @@ async function cloud(): Promise<Backend> {
   }
 }
 
-// import, export and owner always work on Firestore; the rest on ATLAS_CONTENT_DIR when it's set.
-const CLOUD_ONLY = ["import", "export", "owner"];
+// import, export, owner and mcp-key always work on Firestore; the rest on ATLAS_CONTENT_DIR when it's set.
+const CLOUD_ONLY = ["import", "export", "owner", "mcp-key"];
 if (dir && !existsSync(dir)) fail(`ATLAS_CONTENT_DIR ${dir} doesn't exist.`);
 const db: Backend = dir && !CLOUD_ONLY.includes(cmd ?? "") ? fileBackend(dir) : await cloud();
 
@@ -80,9 +84,15 @@ const sortedKeys = <T>(map: Record<string, T>) =>
 
 function showThread(ref: string, t: StoredThread) {
   const state = t.resolved ? "resolved" : t.detached ? "detached" : "open";
-  console.log(`\n## ${ref} · thread ${t.id} · ${t.kind} · ${state}`);
+  console.log(
+    `\n## ${ref} · thread ${t.id} · ${t.kind}${t.flag ? ` (${t.flag.level}, by ${t.flag.by})` : ""} · ${state}`,
+  );
   console.log(`> ${t.anchor.quote.replace(/\n/g, " ")}   (block ${t.anchor.blockId})`);
-  for (const c of t.comments) console.log(`- ${c.userId === "claude" ? "Claude" : "User"} (${c.createdAt}): ${c.body}`);
+  for (const c of t.comments)
+    console.log(
+      `- ${c.userId === "claude" ? "Claude" : c.userId === "grok" ? "Grok" : "User"} (${c.createdAt}): ${c.body}`,
+    );
+  if (t.flag?.sources.length) console.log(`  sources: ${t.flag.sources.map((s) => `${s.label} ${s.url}`).join(" · ")}`);
 }
 
 switch (cmd) {
@@ -325,8 +335,11 @@ switch (cmd) {
     const to = args[0];
     if (!to) fail("Usage: export <content-dir>");
     const data = await snapshot(db);
-    await fileBackend(to).restore(data);
-    console.log(`Exported ${data.pages.length} pages with their Markdown copies, threads and discussions to ${to}.`);
+    await fileBackend(to).restore(data, { prune: true });
+    console.log(
+      `Exported ${data.pages.length} pages with their Markdown copies, threads and discussions to ${to}, ` +
+        `removing files for anything deleted from Firestore.`,
+    );
     break;
   }
 
@@ -352,8 +365,34 @@ switch (cmd) {
     break;
   }
 
+  case "mcp-key": {
+    const { getFirestore } = await import("firebase-admin/firestore");
+    const { adminApp } = await import("../server/firestore-backend.ts");
+    const keys = await import("../server/mcp-keys.ts");
+    const { AI_IDS, isAi } = await import("../src/lib/personas.ts");
+    const fs = getFirestore(adminApp());
+    const [sub, a1, a2] = args;
+    if (sub === "add") {
+      if (!isAi(a1)) fail(`Usage: mcp-key add <${AI_IDS.join("|")}> ["label"]`);
+      const { key, id } = await keys.createKey(fs, a1, a2 ?? a1);
+      console.log(`Key ${id} for ${a1}. It is shown only now; paste it into the bot's connector yourself:\n${key}`);
+    } else if (sub === "list") {
+      const list = await keys.listKeys(fs);
+      if (!list.length) console.log("No keys yet.");
+      for (const k of list)
+        console.log(
+          `${k.id}\t${k.ai}\t${k.label}\tcreated ${k.createdAt.slice(0, 10)}\t${k.revokedAt ? `revoked ${k.revokedAt.slice(0, 10)}` : `last used ${k.lastUsedAt?.slice(0, 16) ?? "never"}`}`,
+        );
+    } else if (sub === "revoke") {
+      const k = await keys.revokeKey(fs, a1 ?? "");
+      if (!k) fail("Give the id of exactly one key (from mcp-key list).");
+      console.log(`Revoked the ${k.ai} key "${k.label}".`);
+    } else fail("Usage: mcp-key add <ai> [label] | list | revoke <id>");
+    break;
+  }
+
   default:
     fail(
-      "Commands: pages | show <ref> [--ids] | comments [--waiting|--all] | reply <ref> <thread> <text> | replace <ref> <old> <new> | captures [--all] | file-capture <id> <text> [note] | progress | cite-sources <ref> | discussions [--all] | turns | post <id> <text> | conclude <id> <text> | discuss-import <ref> <file> | import <dir> | export <dir> | owner [uid|email]",
+      "Commands: pages | show <ref> [--ids] | comments [--waiting|--all] | reply <ref> <thread> <text> | replace <ref> <old> <new> | captures [--all] | file-capture <id> <text> [note] | progress | cite-sources <ref> | discussions [--all] | turns | post <id> <text> | conclude <id> <text> | discuss-import <ref> <file> | import <dir> | export <dir> | owner [uid|email] | mcp-key add|list|revoke",
     );
 }

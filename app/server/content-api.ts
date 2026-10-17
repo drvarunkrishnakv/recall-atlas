@@ -148,7 +148,7 @@ export function writePageFiles(dir: string, page: PageDoc & { markdown?: string 
   ]);
   delete (ordered as Record<string, unknown>).collection;
   writeAtomic(join(folder, page.id + ".json"), JSON.stringify(ordered, null, 1) + "\n");
-  writeAtomic(join(folder, page.id + ".md"), pageToMarkdown(page));
+  writeAtomic(join(folder, page.id + ".md"), pageToMarkdown(ordered as PageDoc));
 }
 
 const threadsPath = (dir: string, collection: string, id: string) => join(dir, "comments", `${collection}-${id}.json`);
