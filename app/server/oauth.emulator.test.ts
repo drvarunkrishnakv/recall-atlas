@@ -75,7 +75,7 @@ async function approve(token: string, extra: Record<string, string> = {}) {
 beforeAll(async () => {
   await fetch(`http://${fsHost}/emulator/v1/projects/${PROJECT}/databases/(default)/documents`, { method: "DELETE" });
   const db = firestoreBackend(fs);
-  await db.restore({
+  await db.restoreAll({
     pages: [
       {
         collection: "notes",
@@ -88,6 +88,7 @@ beforeAll(async () => {
     ],
     threads: {},
     discussions: {},
+    proposals: {},
     progress: { notes: {} },
     captures: [],
   });

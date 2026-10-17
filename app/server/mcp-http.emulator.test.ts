@@ -37,7 +37,7 @@ const connect = async (key: string) => {
 
 beforeAll(async () => {
   await fetch(`http://${host}/emulator/v1/projects/${PROJECT}/databases/(default)/documents`, { method: "DELETE" });
-  await db.restore({
+  await db.restoreAll({
     pages: [
       {
         collection: "notes",
@@ -52,6 +52,7 @@ beforeAll(async () => {
     ],
     threads: {},
     discussions: {},
+    proposals: {},
     progress: { notes: {} },
     captures: [],
   });

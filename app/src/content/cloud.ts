@@ -25,6 +25,9 @@ import {
 } from "../lib/cloud-docs";
 import { applyThreadOp, type StoredThread, type ThreadOp } from "../lib/threads";
 import { applyDiscussionOp, type Discussion, type DiscussionOp } from "../lib/discussions";
+import { applyProposalOp, type Proposal, type ProposalOp } from "../lib/proposals";
+import { approveProposal, restoreVersion, type ProposalIO } from "../lib/approve";
+import { historyEntry } from "../lib/cloud-docs";
 import {
   applyCaptureOp,
   applyProgressOp,
@@ -57,6 +60,40 @@ async function allKeyed<T>(db: Firestore, name: string, pick: (v: Record<string,
   return out;
 }
 
+/** Saves a page in a transaction with the version check; `reason` keeps a labelled snapshot. */
+function savePageTx(db: Firestore, c: Collection, id: string, page: StoredPage, baseVersion: number, reason?: string) {
+  const ref = doc(db, c, id);
+  return runTransaction(db, async (tx) => {
+    const current = await tx.get(ref);
+    const plan = planSave(c, id, current.data() as PageRecord | undefined, page, baseVersion, Date.now(), reason);
+    if (plan.conflict) return plan;
+    if (plan.snapshot) tx.set(doc(ref, "history", plan.snapshot.id), plan.snapshot.record);
+    tx.set(ref, plan.record);
+    return plan;
+  });
+}
+
+function proposalIO(db: Firestore, c: Collection, id: string): ProposalIO {
+  const pref = doc(db, "proposals", pageKeyDoc(c, id));
+  const tref = doc(db, "comments", pageKeyDoc(c, id));
+  return {
+    page: async () => {
+      const snap = await getDoc(doc(db, c, id));
+      return snap.exists() ? decodePage(c, id, snap.data()) : null;
+    },
+    save: async (page, base, reason) => savePageTx(db, c, id, page as StoredPage, base, reason),
+    proposals: async () => decodeJson((await getDoc(pref)).data(), { proposals: [] as Proposal[] }).proposals,
+    proposalOp: async (op) =>
+      (
+        await change(db, pref, { proposals: [] as Proposal[] }, (v) => ({
+          proposals: applyProposalOp(v.proposals, op),
+        }))
+      ).proposals,
+    threadOp: (op) =>
+      change(db, tref, { threads: [] as StoredThread[] }, (v) => ({ threads: applyThreadOp(v.threads, op) })),
+  };
+}
+
 export function cloudApi(db: Firestore) {
   return async (path: string, init?: RequestInit): Promise<unknown> => {
     const method = init?.method ?? "GET";
@@ -74,6 +111,8 @@ export function cloudApi(db: Firestore) {
     }
     if (path === "/api/comments" && method === "GET")
       return allKeyed<StoredThread>(db, "comments", (v) => (v as { threads?: StoredThread[] }).threads ?? []);
+    if (path === "/api/proposals" && method === "GET")
+      return allKeyed<Proposal>(db, "proposals", (v) => (v as { proposals?: Proposal[] }).proposals ?? []);
     if (path === "/api/discussions" && method === "GET")
       return allKeyed<Discussion>(db, "discussions", (v) => (v as { discussions?: Discussion[] }).discussions ?? []);
 
@@ -89,10 +128,45 @@ export function cloudApi(db: Firestore) {
       return change(db, ref, fallback, (v) => ({ captures: applyCaptureOp(v.captures, body as CaptureOp) }));
     }
 
-    const [, , kind, collection, id, extra] = path.split("/"); // "", api, kind, collection, id
-    if (!COLLECTIONS.includes(collection as Collection) || !ID.test(id ?? "") || extra !== undefined)
+    const [, , kind, collection, id, extra, more] = path.split("/"); // "", api, kind, collection, id[, hid]
+    if (
+      !COLLECTIONS.includes(collection as Collection) ||
+      !ID.test(id ?? "") ||
+      more !== undefined ||
+      (extra !== undefined && kind !== "history")
+    )
       throw new NotFoundError("Not found");
     const c = collection as Collection;
+
+    if (kind === "history") {
+      const hist = col(db, c, id, "history");
+      if (method === "GET" && !extra)
+        return {
+          versions: (await getDocs(hist)).docs
+            .filter((d) => !d.id.endsWith("-original"))
+            .map((d) => historyEntry(d.id, d.data()))
+            .sort((a, b) => b.savedAt - a.savedAt),
+        };
+      const hid = method === "GET" ? extra : String((body as { historyId?: string })?.historyId ?? "");
+      if (!/^\d+-v\d+$/.test(hid ?? "")) throw new NotFoundError("Not found");
+      const snap = await getDoc(doc(hist, hid));
+      if (!snap.exists()) throw new NotFoundError("No such version");
+      const old = decodePage(c, id, snap.data());
+      if (method === "GET") return old;
+      const io = proposalIO(db, c, id);
+      const r = await restoreVersion(io, old, `v${old.version}`);
+      return { ...r, page: await io.page() };
+    }
+    if (kind === "proposals") {
+      const io = proposalIO(db, c, id);
+      if (method === "GET") return { proposals: await io.proposals() };
+      const op = body as ProposalOp | { op: "approve"; proposalId: string };
+      if (op.op === "approve") {
+        const r = await approveProposal(io, op.proposalId);
+        return { ...r, page: await io.page() };
+      }
+      return { proposals: await io.proposalOp(op) };
+    }
 
     if (kind === "pages") {
       const ref = doc(db, c, id);
@@ -102,14 +176,7 @@ export function cloudApi(db: Firestore) {
         return decodePage(c, id, snap.data());
       }
       const { page, baseVersion } = body as { page: StoredPage; baseVersion: number };
-      const r = await runTransaction(db, async (tx) => {
-        const current = await tx.get(ref);
-        const plan = planSave(c, id, current.data() as PageRecord | undefined, page, Number(baseVersion ?? 0));
-        if (plan.conflict) return plan;
-        if (plan.snapshot) tx.set(doc(ref, "history", plan.snapshot.id), plan.snapshot.record);
-        tx.set(ref, plan.record);
-        return plan;
-      });
+      const r = await savePageTx(db, c, id, page, Number(baseVersion ?? 0));
       if (r.conflict) throw new ConflictError("This page changed elsewhere. Reload to get the latest version.");
       return { version: r.version, updated: r.updated };
     }

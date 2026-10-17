@@ -16,6 +16,19 @@ export type Collection = "notes" | "cards";
 export const COLLECTIONS: readonly Collection[] = ["notes", "cards"];
 export const SNAPSHOT_EVERY_MS = 10 * 60 * 1000;
 
+/** A past version, as the history list shows it. */
+export interface HistoryEntry {
+  id: string;
+  version: number;
+  /** When the next version replaced it (ms). */
+  savedAt: number;
+  title: string;
+  /** Why it was replaced, when a reason was given (approved proposal, restore). */
+  reason?: string;
+  /** The Markdown the page started from (first conversion). */
+  original?: boolean;
+}
+
 export interface PageRecord {
   title: string;
   version: number;
@@ -23,6 +36,9 @@ export interface PageRecord {
   /** When the last history snapshot was taken (ms). */
   snapshotAt: number;
   json: string;
+  /** History snapshots only: when it was replaced, and why. */
+  savedAt?: number;
+  reason?: string;
 }
 
 /** A page as the app and CLI see it; `markdown` is set only until the app converts it to blocks. */
@@ -84,6 +100,8 @@ export function planSave(
   page: StoredPage,
   baseVersion: number,
   now = Date.now(),
+  /** Why the page changed (an approved proposal, a restore): always keeps a snapshot, labelled. */
+  reason?: string,
 ): SaveResult {
   const currentVersion = Number(current?.version ?? 0);
   if (baseVersion !== currentVersion) return { conflict: true, version: currentVersion };
@@ -101,14 +119,30 @@ export function planSave(
   };
   // Keep the Markdown original on first conversion, then a snapshot every few minutes of editing.
   const lastSnap = Number(current?.snapshotAt ?? 0);
-  const snap = !!current?.json && (currentVersion === 0 || now - lastSnap > SNAPSHOT_EVERY_MS);
+  const snap = !!current?.json && (!!reason || currentVersion === 0 || now - lastSnap > SNAPSHOT_EVERY_MS);
   return {
     conflict: false,
     version: saved.version,
     updated: saved.updated,
     record: encodePage(saved, snap ? now : lastSnap),
     snapshot: snap
-      ? { id: `${now}-${currentVersion === 0 ? "original" : `v${currentVersion}`}`, record: current as PageRecord }
+      ? {
+          id: `${now}-${currentVersion === 0 ? "original" : `v${currentVersion}`}`,
+          record: { ...(current as PageRecord), savedAt: now, ...(reason ? { reason: reason.slice(0, 300) } : {}) },
+        }
       : undefined,
+  };
+}
+
+/** A history snapshot's list entry, from its id (`<ms>-v<n>` or `<ms>-original`) and record. */
+export function historyEntry(id: string, rec: Partial<PageRecord>): HistoryEntry {
+  const m = /^(\d+)-(?:v(\d+)|original)$/.exec(id);
+  return {
+    id,
+    version: Number(rec.version ?? m?.[2] ?? 0),
+    savedAt: Number(rec.savedAt ?? m?.[1] ?? 0),
+    title: String(rec.title ?? ""),
+    ...(rec.reason ? { reason: rec.reason } : {}),
+    ...(id.endsWith("-original") ? { original: true } : {}),
   };
 }

@@ -7,9 +7,17 @@ import type { Collection, StoredPage } from "../src/lib/cloud-docs.ts";
 import type { StoredThread, ThreadOp } from "../src/lib/threads.ts";
 import type { Discussion, DiscussionOp } from "../src/lib/discussions.ts";
 import type { Capture, CaptureOp, Progress, ProgressOp } from "../src/lib/progress.ts";
+import type { Proposal, ProposalOp } from "../src/lib/proposals.ts";
+import type { HistoryEntry } from "../src/lib/cloud-docs.ts";
+import { approveProposal, restoreVersion } from "../src/lib/approve.ts";
 import {
   changeCaptures,
   changeDiscussions,
+  changeProposals,
+  fileProposalIO,
+  listHistory,
+  loadAllProposals,
+  readHistory,
   changeProgress,
   changeThreads,
   loadAll,
@@ -43,12 +51,20 @@ export interface Backend {
   changeProgress(op: ProgressOp): Promise<Progress>;
   captures(): Promise<Capture[]>;
   changeCaptures(op: CaptureOp): Promise<Capture[]>;
+  /** `notes:P06` → proposed changes. */
+  allProposals(): Promise<Record<string, Proposal[]>>;
+  changeProposals(collection: Collection, id: string, op: ProposalOp): Promise<Proposal[]>;
+  /** Applies a pending proposal (with a history entry) and closes the flag it came from. */
+  approve(collection: Collection, id: string, proposalId: string): Promise<{ version: number }>;
+  history(collection: Collection, id: string): Promise<HistoryEntry[]>;
+  /** Makes a past version current again, as a new version. */
+  restore(collection: Collection, id: string, historyId: string): Promise<{ version: number }>;
   /**
    * Writes everything as given, without version checks: for `atlas import` and `atlas export`.
    * `prune` (files only) also removes pages, comments and discussions that `data` no longer has,
    * so the notes repo's mirror matches Firestore.
    */
-  restore(data: Snapshot, opts?: { prune?: boolean }): Promise<void>;
+  restoreAll(data: Snapshot, opts?: { prune?: boolean }): Promise<void>;
 }
 
 /** All of a backend's content, as `atlas import` and `atlas export` move it. */
@@ -56,20 +72,22 @@ export interface Snapshot {
   pages: StoredPage[];
   threads: Record<string, StoredThread[]>;
   discussions: Record<string, Discussion[]>;
+  proposals: Record<string, Proposal[]>;
   progress: Progress;
   captures: Capture[];
 }
 
 export async function snapshot(b: Backend): Promise<Snapshot> {
-  const [notes, cards, threads, discussions, progress, captures] = await Promise.all([
+  const [notes, cards, threads, discussions, proposals, progress, captures] = await Promise.all([
     b.pages("notes"),
     b.pages("cards"),
     b.allThreads(),
     b.allDiscussions(),
+    b.allProposals(),
     b.progress(),
     b.captures(),
   ]);
-  return { pages: [...notes, ...cards], threads, discussions, progress, captures };
+  return { pages: [...notes, ...cards], threads, discussions, proposals, progress, captures };
 }
 
 const writeJson = (path: string, value: unknown) => writeFileSync(path, JSON.stringify(value, null, 1) + "\n");
@@ -90,7 +108,16 @@ export function fileBackend(dir: string): Backend {
     changeProgress: async (op) => changeProgress(dir, op),
     captures: async () => loadCaptures(dir),
     changeCaptures: async (op) => changeCaptures(dir, op),
-    async restore(data, opts) {
+    allProposals: async () => loadAllProposals(dir),
+    changeProposals: async (collection, id, op) => changeProposals(dir, collection, id, op),
+    approve: (collection, id, proposalId) => approveProposal(fileProposalIO(dir, collection, id), proposalId),
+    history: async (collection, id) => listHistory(dir, collection, id),
+    async restore(collection, id, historyId) {
+      const old = readHistory(dir, collection, id, historyId);
+      if (!old) throw new Error(`No version ${historyId}`);
+      return restoreVersion(fileProposalIO(dir, collection, id), old, `v${old.version}`);
+    },
+    async restoreAll(data, opts) {
       if (opts?.prune) {
         const keep = new Set(data.pages.map((p) => `${p.collection}/${p.id}`));
         for (const c of ["notes", "cards"]) {
@@ -104,6 +131,7 @@ export function fileBackend(dir: string): Backend {
         for (const [name, map] of [
           ["comments", data.threads],
           ["discussions", data.discussions],
+          ["proposals", data.proposals ?? {}],
         ] as const) {
           const folder = join(dir, name);
           if (!existsSync(folder)) continue;
@@ -115,6 +143,7 @@ export function fileBackend(dir: string): Backend {
       for (const [name, map, field] of [
         ["comments", data.threads, "threads"],
         ["discussions", data.discussions, "discussions"],
+        ["proposals", data.proposals ?? {}, "proposals"],
       ] as const) {
         if (!Object.keys(map).length) continue;
         mkdirSync(join(dir, name), { recursive: true });

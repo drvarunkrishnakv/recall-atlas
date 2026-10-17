@@ -88,7 +88,7 @@ undefined fields aren't valid Firestore values). Shapes are in `app/src/lib/clou
 | `comments/{collection}-{id}` | `json` = `{threads}` for that page |
 | `discussions/{collection}-{id}` | `json` = `{discussions}` for that page |
 | `study/progress`, `study/captures` | `json` = revision progress, and quick captures |
-| `proposals/{id}` (M4) | `noteId, section, change {find, replace} or {row}, source {title, url, date}, reason, status` |
+| `proposals/{collection}-{id}` | `json` = `{proposals}`: kind (edit / add / row / check), blockId, find/replace, text or cells, source, reason, origin (flag / feed / claude), status (pending / applied / rejected / stale) |
 
 - The syllabus tree (papers, subjects, topics, planned notes) is not private, so it
   ships in the app as JSON.

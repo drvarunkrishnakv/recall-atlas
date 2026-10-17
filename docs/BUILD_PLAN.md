@@ -64,6 +64,10 @@ for the user's say-so. Project `recall-atlas-511913`.
 
 ## M4 · Proposals, history and Claude's loop
 
+Built on `claude/proposals-history-feed` (2026-10-18): proposals with approve/reject, version
+history with restore, CLI `propose/proposals/approve/reject/history/restore`, the feed filing
+proposals, and the twice-daily task (7 am, 7 pm) using them.
+
 - Proposals rendered inline in their section with ✓ / ✗; approvals recorded.
 - Version history view with restore (snapshots already kept since M2).
 - CLI: `proposals add/apply`; the PIB/PRS/Supreme Court feed and matcher write proposals

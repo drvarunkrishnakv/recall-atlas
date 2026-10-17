@@ -1,5 +1,23 @@
 # Decisions
 
+## 2026-10-18 — Proposals, history and the feed (M4)
+
+- Every change Claude wants in a note's text is a **proposal** (`edit` an exact phrase, `add` a
+  block after another, `row` in a table, `check` an open check), stored per page like threads
+  (`proposals/<collection>-<id>`). New text always carries its source marker. The CLI checks a
+  proposal applies before saving it, so the user never sees one that can't.
+- Approving applies the change in the save API (one shared function, `src/lib/approve.ts`, for
+  the dev API, the cloud API and the CLI), saves a version with a labelled history snapshot
+  ("Approved: …"), and closes the flag it came from. A proposal that no longer fits is marked
+  stale, not forced.
+- History lists labelled snapshots with a line diff against now; Restore saves the old version
+  as a new one, so nothing is lost. Approvals and restores always snapshot.
+- The review UI is a bar and a drawer (not proposals inside the editor's document), with a
+  dashed outline on the affected blocks: robust with BlockNote, and works on phones.
+- The feed keeps the existing fetcher (PIB, PRS, Supreme Court) and embedding matcher, now
+  reading the Firestore mirror; Claude files `atlas propose --feed` instead of inbox files.
+  The twice-daily task runs it; Claude never approves.
+
 ## 2026-10-17 — OAuth sign-in for the MCP server
 
 - The Gemini app and Claude's custom connectors connect only by OAuth, so the hosted server

@@ -749,7 +749,10 @@ export function RevisePage() {
 
 export function InboxPage() {
   useTitle("Claude inbox");
-  const { threads, captures } = useStudy();
+  const { threads, captures, proposals } = useStudy();
+  const changes = Object.entries(proposals).flatMap(([key, list]) =>
+    list.filter((p) => p.status === "pending").map((p) => ({ key, p })),
+  );
   const items = Object.entries(threads).flatMap(([key, ts]) => ts.map((t) => ({ key, t })));
   const replied = items.filter(({ t }) => t.kind === "claude" && !t.resolved && t.comments.at(-1)?.userId === "claude");
   const waiting = items.filter(({ t }) => t.kind === "claude" && !t.resolved && t.comments.at(-1)?.userId !== "claude");
@@ -772,6 +775,27 @@ export function InboxPage() {
           <h1>Claude inbox</h1>
         </div>
       </header>
+      {changes.length > 0 && (
+        <section className="inbox-sec">
+          <h2 className="sec-h">Changes to approve</h2>
+          {changes.map(({ key, p }) => (
+            <Link key={p.id} className="inbox-card" to={`${href(key)}?review=1`}>
+              <span className="kicker">
+                ✎ {title(key)} · {p.source.label}
+              </span>
+              {p.kind === "edit" ? (
+                <>
+                  <del className="q">{p.find}</del>
+                  <span className="a">{p.replace}</span>
+                </>
+              ) : (
+                <span className="a">{p.kind === "row" ? p.cells?.filter(Boolean).join(" · ") : p.text}</span>
+              )}
+              <span className="q">{p.reason}</span>
+            </Link>
+          ))}
+        </section>
+      )}
       <section className="inbox-sec">
         <h2 className="sec-h">Replies from Claude</h2>
         {replied.length === 0 && <p className="muted">No new replies.</p>}
