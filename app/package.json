@@ -17,8 +17,11 @@
     "atlas": "node cli/atlas.ts",
     "mcp": "node mcp/dist/atlas-mcp.mjs",
     "mcp:http": "node mcp/dist/atlas-mcp.mjs --http 5190",
-    "mcp:build": "rolldown mcp/atlas-mcp.ts -o mcp/dist/atlas-mcp.mjs -p node -f esm",
-    "discuss:serve": "bash mcp/serve.sh"
+    "mcp:build": "rolldown mcp/atlas-mcp.ts -o mcp/dist/atlas-mcp.mjs -p node -f esm --no-code-splitting --external firebase-admin/app --external firebase-admin/firestore",
+    "discuss:serve": "bash mcp/serve.sh",
+    "dev:cloud": "vite --mode cloud --host 0.0.0.0 --port 5173",
+    "build:cloud": "tsc -b && vite build --mode cloud",
+    "test:cloud": "npx --yes firebase-tools@13 emulators:exec --project demo-atlas --only firestore,auth \"vitest run --config vitest.cloud.config.ts\""
   },
   "dependencies": {
     "@blocknote/core": "^0.56.0",
@@ -29,6 +32,7 @@
     "@mantine/core": "^8.3.18",
     "@mantine/hooks": "^8.3.18",
     "@modelcontextprotocol/sdk": "^1.32.1",
+    "firebase": "^12.19.0",
     "mermaid": "^12.2.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
@@ -41,6 +45,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
+    "firebase-admin": "^13.10.0",
     "oxlint": "^1.81.0",
     "prettier": "^3.9.10",
     "typescript": "~6.0.2",

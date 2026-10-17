@@ -1,5 +1,6 @@
 // atlas — the command-line tool Claude uses on the notes, without the app open.
-// Reads and writes the same files as the dev save API (ATLAS_CONTENT_DIR).
+// With ATLAS_CONTENT_DIR set it works on that content folder (the dev save API's files);
+// otherwise on Firestore, through the Admin SDK (server/firestore-backend.ts).
 //
 //   node cli/atlas.ts pages                         list notes and cards
 //   node cli/atlas.ts show notes/P06 [--ids]        a page as Markdown (--ids: block ids as comments)
@@ -15,10 +16,12 @@
 //   node cli/atlas.ts post <discussion> "…" [--source "Label|url"]…      take Claude's turn
 //   node cli/atlas.ts conclude <discussion> "…" [--source "Label|url"]…  write the conclusion
 //   node cli/atlas.ts discuss-import notes/P06 <file.json>   add Claude's prepared questions
+//   node cli/atlas.ts import <content-dir> [--force]  copy a content folder into Firestore (once, at the switch)
+//   node cli/atlas.ts export <content-dir>           write Firestore out as files: the notes repo's mirror
+//   node cli/atlas.ts owner [uid|email] [--remove]   list accounts, or mark the one that may open the app
 //
 // Claude never resolves your threads and only edits facts you approved or asked for.
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
 import {
   blocksToMarkdown,
   citeLinks,
@@ -27,19 +30,11 @@ import {
   type InlineItem,
   type PageDoc,
 } from "../src/lib/blocks.ts";
+import type { Collection } from "../src/lib/cloud-docs.ts";
 import { waitingForClaude, type StoredThread } from "../src/lib/threads.ts";
 import { briefing, nextUp, progress } from "../src/lib/discussions.ts";
 import { MODE_INFO, speaker, type Mode, type Seat } from "../src/lib/personas.ts";
-import {
-  changeCaptures,
-  changeDiscussions,
-  changeThreads,
-  loadAllDiscussions,
-  loadCaptures,
-  loadProgress,
-  loadThreads,
-  savePage,
-} from "../server/content-api.ts";
+import { fileBackend, snapshot, type Backend } from "../server/backend.ts";
 import { nextDue } from "../src/lib/progress.ts";
 
 const dir = process.env.ATLAS_CONTENT_DIR;
@@ -49,29 +44,39 @@ function fail(msg: string): never {
   console.error(msg);
   process.exit(1);
 }
-if (!dir || !existsSync(dir)) fail("Set ATLAS_CONTENT_DIR to the notes repo's content/ folder.");
 
-function parseRef(ref: string | undefined): { collection: "notes" | "cards"; id: string } {
+async function cloud(): Promise<Backend> {
+  const { firestoreBackend } = await import("../server/firestore-backend.ts");
+  try {
+    return firestoreBackend();
+  } catch (e) {
+    fail(e instanceof Error ? e.message : String(e));
+  }
+}
+
+// import, export and owner always work on Firestore; the rest on ATLAS_CONTENT_DIR when it's set.
+const CLOUD_ONLY = ["import", "export", "owner"];
+if (dir && !existsSync(dir)) fail(`ATLAS_CONTENT_DIR ${dir} doesn't exist.`);
+const db: Backend = dir && !CLOUD_ONLY.includes(cmd ?? "") ? fileBackend(dir) : await cloud();
+
+function parseRef(ref: string | undefined): { collection: Collection; id: string } {
   const m = /^(notes|cards)\/([A-Za-z0-9-]+)$/.exec(ref ?? "");
   if (!m) fail(`Expected notes/<id> or cards/<id>, got "${ref ?? ""}"`);
-  return { collection: m[1] as "notes" | "cards", id: m[2] };
+  return { collection: m[1] as Collection, id: m[2] };
 }
 
-function readPage(collection: string, id: string): PageDoc {
-  const path = join(dir!, collection, `${id}.json`);
-  if (!existsSync(path)) fail(`${collection}/${id} has no JSON yet; open it once in the app to convert it.`);
-  return { ...(JSON.parse(readFileSync(path, "utf8")) as PageDoc), collection: collection as PageDoc["collection"] };
+async function readPage(collection: Collection, id: string): Promise<PageDoc> {
+  const page = await db.page(collection, id);
+  if (!page) fail(`No page ${collection}/${id}.`);
+  if (!Array.isArray(page.blocks))
+    fail(`${collection}/${id} is still Markdown; open it once in the app to convert it.`);
+  return page;
 }
 
-function pageIds(collection: string): string[] {
-  const folder = join(dir!, collection);
-  return existsSync(folder)
-    ? readdirSync(folder)
-        .filter((f) => f.endsWith(".json"))
-        .map((f) => f.slice(0, -5))
-        .sort()
-    : [];
-}
+const sortedKeys = <T>(map: Record<string, T>) =>
+  Object.keys(map).sort((a, b) =>
+    a.startsWith("notes") === b.startsWith("notes") ? a.localeCompare(b) : a.startsWith("notes") ? -1 : 1,
+  );
 
 function showThread(ref: string, t: StoredThread) {
   const state = t.resolved ? "resolved" : t.detached ? "detached" : "open";
@@ -82,16 +87,16 @@ function showThread(ref: string, t: StoredThread) {
 
 switch (cmd) {
   case "pages":
-    for (const c of ["notes", "cards"])
-      for (const id of pageIds(c)) {
-        const p = readPage(c, id);
-        console.log(`${c}/${id}\tv${p.version}\t${p.updated}\t${p.title}`);
-      }
+    for (const c of ["notes", "cards"] as const)
+      for (const p of await db.pages(c))
+        console.log(
+          `${c}/${p.id}\tv${p.version}\t${p.updated || "-"}\t${p.title}${p.blocks ? "" : "\t(Markdown, not converted yet)"}`,
+        );
     break;
 
   case "show": {
     const { collection, id } = parseRef(args[0]);
-    const page = readPage(collection, id);
+    const page = await readPage(collection, id);
     console.log(`# ${page.title}  (${collection}/${id}, v${page.version}, updated ${page.updated})\n`);
     if (args.includes("--ids"))
       for (const b of page.blocks) console.log(`<!-- block ${b.id} -->\n${blocksToMarkdown([b]).trim()}\n`);
@@ -101,19 +106,19 @@ switch (cmd) {
 
   case "comments": {
     let any = false;
-    for (const c of ["notes", "cards"])
-      for (const id of pageIds(c)) {
-        const all = loadThreads(dir!, c, id);
-        const list = args.includes("--waiting")
-          ? waitingForClaude(all)
-          : args.includes("--all")
-            ? all
-            : all.filter((t) => !t.resolved);
-        for (const t of list) {
-          showThread(`${c}/${id}`, t);
-          any = true;
-        }
+    const threads = await db.allThreads();
+    for (const key of sortedKeys(threads)) {
+      const all = threads[key];
+      const list = args.includes("--waiting")
+        ? waitingForClaude(all)
+        : args.includes("--all")
+          ? all
+          : all.filter((t) => !t.resolved);
+      for (const t of list) {
+        showThread(key.replace(":", "/"), t);
+        any = true;
       }
+    }
     if (!any) console.log("No threads.");
     break;
   }
@@ -122,7 +127,7 @@ switch (cmd) {
     const { collection, id } = parseRef(args[0]);
     const [threadId, text] = args.slice(1);
     if (!threadId || !text?.trim()) fail('Usage: reply notes/P06 <thread-id> "text"');
-    const threads = changeThreads(dir!, collection, id, {
+    const threads = await db.changeThreads(collection, id, {
       op: "reply",
       threadId,
       comment: { id: crypto.randomUUID().slice(0, 12), body: text },
@@ -139,7 +144,7 @@ switch (cmd) {
     const { collection, id } = parseRef(args[0]);
     const [find, replacement] = args.slice(1);
     if (!find || replacement === undefined) fail('Usage: replace notes/P06 "exact old text" "new text"');
-    const page = readPage(collection, id);
+    const page = await readPage(collection, id);
     // Only plain text runs are searched, so links, terms and formatting stay intact.
     const hits: InlineItem[] = [];
     const visit = (items: unknown) => {
@@ -163,14 +168,14 @@ switch (cmd) {
     const count = hits.reduce((n, i) => n + i.text!.split(find).length - 1, 0);
     if (count !== 1) fail(`"${find}" matches ${count} times in one text run; it must match exactly once.`);
     hits[0].text = hits[0].text!.replace(find, replacement);
-    const r = savePage(dir!, collection, id, page, page.version);
+    const r = await db.savePage(collection, id, page, page.version);
     if (r.conflict) fail("The page changed while editing; try again.");
     console.log(`Saved ${collection}/${id} as v${r.version}.`);
     break;
   }
 
   case "captures": {
-    const list = loadCaptures(dir!).filter((c) => args.includes("--all") || c.status === "open");
+    const list = (await db.captures()).filter((c) => args.includes("--all") || c.status === "open");
     if (!list.length) console.log("No captures.");
     for (const c of list)
       console.log(`- ${c.id} · ${c.createdAt.slice(0, 16)} · ${c.status}${c.note ? ` → ${c.note}` : ""}\n  ${c.text}`);
@@ -181,13 +186,13 @@ switch (cmd) {
     const [id, reply, note] = args;
     if (!id || !reply?.trim()) fail('Usage: file-capture <id> "what was done" [P10]');
     if (note && !/^[A-Za-z0-9-]+$/.test(note)) fail("The note id looks wrong.");
-    changeCaptures(dir!, { op: "done", id, reply, note });
+    await db.changeCaptures({ op: "done", id, reply, note });
     console.log(`Filed ${id}.`);
     break;
   }
 
   case "progress": {
-    const { notes } = loadProgress(dir!);
+    const { notes } = await db.progress();
     const ids = Object.keys(notes).sort();
     if (!ids.length) console.log("No progress yet.");
     for (const id of ids) {
@@ -201,7 +206,7 @@ switch (cmd) {
 
   case "cite-sources": {
     const { collection, id } = parseRef(args[0]);
-    const page = readPage(collection, id);
+    const page = await readPage(collection, id);
     const before = pageCites(page.blocks).length;
     const blocks = citeLinks(page.blocks);
     const after = pageCites(blocks).length;
@@ -209,7 +214,7 @@ switch (cmd) {
       console.log(`${collection}/${id}: no inline source links to move.`);
       break;
     }
-    const r = savePage(dir!, collection, id, { ...page, blocks }, page.version);
+    const r = await db.savePage(collection, id, { ...page, blocks }, page.version);
     if (r.conflict) fail("The page changed while editing; try again.");
     console.log(`${collection}/${id}: ${after - before} sources moved into markers; saved as v${r.version}.`);
     break;
@@ -217,7 +222,7 @@ switch (cmd) {
 
   case "discussions": {
     let any = false;
-    for (const [page, list] of Object.entries(loadAllDiscussions(dir!)))
+    for (const [page, list] of Object.entries(await db.allDiscussions()))
       for (const d of list) {
         if (d.status !== "open" && !args.includes("--all")) continue;
         any = true;
@@ -234,12 +239,11 @@ switch (cmd) {
 
   case "turns": {
     let n = 0;
-    for (const [page, list] of Object.entries(loadAllDiscussions(dir!)))
+    for (const [page, list] of Object.entries(await db.allDiscussions()))
       for (const d of list) {
         if (nextUp(d)?.seat.by !== "claude") continue;
         const [collection, id] = page.split(":");
-        const path = join(dir!, collection, `${id}.json`);
-        const p = existsSync(path) ? (JSON.parse(readFileSync(path, "utf8")) as PageDoc) : null;
+        const p = await db.page(collection as Collection, id);
         console.log(`\n${"=".repeat(80)}\n${briefing(d, p, `${collection}/${id}`, "claude")}`);
         n++;
       }
@@ -257,12 +261,11 @@ switch (cmd) {
         const [label, url] = (rest[++i] ?? "").split("|");
         sources.push({ label: label?.trim() ?? "", url: url?.trim() ?? "" });
       }
-    const hit = Object.entries(loadAllDiscussions(dir!)).find(([, list]) => list.some((d) => d.id === did));
+    const hit = Object.entries(await db.allDiscussions()).find(([, list]) => list.some((d) => d.id === did));
     if (!hit) fail(`No discussion ${did}`);
     const [collection, id] = hit[0].split(":");
-    const list = changeDiscussions(
-      dir!,
-      collection,
+    const list = await db.changeDiscussions(
+      collection as Collection,
       id,
       cmd === "post"
         ? { op: "turn", discussionId: did, turn: { id: crypto.randomUUID().slice(0, 12), by: "claude", body, sources } }
@@ -286,7 +289,7 @@ switch (cmd) {
     }[];
     for (const it of items) {
       const did = crypto.randomUUID().slice(0, 12);
-      changeDiscussions(dir!, collection, id, {
+      await db.changeDiscussions(collection, id, {
         op: "create",
         discussion: {
           id: did,
@@ -303,8 +306,54 @@ switch (cmd) {
     break;
   }
 
+  case "import": {
+    const from = args[0];
+    if (!from || !existsSync(from)) fail("Usage: import <content-dir> [--force]");
+    const existing = [...(await db.pages("notes")), ...(await db.pages("cards"))].length;
+    if (existing && !args.includes("--force"))
+      fail(`Firestore already has ${existing} pages. Use --force to overwrite them with ${from}.`);
+    const data = await snapshot(fileBackend(from));
+    await db.restore(data);
+    console.log(
+      `Imported ${data.pages.length} pages, ${Object.values(data.threads).flat().length} threads, ` +
+        `${Object.values(data.discussions).flat().length} discussions, progress and ${data.captures.length} captures.`,
+    );
+    break;
+  }
+
+  case "export": {
+    const to = args[0];
+    if (!to) fail("Usage: export <content-dir>");
+    const data = await snapshot(db);
+    await fileBackend(to).restore(data);
+    console.log(`Exported ${data.pages.length} pages with their Markdown copies, threads and discussions to ${to}.`);
+    break;
+  }
+
+  case "owner": {
+    const { getAuth } = await import("firebase-admin/auth");
+    const { adminApp } = await import("../server/firestore-backend.ts");
+    const auth = getAuth(adminApp());
+    const target = args.find((a) => !a.startsWith("--"));
+    if (!target) {
+      const { users } = await auth.listUsers(100);
+      if (!users.length) console.log("No accounts yet. Sign in to the app once, then run this again.");
+      for (const u of users) console.log(`${u.uid}\t${u.email ?? "-"}\t${u.customClaims?.atlasOwner ? "owner" : ""}`);
+      break;
+    }
+    const user = target.includes("@") ? await auth.getUserByEmail(target) : await auth.getUser(target);
+    const remove = args.includes("--remove");
+    await auth.setCustomUserClaims(user.uid, { ...user.customClaims, atlasOwner: remove ? undefined : true });
+    console.log(
+      remove
+        ? `${user.email ?? user.uid} can no longer open the app.`
+        : `${user.email ?? user.uid} can now open the app. Press "Try again" on the sign-in screen.`,
+    );
+    break;
+  }
+
   default:
     fail(
-      "Commands: pages | show <ref> [--ids] | comments [--waiting|--all] | reply <ref> <thread> <text> | replace <ref> <old> <new> | captures [--all] | file-capture <id> <text> [note] | progress | cite-sources <ref> | discussions [--all] | turns | post <id> <text> | conclude <id> <text> | discuss-import <ref> <file>",
+      "Commands: pages | show <ref> [--ids] | comments [--waiting|--all] | reply <ref> <thread> <text> | replace <ref> <old> <new> | captures [--all] | file-capture <id> <text> [note] | progress | cite-sources <ref> | discussions [--all] | turns | post <id> <text> | conclude <id> <text> | discuss-import <ref> <file> | import <dir> | export <dir> | owner [uid|email]",
     );
 }

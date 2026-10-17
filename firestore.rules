@@ -1,0 +1,29 @@
+rules_version = '2';
+
+// Owner-only: every read and write needs a signed-in account carrying the `atlasOwner`
+// custom claim, which only the Admin SDK can set (`npm run atlas -- owner <uid>`).
+// The CLI and MCP server use the Admin SDK, which these rules don't apply to.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner() {
+      return request.auth != null && request.auth.token.atlasOwner == true;
+    }
+
+    match /notes/{id=**} {
+      allow read, write: if isOwner();
+    }
+    match /cards/{id=**} {
+      allow read, write: if isOwner();
+    }
+    match /comments/{id} {
+      allow read, write: if isOwner();
+    }
+    match /discussions/{id} {
+      allow read, write: if isOwner();
+    }
+    match /study/{id} {
+      allow read, write: if isOwner();
+    }
+    // Anything else is closed.
+  }
+}

@@ -1,6 +1,7 @@
-// Content for the app: every note and card, loaded from the local save API at startup and
-// kept in one store that pages subscribe to. Saves go back through the API with a version
-// check. M3 swaps the API calls for Firestore; the rest of the app only sees this module.
+// Content for the app: every note and card, loaded at startup and kept in one store that
+// pages subscribe to. Saves go back with a version check. Locally the API is the dev
+// server's save API; in the cloud build (`--mode cloud`) the same routes are answered from
+// Firestore (cloud.ts). The rest of the app only sees this module.
 import { useSyncExternalStore } from "react";
 import { backlinks, type Block, type PageDoc } from "../lib/blocks";
 
@@ -57,7 +58,15 @@ export function linksTo(kind: "card" | "note", id: string): { collection: Collec
 
 export class ConflictError extends Error {}
 
-export const api = (path: string, init?: RequestInit) =>
+let cloud: Promise<(path: string, init?: RequestInit) => Promise<unknown>> | null = null;
+const cloudApi = () =>
+  (cloud ??= Promise.all([import("./cloud"), import("./firebase")]).then(([c, f]) => c.cloudApi(f.db)));
+
+/** In the cloud build (MODE "cloud", checked inline so local builds leave Firebase out) the routes go to Firestore. */
+export const api = (path: string, init?: RequestInit): Promise<unknown> =>
+  import.meta.env.MODE === "cloud" ? cloudApi().then((call) => call(path, init)) : localApi(path, init);
+
+const localApi = (path: string, init?: RequestInit) =>
   fetch(path, {
     ...init,
     headers: { "Content-Type": "application/json", "X-Atlas": "1", ...init?.headers },

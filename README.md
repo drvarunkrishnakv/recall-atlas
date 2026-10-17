@@ -17,16 +17,18 @@ Design target: the colourful mock (https://claude.ai/artifact/V5VbeLQ3hFE9LAgjf8
 
 ## Status
 
-M2: the editor and comments run locally on the Mac (`app/`), saving to files. Sign-in,
-hosting and phone/iPad editing come with Firebase in M3. See docs/BUILD_PLAN.md and
-docs/HANDOFF.md.
+M3 (on `claude/firebase-m3`): the cloud build signs in with Google and keeps notes in
+Firestore, readable offline and installable as a home-screen app. The local build still saves
+to files on the Mac for development and tests. See docs/BUILD_PLAN.md and docs/HANDOFF.md.
 
 ```sh
 cd app && npm ci
 npm run dev:fixture # synthetic fixture content (a git-ignored working copy)
 npm run dev:notes   # your notes, from ../output/notes-pilot/content (private repo)
+npm run dev:cloud   # the cloud build against Firestore (needs app/.env.local)
 npm run check && npx playwright test
-ATLAS_CONTENT_DIR=../output/notes-pilot/content npm run atlas -- comments --waiting   # Claude's CLI
+npm run test:cloud  # Firestore rules and the cloud API, in the Firebase emulators (needs Java)
+npm run atlas -- comments --waiting   # Claude's CLI, on Firestore (or files with ATLAS_CONTENT_DIR)
 ```
 
 ## Privacy

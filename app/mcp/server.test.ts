@@ -6,6 +6,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { changeDiscussions, loadDiscussions } from "../server/content-api.ts";
 import { DEFAULT_SEATS } from "../src/lib/personas.ts";
+import { fileBackend } from "../server/backend.ts";
 import { buildServer } from "./server.ts";
 
 const dir = mkdtempSync(join(tmpdir(), "atlas-mcp-"));
@@ -31,7 +32,7 @@ beforeAll(async () => {
     },
   });
   const [a, b] = InMemoryTransport.createLinkedPair();
-  await buildServer(dir).connect(a);
+  await buildServer(fileBackend(dir)).connect(a);
   await client.connect(b);
 }, 60_000);
 

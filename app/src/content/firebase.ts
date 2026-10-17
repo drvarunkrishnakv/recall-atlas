@@ -1,0 +1,56 @@
+// Firebase for the cloud build (`vite --mode cloud`): the app, Google sign-in and Firestore
+// with an offline cache, so notes you've opened stay readable without a connection.
+// The web config comes from app/.env.local (git-ignored); see app/.env.example.
+import { initializeApp } from "firebase/app";
+import {
+  browserLocalPersistence,
+  browserPopupRedirectResolver,
+  connectAuthEmulator,
+  indexedDBLocalPersistence,
+  initializeAuth,
+} from "firebase/auth";
+import {
+  connectFirestoreEmulator,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from "firebase/firestore";
+
+const env = import.meta.env;
+// On Firebase Hosting (the live site and preview channels) sign in through the page's own
+// domain: Android Chrome and Safari partition storage per site, so a redirect through another
+// domain loses its state ("missing initial state"). Hosting serves /__/auth/handler on every
+// one of the project's domains; each must be an authorised redirect URI on the project's
+// Google OAuth client. Local runs sign in through the project's firebaseapp.com domain.
+const project = env.VITE_FIREBASE_PROJECT_ID;
+const host = location.hostname;
+const onHosting =
+  host === `${project}.web.app` ||
+  host === `${project}.firebaseapp.com` ||
+  (host.startsWith(`${project}--`) && host.endsWith(".web.app"));
+
+export const firebaseApp = initializeApp({
+  apiKey: env.VITE_FIREBASE_API_KEY,
+  authDomain: onHosting ? location.host : env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: env.VITE_FIREBASE_APP_ID,
+});
+
+export const auth = initializeAuth(firebaseApp, {
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+  popupRedirectResolver: browserPopupRedirectResolver,
+});
+
+export const db = initializeFirestore(firebaseApp, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+});
+
+// Local testing against the Firebase emulators (VITE_FIREBASE_EMULATORS=1).
+if (env.VITE_FIREBASE_EMULATORS === "1") {
+  connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
+  connectFirestoreEmulator(db, "127.0.0.1", 8080);
+}
+
+export const firebaseConfigured = !!env.VITE_FIREBASE_API_KEY && !!env.VITE_FIREBASE_PROJECT_ID;

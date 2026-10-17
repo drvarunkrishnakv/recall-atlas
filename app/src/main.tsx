@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router";
 import "@fontsource/figtree/400.css";
@@ -16,8 +16,17 @@ import { PaperPage, TopicPage, NotePage, CardPage, CardsPage, NotFound } from ".
 import { HomePage, InboxPage, RevisePage, SubjectPage } from "./dashboard";
 
 applySavedTheme();
-void loadContent();
-void refreshStudy();
+// The cloud build loads notes only after Google sign-in (AuthGate); locally they load at once.
+// (MODE is checked inline so the local build leaves Firebase out entirely.)
+const CLOUD = import.meta.env.MODE === "cloud";
+const AuthGate = import.meta.env.MODE === "cloud" ? lazy(() => import("./components/AuthGate")) : null;
+if (!CLOUD) {
+  void loadContent();
+  void refreshStudy();
+}
+// The installed app (Android, iPad) opens offline from the service worker's copy.
+if (import.meta.env.MODE === "cloud" && import.meta.env.PROD && "serviceWorker" in navigator)
+  window.addEventListener("load", () => void navigator.serviceWorker.register("/sw.js").catch(() => undefined));
 
 const router = createBrowserRouter([
   {
@@ -39,6 +48,14 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    {AuthGate ? (
+      <Suspense>
+        <AuthGate>
+          <RouterProvider router={router} />
+        </AuthGate>
+      </Suspense>
+    ) : (
+      <RouterProvider router={router} />
+    )}
   </StrictMode>,
 );

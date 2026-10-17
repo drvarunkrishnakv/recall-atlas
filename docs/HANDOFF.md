@@ -1,5 +1,55 @@
 # Handoff
 
+## Firebase backend (M3) — 2026-10-17
+
+- **Branch:** `claude/firebase-m3`, from `main` (ef69311). Assisting tool: Claude Code.
+  Project `recall-atlas-511913`; web config in git-ignored `app/.env.local`, `.firebaserc` git-ignored.
+- **App:** `npm run dev:cloud` / `build:cloud` (`--mode cloud`) signs in with Google and
+  reads and writes Firestore through the same `api(path)` routes (`src/content/cloud.ts`).
+  Signed out you see only the sign-in screen; another account sees "can't open these notes"
+  with its account id. Sign-out (top bar) clears the device's offline copy. The local build
+  (`dev:fixture`, `dev:notes`, tests) is unchanged and bundles no Firebase.
+- **Rules:** `firestore.rules`, owner = custom claim `atlasOwner` (set with `atlas owner`).
+- **CLI and MCP:** `server/backend.ts` (files) and `server/firestore-backend.ts` (Admin SDK).
+  Without `ATLAS_CONTENT_DIR` they use Firestore and need `~/.config/mains-atlas/service-account.json`.
+  New: `atlas import <dir> [--force]`, `atlas export <dir>`, `atlas owner [uid|email] [--remove]`.
+- **PWA:** `public/manifest.webmanifest`, icons (green Atlas mark; the old blue favicon is
+  gone), `public/sw.js` (app shell only, registered in the cloud build).
+- **Hosting:** `firebase.json` (public `app/dist`, SPA rewrite, `build:cloud` predeploy).
+- **Checks:** `npm run check` (Prettier, `tsc -b`, 49 unit tests, build); `npm run test:cloud`
+  9 passed (rules: owner yes, other account and signed-out no, other collections closed; cloud
+  API; Admin backend import/export round trip); `npx playwright test` 41 passed + 10
+  desktop-only skips (local build). End-to-end against the
+  emulators with Playwright: sign in → refused → `atlas owner` → Try again → notes open, the
+  fixture's Markdown pages convert and the CLI sees them at v1; sign out → sign-in screen.
+- **Screenshots:** fixture only, `docs/design/m3/` (sign-in and note at desktop, iPad, phone;
+  phone refusal).
+- **Done 2026-10-17 (with the user's go-ahead):** Firestore `(default)` in asia-south1 (native);
+  rules deployed; `atlas import ../output/notes-pilot/content` (15 pages, 5 threads,
+  25 discussions, progress, 1 capture); owner claim set on the user's Google account;
+  Hosting preview channel `preview` (expires 2026-10-24). Signed-out Firestore REST reads
+  return 403. The live site is not deployed.
+- **Sign-in on Android:** the first preview sent the redirect through firebaseapp.com and
+  Android Chrome's storage partitioning lost its state ("missing initial state"). Every
+  Hosting domain now signs in through itself, so each needs its `/__/auth/handler` as a
+  redirect URI on the Google OAuth web client: the live `web.app` one and the preview
+  channel's (`recall-atlas-511913--preview-2lcp01pe.web.app`, stable for the `preview` channel).
+- **Android home-screen app:** redirect sign-in was flaky there (one hang, one return to the
+  sign-in button, then success): Chrome can bring the redirect back into another window that
+  has lost the pending state. Sign-in now uses a popup everywhere except iPhone/iPad
+  home-screen apps (where a popup opens in Safari, outside the app). Not yet retried on the phone.
+- **Sync checked:** a comment the user left on Android (Ask Claude, P06) was read from
+  Firestore with the CLI, and Claude's reply was written back the same way.
+- **Checked by the user:** sign-in and comments from Android (Chrome and the home-screen app)
+  and iPad (Chrome); Claude read both comments from Firestore and replied.
+- **Live 2026-10-17** (on the user's say-so): `firebase deploy --only hosting` from
+  `claude/firebase-m3` (99bd375), https://recall-atlas-511913.web.app. Google accepts its
+  sign-in address; signed-out Firestore reads return 403. Redirect URIs on the OAuth web
+  client: firebaseapp.com, web.app and the `preview` channel.
+- **Next:** merge PR #33 (live is ahead of `main` until then). Drop `ATLAS_CONTENT_DIR` from
+  the scheduled tasks so Claude works on Firestore, and add `atlas export` to the routine to
+  refresh the notes repo's mirror. Not yet tried: the iPad home-screen app (redirect sign-in).
+
 ## Discussions: Claude and Grok on each note — 2026-10-17
 
 - **Branch:** `claude/discussions`, from `claude/prose-and-citations` (674e091, PR #28). Assisting tool: Claude Code.

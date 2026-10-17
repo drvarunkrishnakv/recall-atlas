@@ -1,6 +1,7 @@
 // Local save API for the Vite dev server. Notes, cards and comment threads are files in a
 // content folder: ATLAS_CONTENT_DIR (the private notes repo's content/), or, without it, a
-// git-ignored working copy of the synthetic fixture. M3 swaps this for Firestore.
+// git-ignored working copy of the synthetic fixture. The cloud build answers the same
+// routes from Firestore instead (src/content/cloud.ts); the CLI reaches both through server/backend.ts.
 //
 //   GET  /api/content                         all pages (block JSON, or Markdown not yet converted)
 //   GET  /api/pages/:collection/:id           one page (to pick up edits made by Claude's CLI)
@@ -121,16 +122,33 @@ export function savePage(dir: string, collection: Collection, id: string, page: 
     updated: new Date().toLocaleDateString("en-CA"), // local YYYY-MM-DD
     blocks: Array.isArray(page.blocks) ? page.blocks : [],
   };
+  writePageFiles(dir, saved);
+  return { conflict: false as const, version: saved.version, updated: saved.updated };
+}
+
+/**
+ * Writes a page as `<id>.json` plus its Markdown copy `<id>.md`, with no version check
+ * (saves and `atlas export`). A page not yet converted to blocks is written back as its Markdown.
+ */
+export function writePageFiles(dir: string, page: PageDoc & { markdown?: string }) {
+  const folder = join(dir, page.collection);
+  mkdirSync(folder, { recursive: true });
+  if (!Array.isArray(page.blocks) && typeof page.markdown === "string") {
+    const skip = ["collection", "version", "markdown", "blocks"];
+    const front = Object.entries(page).filter(([k, v]) => !skip.includes(k) && !(k === "updated" && !v));
+    const head = front.length ? `---\n${front.map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join("\n")}\n---\n\n` : "";
+    writeAtomic(join(folder, page.id + ".md"), head + page.markdown);
+    return;
+  }
   // Fixed key order keeps git diffs readable: identity first, blocks last.
   const ordered = Object.fromEntries([
-    ...PAGE_FIELDS.filter((k) => k !== "blocks").map((k) => [k, saved[k]]),
-    ...Object.entries(saved).filter(([k]) => !PAGE_FIELDS.includes(k)),
-    ["blocks", saved.blocks],
+    ...PAGE_FIELDS.filter((k) => k !== "blocks").map((k) => [k, page[k]]),
+    ...Object.entries(page).filter(([k]) => !PAGE_FIELDS.includes(k) && k !== "markdown"),
+    ["blocks", page.blocks],
   ]);
   delete (ordered as Record<string, unknown>).collection;
-  writeAtomic(jsonPath, JSON.stringify(ordered, null, 1) + "\n");
-  writeAtomic(mdPath, pageToMarkdown(saved));
-  return { conflict: false as const, version: saved.version, updated: saved.updated };
+  writeAtomic(join(folder, page.id + ".json"), JSON.stringify(ordered, null, 1) + "\n");
+  writeAtomic(join(folder, page.id + ".md"), pageToMarkdown(page));
 }
 
 const threadsPath = (dir: string, collection: string, id: string) => join(dir, "comments", `${collection}-${id}.json`);
