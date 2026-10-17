@@ -1,5 +1,40 @@
 # Handoff
 
+## Discussions: Claude and Grok on each note — 2026-10-17
+
+- **Branch:** `claude/discussions`, from `claude/prose-and-citations` (674e091, PR #28). Assisting tool: Claude Code.
+- **App:** a "✦ Discuss" button in the note's top bar opens a Notion-style sidebar that floats
+  over the text. Tabs: Debate (Claude and Grok Debater on opposite sides, three rounds, you
+  vote), Roundtable (Claude moderates and sits as one expert; Grok bots take the other
+  seats; two rounds) and Devil's advocate (Grok Devil attacks a claim, Claude defends, three
+  rounds). Messages show Claude's or Grok's icon with the role. Every discussion ends with
+  Claude's conclusion. You can join any conversation, send a point to Claude's inbox on the
+  passage ("To note"), or add your own question.
+- **Prepared questions:** 8 per note (3 debates, 2 roundtables, 3 devil claims) for P06, P10
+  and P18, written by Claude from each note and its PYQ trail, in the notes repo's
+  `content/discussions/`. Not yet argued.
+- **Data:** `content/discussions/<collection>-<id>.json`; rules in `src/lib/discussions.ts`
+  (seats `{role, by}`, speaking order, conclusion, every argument needs an http(s) source);
+  roles and the seven Grok bots in `src/lib/personas.ts`.
+- **Atlas MCP server** (`app/mcp/`): Grok bots read and post only their own seats' turns.
+  `npm run mcp:build`, then `npm run mcp:http` (127.0.0.1:5190, key in `.atlas-local/mcp-key`,
+  `Authorization: Bearer` or `X-API-Key`). Grok Bot runs in the cloud, so it needs a tunnel to
+  port 5190 only. A Cloudflare quick tunnel worked on 2026-10-17 (one real Grok turn on P06).
+- **Claude's side:** `atlas turns` (briefs every turn that is Claude's), `atlas post <id> "…"
+  --source "Label|url"`, `atlas conclude <id> "…"`, `atlas discuss-import <ref> <file>`.
+- **Prompts for Grok Bot:** `docs/AGENT_PERSONAS.md` (seven bots, shared rules, a routine).
+- **Checks:** Prettier, `tsc -b`, 46 unit tests (incl. the MCP tools), build, and
+  `npx playwright test` 35 passed + 10 desktop-only skips (run on an internal-disk copy; the
+  external drive stalls tsc).
+- **How discussions run:** on demand. The user says "start the debate on …". Claude starts the
+  server and tunnel, posts its own turns, messages the right Grok bot in Grok Bot when it's
+  that bot's turn, writes the conclusion, then stops both. The twice-daily task catches up
+  any Claude turns that were missed.
+- **Live runs:** `npm run discuss:serve` starts the server and a quick tunnel, prints the address
+  and stops both on Ctrl-C. The address changes each run.
+- **Not done yet:** a fixed public address (a Cloudflare named tunnel, once the user has a domain);
+  bots' margin notes (Flag/Source/Add/Counterpoint).
+
 ## Title field fits after the font loads — 2026-10-17
 
 - **Branch:** `claude/title-font-measure`, from `claude/study-file-pages` (2ef561a, PR #29 still

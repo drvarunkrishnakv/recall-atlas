@@ -41,6 +41,7 @@ import { CommentMargin, CommentsPanel, Composer, useStoredThreads } from "../com
 import type { Anchor, ThreadKind } from "../lib/threads";
 import { openPeek } from "../components/peek";
 import { useResolvedTheme } from "../components/ThemeToggle";
+import { Discuss } from "../discuss/Discuss";
 
 const USERS = [
   { id: "me", username: "You", avatarUrl: "" },
@@ -455,6 +456,16 @@ function PageEditor({ page: initial, inPeek }: { page: Page; inPeek: boolean }) 
     });
   };
 
+  // A bot's point sent from a discussion becomes an "Ask Claude" thread on its passage.
+  const pinToClaude = async (anchor: Anchor | null, text: string) => {
+    const first = headings(editor.document as unknown as Block[]).find((h) => h.text);
+    const a = anchor ?? (first ? { blockId: first.id, quote: first.text } : null);
+    if (!a) throw new Error("This note has no heading to attach the point to");
+    const tid = await store.create("claude", a, text);
+    const r = findAnchor(editor.prosemirrorView!.state.doc, a);
+    if (r) markRange(editor, tid, r.from, r.to);
+  };
+
   const submitComment = async (kind: ThreadKind, text: string) => {
     if (!composer) return;
     const tid = await store.create(kind, composer.anchor, text);
@@ -621,6 +632,16 @@ function PageEditor({ page: initial, inPeek }: { page: Page; inPeek: boolean }) 
                     ? "Saved"
                     : ""}
           </span>
+          {p.collection === "notes" && !inPeek && (
+            <Discuss
+              collection={p.collection}
+              id={p.id}
+              title={meta.title}
+              editor={editor}
+              root={root}
+              onPin={pinToClaude}
+            />
+          )}
           <button
             type="button"
             className={`chip-btn${panel ? " on" : ""}`}

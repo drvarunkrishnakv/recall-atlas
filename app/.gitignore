@@ -25,3 +25,4 @@ dist-ssr
 
 # Local working copy of the fixture content (edited by the dev server)
 .atlas-local/
+mcp/dist/

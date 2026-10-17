@@ -10,6 +10,11 @@
 //   node cli/atlas.ts file-capture <id> "…" [P10]   mark a capture done, saying what Claude did
 //   node cli/atlas.ts progress                      read / revised / confidence / next due per note
 //   node cli/atlas.ts cite-sources cards/<id>       move "(Source)" links out of sentences into citation markers
+//   node cli/atlas.ts discussions [--all]           debates, roundtables, devil's advocate, with progress
+//   node cli/atlas.ts turns                         every discussion turn (or conclusion) that is Claude's now
+//   node cli/atlas.ts post <discussion> "…" [--source "Label|url"]…      take Claude's turn
+//   node cli/atlas.ts conclude <discussion> "…" [--source "Label|url"]…  write the conclusion
+//   node cli/atlas.ts discuss-import notes/P06 <file.json>   add Claude's prepared questions
 //
 // Claude never resolves your threads and only edits facts you approved or asked for.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -23,9 +28,13 @@ import {
   type PageDoc,
 } from "../src/lib/blocks.ts";
 import { waitingForClaude, type StoredThread } from "../src/lib/threads.ts";
+import { briefing, nextUp, progress } from "../src/lib/discussions.ts";
+import { MODE_INFO, speaker, type Mode, type Seat } from "../src/lib/personas.ts";
 import {
   changeCaptures,
+  changeDiscussions,
   changeThreads,
+  loadAllDiscussions,
   loadCaptures,
   loadProgress,
   loadThreads,
@@ -206,8 +215,96 @@ switch (cmd) {
     break;
   }
 
+  case "discussions": {
+    let any = false;
+    for (const [page, list] of Object.entries(loadAllDiscussions(dir!)))
+      for (const d of list) {
+        if (d.status !== "open" && !args.includes("--all")) continue;
+        any = true;
+        const up = nextUp(d);
+        const { done, total } = progress(d);
+        console.log(
+          `${page.replace(":", "/")}\t${d.id}\t${MODE_INFO[d.mode].title}\t${done}/${total}\t` +
+            `${up ? `next: ${speaker(up.seat)}${up.kind === "conclusion" ? " (conclusion)" : ""}` : d.status}\t${d.topic}`,
+        );
+      }
+    if (!any) console.log("No open discussions.");
+    break;
+  }
+
+  case "turns": {
+    let n = 0;
+    for (const [page, list] of Object.entries(loadAllDiscussions(dir!)))
+      for (const d of list) {
+        if (nextUp(d)?.seat.by !== "claude") continue;
+        const [collection, id] = page.split(":");
+        const path = join(dir!, collection, `${id}.json`);
+        const p = existsSync(path) ? (JSON.parse(readFileSync(path, "utf8")) as PageDoc) : null;
+        console.log(`\n${"=".repeat(80)}\n${briefing(d, p, `${collection}/${id}`, "claude")}`);
+        n++;
+      }
+    console.log(n ? `\n${n} turn${n > 1 ? "s" : ""} for Claude.` : "No turns for Claude.");
+    break;
+  }
+
+  case "post":
+  case "conclude": {
+    const [did, body, ...rest] = args;
+    if (!did || !body?.trim()) fail(`Usage: ${cmd} <discussion-id> "text" [--source "Label|url"]…`);
+    const sources: { label: string; url: string }[] = [];
+    for (let i = 0; i < rest.length; i++)
+      if (rest[i] === "--source") {
+        const [label, url] = (rest[++i] ?? "").split("|");
+        sources.push({ label: label?.trim() ?? "", url: url?.trim() ?? "" });
+      }
+    const hit = Object.entries(loadAllDiscussions(dir!)).find(([, list]) => list.some((d) => d.id === did));
+    if (!hit) fail(`No discussion ${did}`);
+    const [collection, id] = hit[0].split(":");
+    const list = changeDiscussions(
+      dir!,
+      collection,
+      id,
+      cmd === "post"
+        ? { op: "turn", discussionId: did, turn: { id: crypto.randomUUID().slice(0, 12), by: "claude", body, sources } }
+        : { op: "conclude", discussionId: did, body, sources },
+    );
+    const up = nextUp(list.find((d) => d.id === did)!);
+    console.log(`${cmd === "post" ? "Posted" : "Concluded"} ${did}. Next: ${up ? speaker(up.seat) : "nobody"}.`);
+    break;
+  }
+
+  case "discuss-import": {
+    const { collection, id } = parseRef(args[0]);
+    if (!args[1] || !existsSync(args[1])) fail("Usage: discuss-import notes/P06 <file.json>");
+    const items = JSON.parse(readFileSync(args[1], "utf8")) as {
+      mode: Mode;
+      topic: string;
+      why?: string;
+      anchor?: { blockId: string; quote: string } | null;
+      section?: string;
+      seats: Seat[];
+    }[];
+    for (const it of items) {
+      const did = crypto.randomUUID().slice(0, 12);
+      changeDiscussions(dir!, collection, id, {
+        op: "create",
+        discussion: {
+          id: did,
+          mode: it.mode,
+          topic: it.topic,
+          why: it.why,
+          anchor: it.anchor ?? null,
+          section: it.section,
+          seats: it.seats,
+        },
+      });
+      console.log(`${did}\t${MODE_INFO[it.mode].title}\t${it.topic}`);
+    }
+    break;
+  }
+
   default:
     fail(
-      "Commands: pages | show <ref> [--ids] | comments [--waiting|--all] | reply <ref> <thread> <text> | replace <ref> <old> <new> | captures [--all] | file-capture <id> <text> [note] | progress | cite-sources <ref>",
+      "Commands: pages | show <ref> [--ids] | comments [--waiting|--all] | reply <ref> <thread> <text> | replace <ref> <old> <new> | captures [--all] | file-capture <id> <text> [note] | progress | cite-sources <ref> | discussions [--all] | turns | post <id> <text> | conclude <id> <text> | discuss-import <ref> <file>",
     );
 }
