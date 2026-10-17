@@ -14,6 +14,7 @@ import { loadContent } from "./content/store";
 import { refreshStudy } from "./content/study";
 import { PaperPage, TopicPage, NotePage, CardPage, CardsPage, NotFound } from "./pages";
 import { HomePage, InboxPage, RevisePage, SubjectPage } from "./dashboard";
+import { SettingsPage } from "./settings";
 
 applySavedTheme();
 // The cloud build loads notes only after Google sign-in (AuthGate); locally they load at once.
@@ -51,6 +52,7 @@ const router = createBrowserRouter([
       { path: "/notes/:noteId", element: <NotePage /> },
       { path: "/inbox", element: <InboxPage /> },
       { path: "/revise", element: <RevisePage /> },
+      { path: "/settings", element: <SettingsPage /> },
       { path: "/cards", element: <CardsPage /> },
       { path: "/cards/:cardId", element: <CardPage /> },
       { path: "/:paperId", element: <PaperPage /> },

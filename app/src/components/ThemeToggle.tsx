@@ -1,10 +1,14 @@
+// The app's theme: follow the system, or always light, or always dark. The choice lives in
+// Settings and is kept per device (localStorage); applySavedTheme runs before first paint.
 import { useEffect, useState } from "react";
 import { Icon } from "./Icon";
 
 type Mode = "system" | "light" | "dark";
-const ORDER: Mode[] = ["system", "light", "dark"];
-const LABEL: Record<Mode, string> = { system: "Theme: system", light: "Theme: light", dark: "Theme: dark" };
-const ICON: Record<Mode, string> = { system: "auto", light: "sun", dark: "moon" };
+const MODES: { mode: Mode; label: string; icon: string }[] = [
+  { mode: "system", label: "System", icon: "auto" },
+  { mode: "light", label: "Light", icon: "sun" },
+  { mode: "dark", label: "Dark", icon: "moon" },
+];
 
 function readMode(): Mode {
   try {
@@ -22,7 +26,8 @@ export function applySavedTheme() {
   else document.documentElement.setAttribute("data-theme", mode);
 }
 
-export function ThemeToggle() {
+/** System, Light or Dark, as one row of buttons (Settings). */
+export function ThemeSetting() {
   const [mode, setMode] = useState<Mode>(readMode);
   useEffect(() => {
     if (mode === "system") document.documentElement.removeAttribute("data-theme");
@@ -34,17 +39,22 @@ export function ThemeToggle() {
     }
     window.dispatchEvent(new Event("atlas-theme"));
   }, [mode]);
-  const next = ORDER[(ORDER.indexOf(mode) + 1) % ORDER.length];
   return (
-    <button
-      className="iconbtn"
-      type="button"
-      aria-label={`${LABEL[mode]}. Switch to ${next}`}
-      title={LABEL[mode]}
-      onClick={() => setMode(next)}
-    >
-      <Icon name={ICON[mode]} />
-    </button>
+    <div className="segmented" role="radiogroup" aria-label="Theme">
+      {MODES.map((m) => (
+        <button
+          key={m.mode}
+          type="button"
+          role="radio"
+          aria-checked={mode === m.mode}
+          className={mode === m.mode ? "on" : ""}
+          onClick={() => setMode(m.mode)}
+        >
+          <Icon name={m.icon} />
+          {m.label}
+        </button>
+      ))}
+    </div>
   );
 }
 
