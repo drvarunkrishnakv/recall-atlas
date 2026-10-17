@@ -417,3 +417,19 @@ test("a note still opens when a thread has a kind this build doesn't know", asyn
   await expect(page.getByText("Unexpected Application Error")).toHaveCount(0);
   await expect(page.locator(".thread", { hasText: "A thread from a newer version." }).first()).toBeVisible();
 });
+
+test("Settings: the gear in the sidebar opens the theme choice, which sticks", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator(".topbar").getByRole("button", { name: /Theme|Sign out/ })).toHaveCount(0);
+  const menu = page.getByRole("button", { name: "Open navigator" });
+  if (await menu.isVisible()) await menu.click(); // phones: the sidebar is a drawer
+  await page.getByRole("link", { name: "Settings" }).click();
+  await expect(page.getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
+  await page.getByRole("radio", { name: "Dark" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await page.reload();
+  await expect(page.getByRole("radio", { name: "Dark" })).toHaveAttribute("aria-checked", "true");
+  await page.getByRole("radio", { name: "System" }).click();
+  await expect(page.locator("html")).not.toHaveAttribute("data-theme", /./);
+  await noSideScroll(page);
+});

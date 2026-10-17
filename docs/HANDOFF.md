@@ -21,6 +21,16 @@
 - **Checks:** `npm run check` (56 unit tests, build); `npx playwright test` 43 passed + 14 skips
   (one test updated for the "Save to note" label). Screenshots (fixture, light and dark, three
   sizes): `docs/design/comments-discuss/`.
+## Settings page — 2026-10-17
+
+- **Branch:** `claude/settings-page`, from `main` (0ac7cc2). Assisting tool: Claude Code.
+- **What (user's request):** the theme button and Sign out left the top bar. A gear
+  "Settings" link sits at the foot of the sidebar and opens `/settings`: Appearance (System /
+  Light / Dark, per device) and, in the cloud build, Account (email, Sign out, which also clears
+  the offline copy). Top bar now: menu, back, forward, breadcrumb, search.
+- **Checks:** `npm run check` (56 unit tests, build); `npx playwright test` 43 passed before, plus a new
+  Settings test at three sizes; cloud Account section and Sign out checked on the emulators.
+- **Screenshots:** `docs/design/settings/`.
 
 ## OAuth for the MCP server — 2026-10-17
 
