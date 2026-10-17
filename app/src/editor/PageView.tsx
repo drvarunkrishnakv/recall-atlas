@@ -46,6 +46,7 @@ import { Discuss } from "../discuss/Discuss";
 const USERS = [
   { id: "me", username: "You", avatarUrl: "" },
   { id: "claude", username: "Claude", avatarUrl: "" },
+  { id: "grok", username: "Grok", avatarUrl: "" },
 ];
 
 const isNarrow = () => window.innerWidth < 1280;

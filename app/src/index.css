@@ -26,6 +26,7 @@
   --mark-comment: rgba(232, 176, 34, 0.28);
   --mark-sticky: rgba(47, 160, 110, 0.22);
   --mark-claude: rgba(91, 91, 214, 0.18);
+  --mark-flag: rgba(220, 70, 60, 0.2);
   --sticky-bg: #fcf3c4;
   --danger: #b4372f;
   --f-text: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -62,6 +63,8 @@
     --mark-comment: rgba(232, 176, 34, 0.26);
     --mark-sticky: rgba(92, 192, 140, 0.24);
     --mark-claude: rgba(165, 165, 247, 0.24);
+    --mark-flag: rgba(240, 120, 110, 0.26);
+    --mark-flag: rgba(240, 120, 110, 0.26);
     --sticky-bg: #36311a;
     --danger: #f08a80;
     color-scheme: dark;
@@ -1039,6 +1042,47 @@ a.tile:hover {
 }
 .thread.kind-claude .badge:first-child {
   color: var(--accent);
+}
+.thread.kind-flag {
+  border-left: 3px solid var(--danger);
+}
+.thread.kind-flag .badge:first-child {
+  color: var(--danger);
+  font-weight: 600;
+}
+.badge.level {
+  border-radius: 4px;
+  padding: 0 0.3rem;
+  background: var(--surface);
+}
+.badge.level.wrong,
+.badge.level.outdated {
+  background: var(--weak-soft);
+  color: var(--weak-ink);
+}
+.badge.level.uncertain,
+.badge.level.unsourced {
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+}
+.comment.by-grok .who {
+  font-weight: 600;
+}
+.flag-srcs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.3rem;
+}
+.flag-srcs a {
+  border-radius: 6px;
+  padding: 0 0.4rem;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.7;
+  text-decoration: none;
 }
 .badge.muted {
   background: var(--surface);

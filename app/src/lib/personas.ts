@@ -40,6 +40,8 @@ export const GROK_BOTS: GrokBot[] = [
   { id: "activist", name: "Grok Activist", roles: ["activist"] },
   { id: "strategist", name: "Grok Strategist", roles: ["strategist"] },
   { id: "administrator", name: "Grok Administrator", roles: ["administrator"] },
+  /** Reviews notes and flags doubtful passages (atlas_flag); it takes no discussion seat. */
+  { id: "reviewer", name: "Grok Reviewer", roles: [] },
 ];
 
 /** A seat: a role, filled by Claude or by a Grok Bot bot (its id). */

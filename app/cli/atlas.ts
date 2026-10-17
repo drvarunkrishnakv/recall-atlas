@@ -3,7 +3,8 @@
 //
 //   node cli/atlas.ts pages                         list notes and cards
 //   node cli/atlas.ts show notes/P06 [--ids]        a page as Markdown (--ids: block ids as comments)
-//   node cli/atlas.ts comments [--waiting] [--all]  open threads (--waiting: Ask Claude without a reply)
+//   node cli/atlas.ts comments [--waiting] [--all]  open threads (--waiting: Ask Claude without a reply,
+//                                                    and Grok's flags Claude hasn't checked)
 //   node cli/atlas.ts reply notes/P06 <thread> "…"  reply in a thread as Claude
 //   node cli/atlas.ts replace notes/P06 "old" "new" change one exact phrase (must match once)
 //   node cli/atlas.ts captures [--all]              your scratch-pad captures (open ones by default)
@@ -75,9 +76,15 @@ function pageIds(collection: string): string[] {
 
 function showThread(ref: string, t: StoredThread) {
   const state = t.resolved ? "resolved" : t.detached ? "detached" : "open";
-  console.log(`\n## ${ref} · thread ${t.id} · ${t.kind} · ${state}`);
+  console.log(
+    `\n## ${ref} · thread ${t.id} · ${t.kind}${t.flag ? ` (${t.flag.level}, by ${t.flag.by})` : ""} · ${state}`,
+  );
   console.log(`> ${t.anchor.quote.replace(/\n/g, " ")}   (block ${t.anchor.blockId})`);
-  for (const c of t.comments) console.log(`- ${c.userId === "claude" ? "Claude" : "User"} (${c.createdAt}): ${c.body}`);
+  for (const c of t.comments)
+    console.log(
+      `- ${c.userId === "claude" ? "Claude" : c.userId === "grok" ? "Grok" : "User"} (${c.createdAt}): ${c.body}`,
+    );
+  if (t.flag?.sources.length) console.log(`  sources: ${t.flag.sources.map((s) => `${s.label} ${s.url}`).join(" · ")}`);
 }
 
 switch (cmd) {

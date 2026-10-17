@@ -1,5 +1,24 @@
 # Handoff
 
+## Grok's flags on notes — 2026-10-17
+
+- **Branch:** `claude/grok-flags`, from `main` (ef69311). Assisting tool: Claude Code.
+- **What:** Grok Bot's new **Grok Reviewer** bot (`reviewer`) reviews a note through the
+  Atlas MCP server and flags doubtful passages with `atlas_flag`: an exact quote, a level
+  (wrong, outdated, unsourced, uncertain), a reason and sources (required for wrong and
+  outdated). The server anchors the flag to the block holding the quote, which must appear
+  exactly once. Refused: duplicates, more than 10 open flags per bot per note, bad links.
+  `atlas_list_flags` shows a note's flags with Claude's verdicts.
+- **App:** flags are a new thread kind, `flag` (author `grok`), shown as a red "Grok flag"
+  in the margin and panel (new Flags tab), with the level, the bot's name and its sources.
+  The quote is highlighted in red. Claude's inbox has a "Flags from Grok" section, and the
+  subject table counts flags (⚑). Margin cards now also re-stack when a card's own height changes.
+- **Claude's side:** `atlas comments --waiting` lists flags Claude hasn't checked; Claude
+  answers with `atlas reply` ("Confirmed" or "Not supported", with a source).
+- **Prompt:** `docs/AGENT_PERSONAS.md` → Grok Reviewer.
+- **Checks:** 55 unit tests, build, `npx playwright test` 42 passed + 12 desktop-only skips.
+
+
 ## Discussions: Claude and Grok on each note — 2026-10-17
 
 - **Branch:** `claude/discussions`, from `claude/prose-and-citations` (674e091, PR #28). Assisting tool: Claude Code.

@@ -3,15 +3,27 @@
 //   comment  — a note or doubt; ✓ resolves it and it disappears from view
 //   sticky   — a permanent sticky note that never resolves (unpin to make it a comment)
 //   claude   — "Ask Claude": Claude replies on its next run; pin the answer or resolve it
+//   flag     — raised by Grok's reviewer bot on a doubtful passage; Claude checks it and replies
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { AtlasThreadStore } from "./threadStore";
-import type { StoredThread, ThreadKind } from "../lib/threads";
+import { isWaitingForClaude, type FlagLevel, type StoredThread, type ThreadKind } from "../lib/threads";
+import { grokBot } from "../lib/personas";
 
 export const KIND_INFO: Record<ThreadKind, { label: string; icon: string; hint: string }> = {
   comment: { label: "Comment", icon: "💬", hint: "Closes when you tick ✓" },
   sticky: { label: "Sticky note", icon: "📌", hint: "Stays on the page for good" },
   claude: { label: "Ask Claude", icon: "✦", hint: "Claude replies on its next run" },
+  flag: { label: "Grok flag", icon: "⚑", hint: "Raised by Grok's reviewer; Claude checks it" },
 };
+
+const LEVEL: Record<FlagLevel, string> = {
+  wrong: "Looks wrong",
+  outdated: "Out of date",
+  unsourced: "No source",
+  uncertain: "Uncertain",
+};
+const who = (t: StoredThread, userId: string) =>
+  userId === "claude" ? "Claude" : userId === "grok" ? (grokBot(t.flag?.by ?? "")?.name ?? "Grok") : "You";
 
 const fmt = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const when = (iso: string) => fmt.format(new Date(iso));
@@ -84,7 +96,7 @@ export function ThreadCard({
   cardRef?: (el: HTMLDivElement | null) => void;
 }) {
   const info = KIND_INFO[thread.kind];
-  const waiting = thread.kind === "claude" && !thread.resolved && thread.comments.at(-1)?.userId !== "claude";
+  const waiting = isWaitingForClaude(thread);
   const full = selected || thread.kind === "sticky";
   const shown = full ? thread.comments : thread.comments.slice(0, 1);
   const more = thread.comments.length - shown.length;
@@ -104,20 +116,41 @@ export function ThreadCard({
         <span className="badge">
           {info.icon} {info.label}
         </span>
+        {thread.flag && <span className={`badge level ${thread.flag.level}`}>{LEVEL[thread.flag.level]}</span>}
         {thread.resolved && <span className="badge muted">Resolved</span>}
         {thread.detached && <span className="badge muted">Text removed</span>}
       </div>
       {thread.anchor.quote && <blockquote className="quote">{thread.anchor.quote}</blockquote>}
-      {shown.map((c) => (
+      {shown.map((c, i) => (
         <div key={c.id} className={`comment by-${c.userId}`}>
           <div className="who">
-            {c.userId === "claude" ? "Claude" : "You"} <time>{when(c.createdAt)}</time>
+            {who(thread, c.userId)} <time>{when(c.createdAt)}</time>
           </div>
           <div className="text">{c.body}</div>
+          {i === 0 && thread.flag && thread.flag.sources.length > 0 && (
+            <div className="flag-srcs">
+              {thread.flag.sources.map((s, j) => (
+                <a
+                  key={j}
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={s.url}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {s.label} ↗
+                </a>
+              ))}
+            </div>
+          )}
         </div>
       ))}
       {more > 0 && <div className="more-replies">{more === 1 ? "1 reply" : `${more} replies`}</div>}
-      {waiting && <div className="waiting">Waiting for Claude's next run</div>}
+      {waiting && (
+        <div className="waiting">
+          {thread.kind === "flag" ? "Claude checks this on its next run" : "Waiting for Claude's next run"}
+        </div>
+      )}
       {selected && (
         <>
           <Submit placeholder="Reply…" onSubmit={(t) => store.reply(thread.id, t)} />
@@ -229,18 +262,20 @@ export function Composer({
       >
         <blockquote className="quote">{quote}</blockquote>
         <div className="kinds" role="radiogroup" aria-label="Kind">
-          {(Object.keys(KIND_INFO) as ThreadKind[]).map((k) => (
-            <button
-              key={k}
-              type="button"
-              role="radio"
-              aria-checked={kind === k}
-              className={kind === k ? "on" : ""}
-              onClick={() => setKind(k)}
-            >
-              {KIND_INFO[k].icon} {KIND_INFO[k].label}
-            </button>
-          ))}
+          {(Object.keys(KIND_INFO) as ThreadKind[])
+            .filter((k) => k !== "flag")
+            .map((k) => (
+              <button
+                key={k}
+                type="button"
+                role="radio"
+                aria-checked={kind === k}
+                className={kind === k ? "on" : ""}
+                onClick={() => setKind(k)}
+              >
+                {KIND_INFO[k].icon} {KIND_INFO[k].label}
+              </button>
+            ))}
         </div>
         <p className="hint">{KIND_INFO[kind].hint}</p>
         <textarea
@@ -300,6 +335,14 @@ export function CommentMargin({
   const [tops, setTops] = useState<Record<string, number>>({});
   const [tick, setTick] = useState(0);
   const visible = threads.filter((t) => !t.detached && (!t.resolved || t.id === selectedId));
+  // Re-stack when a card itself changes height (fonts, sources, replies), not only the page.
+  const cardResize = useRef<ResizeObserver | null>(null);
+  useEffect(() => {
+    const ro = new ResizeObserver(() => setTick((n) => n + 1));
+    cardResize.current = ro;
+    cards.current.forEach((el) => ro.observe(el));
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!root) return;
@@ -347,7 +390,14 @@ export function CommentMargin({
           store={store}
           selected={t.id === selectedId}
           onSelect={onSelect}
-          cardRef={(el) => (el ? cards.current.set(t.id, el) : cards.current.delete(t.id))}
+          cardRef={(el) => {
+            const prev = cards.current.get(t.id);
+            if (prev && prev !== el) cardResize.current?.unobserve(prev);
+            if (el) {
+              cards.current.set(t.id, el);
+              cardResize.current?.observe(el);
+            } else cards.current.delete(t.id);
+          }}
           style={{ top: tops[t.id] ?? 0, visibility: t.id in tops ? "visible" : "hidden" }}
         />
       ))}
@@ -355,7 +405,7 @@ export function CommentMargin({
   );
 }
 
-type Filter = "open" | "sticky" | "claude" | "resolved";
+type Filter = "open" | "flags" | "sticky" | "claude" | "resolved";
 
 /** Every thread on the page, filtered. A drawer on the right, or a bottom sheet on phones. */
 export function CommentsPanel({
@@ -374,11 +424,18 @@ export function CommentsPanel({
   const [filter, setFilter] = useState<Filter>("open");
   const counts: Record<Filter, StoredThread[]> = {
     open: threads.filter((t) => !t.resolved),
+    flags: threads.filter((t) => t.kind === "flag" && !t.resolved),
     sticky: threads.filter((t) => t.kind === "sticky"),
     claude: threads.filter((t) => t.kind === "claude" && !t.resolved),
     resolved: threads.filter((t) => t.resolved),
   };
-  const LABEL: Record<Filter, string> = { open: "Open", sticky: "Sticky", claude: "Claude", resolved: "Resolved" };
+  const LABEL: Record<Filter, string> = {
+    open: "Open",
+    flags: "Flags",
+    sticky: "Sticky",
+    claude: "Claude",
+    resolved: "Resolved",
+  };
   return (
     <>
       <div className="sheet-scrim panel-scrim" onClick={onClose} />

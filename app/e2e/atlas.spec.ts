@@ -371,3 +371,31 @@ test("roundtable: Claude opens, and a point goes to Claude's inbox on the sectio
   await expect(panel.getByText("Sent to Claude's inbox")).toBeVisible();
   await expect(page.locator(".thread.kind-claude", { hasText: "Claude · Moderator said" })).toBeVisible();
 });
+
+test("Grok's flag shows in the margin with its level and in Claude's inbox", async ({ page }) => {
+  test.skip(!isDesktop(page), "Once is enough");
+  const r = await page.request.post("/api/comments/notes/P06", {
+    headers: { "X-Atlas": "1" },
+    data: {
+      op: "create",
+      thread: {
+        id: "flag-e2e",
+        kind: "flag",
+        anchor: { blockId: "", quote: "Plain text with a source" },
+        flag: { by: "reviewer", level: "uncertain", sources: [{ label: "PRS", url: "https://prsindia.org/" }] },
+      },
+      comment: { id: "flag-e2e-c", body: "Which source backs this row?" },
+      by: "grok",
+    },
+  });
+  expect(r.ok()).toBe(true);
+  await page.goto("/notes/P06");
+  const card = page.locator(".margin .thread.kind-flag");
+  await expect(card).toContainText("Grok flag");
+  await expect(card).toContainText("Uncertain");
+  await expect(card).toContainText("Grok Reviewer");
+  await expect(page.locator('.bn-thread-mark[data-bn-thread-id="flag-e2e"]')).toHaveText("Plain text with a source");
+  await page.goto("/inbox");
+  await expect(page.getByText("Flags from Grok")).toBeVisible();
+  await expect(page.getByText("Grok: Which source backs this row?")).toBeVisible();
+});
