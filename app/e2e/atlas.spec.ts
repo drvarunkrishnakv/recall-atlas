@@ -421,7 +421,8 @@ test("a note still opens when a thread has a kind this build doesn't know", asyn
 test("Settings: the gear in the sidebar opens the theme choice, which sticks", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator(".topbar").getByRole("button", { name: /Theme|Sign out/ })).toHaveCount(0);
-  if (!isDesktop(page)) await page.getByRole("button", { name: "Open navigator" }).click();
+  const menu = page.getByRole("button", { name: "Open navigator" });
+  if (await menu.isVisible()) await menu.click(); // phones: the sidebar is a drawer
   await page.getByRole("link", { name: "Settings" }).click();
   await expect(page.getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
   await page.getByRole("radio", { name: "Dark" }).click();

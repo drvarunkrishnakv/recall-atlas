@@ -7,7 +7,7 @@
   "Settings" link sits at the foot of the sidebar and opens `/settings`: Appearance (System /
   Light / Dark, per device) and, in the cloud build, Account (email, Sign out, which also clears
   the offline copy). Top bar now: menu, back, forward, breadcrumb, search.
-- **Checks:** `npm run check` (56 unit tests, build); `npx playwright test` 46 passed incl. a new
+- **Checks:** `npm run check` (56 unit tests, build); `npx playwright test` 43 passed before, plus a new
   Settings test at three sizes; cloud Account section and Sign out checked on the emulators.
 - **Screenshots:** `docs/design/settings/`.
 
