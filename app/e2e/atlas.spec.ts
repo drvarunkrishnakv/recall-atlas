@@ -399,3 +399,21 @@ test("an AI's flag shows in the margin with its level and AI, and in Claude's in
   await expect(page.getByText("Flags from AI reviewers")).toBeVisible();
   await expect(page.getByText("Gemini: Which source backs this row?")).toBeVisible();
 });
+
+test("a note still opens when a thread has a kind this build doesn't know", async ({ page }) => {
+  test.skip(!isDesktop(page), "Once is enough");
+  const r = await page.request.post("/api/comments/notes/P06", {
+    headers: { "X-Atlas": "1" },
+    data: {
+      op: "create",
+      thread: { id: "future-kind", kind: "poll", anchor: { blockId: "", quote: "Sample row" } },
+      comment: { id: "future-kind-c", body: "A thread from a newer version." },
+      by: "me",
+    },
+  });
+  expect(r.ok()).toBe(true);
+  await page.goto("/notes/P06");
+  await expect(page.locator(".bn-editor").first()).toBeVisible();
+  await expect(page.getByText("Unexpected Application Error")).toHaveCount(0);
+  await expect(page.locator(".thread", { hasText: "A thread from a newer version." }).first()).toBeVisible();
+});
