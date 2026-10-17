@@ -24,13 +24,16 @@
   fixture's Markdown pages convert and the CLI sees them at v1; sign out → sign-in screen.
 - **Screenshots:** fixture only, `docs/design/m3/` (sign-in and note at desktop, iPad, phone;
   phone refusal).
-- **Not done (needs the user):**
-  1. The Firestore database: `firebase firestore:databases:list` showed none on 2026-10-17.
-  2. A service-account key at `~/.config/mains-atlas/service-account.json`.
-  3. Say-so to deploy rules (`firebase deploy --only firestore:rules`), then
-     `npm run atlas -- import ../output/notes-pilot/content`, sign in, `npm run atlas -- owner <email>`.
-  4. Say-so for a Hosting preview channel, then live. Scheduled tasks keep `ATLAS_CONTENT_DIR`
-     until the switch; drop it then so Claude works on Firestore, and add `atlas export` to the routine.
+- **Done 2026-10-17 (with the user's go-ahead):** Firestore `(default)` in asia-south1 (native);
+  rules deployed; `atlas import ../output/notes-pilot/content` (15 pages, 5 threads,
+  25 discussions, progress, 1 capture); owner claim set on the user's Google account;
+  Hosting preview channel `preview` (expires 2026-10-24). Signed-out Firestore REST reads
+  return 403. The live site is not deployed.
+- **Next:** the user tries the preview on desktop, Android and iPad. Before going live, add
+  `https://recall-atlas-511913.web.app/__/auth/handler` as a redirect URI on the project's
+  Google OAuth web client (the live site signs in through its own domain), then
+  `firebase deploy --only hosting` on the user's say-so. At the switch, drop
+  `ATLAS_CONTENT_DIR` from the scheduled tasks and add `atlas export` to the routine.
 
 ## Discussions: Claude and Grok on each note — 2026-10-17
 
