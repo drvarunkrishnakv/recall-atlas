@@ -20,6 +20,12 @@
   The shared web-search limit ran out early for every researcher, so most months were sourced
   from Wikipedia's monthly pages, PRS reviews and the links they cite; some events are missing
   (listed in the researchers' reports, kept in `output/heatmap-research/gaps.md`).
+- **Result:** 230 stories over 34 months (559 story-months), 289 Prelims items; 1 352 source
+  links checked (1 024 opened, ~310 refuse robots, 19 dead and dropped). Longest and loudest:
+  Israel–Gaza (28 months hot), Russia–Ukraine (26), Iran's wars and Hormuz (15), the SIR (14),
+  monsoon floods, Naxalism and RBI policy (12 each), US tariffs and the space programme (11).
+  Imported into Firestore and the mirror; the blind build is notes-repo commit 55fa3f8
+  (`research/heatmap/`, not pushed yet). Not frozen: freeze it just before the comparison.
 - **Checks:** `npm run check` (69 unit tests, build); `npm run test:cloud` 22 passed (rules:
   owner reads, nobody writes; a map split across parts round-trips); `npx playwright test` 50
   passed + 16 desktop-only skips (run on the installed Chrome, as Playwright's own browsers were
