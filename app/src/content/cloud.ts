@@ -116,12 +116,14 @@ export function cloudApi(db: Firestore) {
     if (path === "/api/discussions" && method === "GET")
       return allKeyed<Discussion>(db, "discussions", (v) => (v as { discussions?: Discussion[] }).discussions ?? []);
 
-    if (path === "/api/heatmap" && method === "GET")
-      return {
-        map: await joinHeatmap((await getDoc(doc(db, "heatmap", "current"))).data(), async (i) =>
-          (await getDoc(doc(db, "heatmap", `current-${i}`))).data(),
-        ),
-      };
+    if (path === "/api/heatmap" && method === "GET") {
+      // The map ("current") and its comparison with past papers ("questions"), each maybe in parts.
+      const read = async (base: string) =>
+        joinHeatmap((await getDoc(doc(db, "heatmap", base))).data(), async (i) =>
+          (await getDoc(doc(db, "heatmap", `${base}-${i}`))).data(),
+        );
+      return { map: await read("current"), comparison: await read("questions") };
+    }
 
     if (path === "/api/progress") {
       const ref = doc(db, "study", "progress");

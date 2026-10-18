@@ -162,6 +162,14 @@ export const QUADRANT_BLURB: Record<Quadrant, string> = {
   background: "Covered now and then, never for long.",
 };
 
+/** What a corner's stories are like, without the comparison's promise. */
+export const QUADRANT_TRAIT: Record<Quadrant, string> = {
+  "long-loud": "Stayed hot for many months and got very loud.",
+  "brief-loud": "A short, sharp spike.",
+  slow: "Never the loudest, but it kept coming back.",
+  background: "Covered now and then, never for long.",
+};
+
 export function quadrantOf(s: Pick<StoryStats, "hot" | "peak">): Quadrant {
   const long = s.hot >= CUTS.hot,
     loud = s.peak >= CUTS.peak;
@@ -208,5 +216,109 @@ export function heatMapProblems(map: HeatMap): string[] {
       out.push(`Prelims item ${p.name}: needs a month in range, a name and http(s) sources`);
   for (const e of map.exams ?? [])
     if (!DAY.test(e.date ?? "") || (e.kind !== "prelims" && e.kind !== "mains")) out.push(`Bad exam mark ${e.date}`);
+  return out;
+}
+
+// ---------- The comparison with past papers ----------
+// Made after the map was frozen: each question of the 2025 and 2026 papers matched to a story
+// (or a Prelims item) in the news before its paper was set. Kept beside the map
+// (`content/heatmap-questions.json`, Firestore `heatmap/questions`); the map itself never changes.
+
+export type Strength = "direct" | "related" | "none";
+export const STRENGTH_LABEL: Record<Strength, string> = {
+  direct: "Asked about it",
+  related: "Drew on it",
+  none: "No news link",
+};
+
+export interface PaperQuestion {
+  id: string;
+  /** An ExamPaper id, e.g. "prelims-2025". */
+  exam: string;
+  paper: string;
+  n: string;
+  text: string;
+  /** The subject in a few words. */
+  gist: string;
+  strength: Strength;
+  story: string | null;
+  /** A Prelims item, as "P012" (its index in the map's list). */
+  prelims: string | null;
+  also: string[];
+  /** The months of news it drew on. */
+  months: string[];
+  /** It rests on news the map can't hold (before January 2024, or missed). */
+  outsideMap: boolean;
+  why: string;
+}
+
+export interface ExamPaper {
+  id: string;
+  label: string;
+  date: string;
+  /** The last month of news that counts for it, YYYY-MM. */
+  cutoff: string;
+}
+
+export interface CornerRow {
+  measure: Measure;
+  corner: Quadrant;
+  /** Story–exam pairs in this corner, from the news before each exam. */
+  stories: number;
+  /** How many of them got at least one question. */
+  asked: number;
+}
+
+export interface Comparison {
+  madeAt: string;
+  /** The frozen map it was made against. */
+  frozenAt: string;
+  exams: ExamPaper[];
+  questions: PaperQuestion[];
+  findings: {
+    byExam: { exam: string; total: number; direct: number; related: number; none: number; outside: number }[];
+    corners: CornerRow[];
+    /** Questions by how many months before the exam their story peaked, in buckets like "0–2". */
+    lag: { label: string; questions: number }[];
+    /** Claude's conclusions, a sentence or two each. */
+    summary: string[];
+  };
+}
+
+/** Story id → the questions that asked about it or drew on it (as the main story or another). */
+export function questionsByStory(c: Comparison): Map<string, PaperQuestion[]> {
+  const out = new Map<string, PaperQuestion[]>();
+  for (const q of c.questions) {
+    if (q.strength === "none") continue;
+    for (const id of new Set([q.story, ...q.also].filter((x): x is string => !!x)))
+      out.set(id, [...(out.get(id) ?? []), q]);
+  }
+  return out;
+}
+
+/** What's wrong with a comparison before it's imported against `map`; empty when it's fine. */
+export function comparisonProblems(c: Comparison, map: HeatMap): string[] {
+  const out: string[] = [];
+  if (!map.frozenAt) out.push("Freeze the heat map before importing a comparison");
+  else if (c.frozenAt !== map.frozenAt) out.push(`Made against the map frozen ${c.frozenAt}, not ${map.frozenAt}`);
+  const stories = new Set(map.stories.map((s) => s.id));
+  const exams = new Set(c.exams.map((e) => e.id));
+  for (const e of c.exams)
+    if (!DAY.test(e.date) || !MONTH.test(e.cutoff) || !e.label?.trim())
+      out.push(`Exam ${e.id}: bad date, cutoff or label`);
+  const ids = new Set<string>();
+  for (const q of c.questions) {
+    const at = `Question ${q.id}`;
+    if (ids.has(q.id)) out.push(`${at}: duplicate id`);
+    ids.add(q.id);
+    if (!exams.has(q.exam)) out.push(`${at}: unknown exam ${q.exam}`);
+    if (!["direct", "related", "none"].includes(q.strength)) out.push(`${at}: bad strength ${q.strength}`);
+    for (const id of [q.story, ...(q.also ?? [])]) if (id && !stories.has(id)) out.push(`${at}: no story ${id}`);
+    const p = q.prelims ? /^P(\d{3})$/.exec(q.prelims) : null;
+    if (q.prelims && (!p || +p[1] >= map.prelims.length)) out.push(`${at}: no Prelims item ${q.prelims}`);
+    if (q.strength !== "none" && !q.story && !q.prelims) out.push(`${at}: linked to nothing`);
+    const cutoff = c.exams.find((e) => e.id === q.exam)?.cutoff ?? "";
+    if ((q.months ?? []).some((m) => !MONTH.test(m) || m > cutoff)) out.push(`${at}: a month after its exam's cutoff`);
+  }
   return out;
 }

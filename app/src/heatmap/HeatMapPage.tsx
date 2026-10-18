@@ -1,7 +1,8 @@
 // The news heat map (/heat-map, "News heat map" in the sidebar): which stories lasted. A chart
 // of how many months each story stayed hot against how loud it got, the chosen story's
-// timeline with sources, and every story's "river", month by month. Read-only: Claude imports
-// the map with `atlas heatmap-import`. Selection lives in the URL (replaced, not pushed).
+// timeline with sources, and every story's "river", month by month. Once the map is frozen and
+// compared with past papers, each question shows on its story and "What UPSC asked" sums them
+// up. Read-only: Claude imports both with the CLI. Selection lives in the URL (replaced, not pushed).
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { Link, useSearchParams } from "react-router";
 import { api, getPage } from "../content/store";
@@ -12,17 +13,23 @@ import {
   LEVEL_LABEL,
   QUADRANT_BLURB,
   QUADRANT_LABEL,
+  QUADRANT_TRAIT,
+  STRENGTH_LABEL,
   dayLabel,
   monthLabel,
   monthRange,
   quadrantOf,
+  questionsByStory,
   seriesOf,
   storyStats,
   type Area,
+  type Comparison,
   type HeatMap,
   type HeatStory,
   type Measure,
+  type PaperQuestion,
   type Quadrant,
+  type Strength,
   type StoryStats,
 } from "../lib/heatmap";
 
@@ -47,12 +54,17 @@ interface Row {
 
 export default function HeatMapPage() {
   const [map, setMap] = useState<HeatMap | null | undefined>(undefined);
+  const [comparison, setComparison] = useState<Comparison | null>(null);
   const [error, setError] = useState("");
   useEffect(() => {
     document.title = "News heat map · Mains Atlas";
     let live = true;
-    (api("/api/heatmap") as Promise<{ map: HeatMap | null }>)
-      .then((r) => live && setMap(r.map))
+    (api("/api/heatmap") as Promise<{ map: HeatMap | null; comparison?: Comparison | null }>)
+      .then((r) => {
+        if (!live) return;
+        setMap(r.map);
+        setComparison(r.comparison ?? null);
+      })
       .catch((e: unknown) => live && setError(e instanceof Error ? e.message : String(e)));
     return () => {
       live = false;
@@ -77,10 +89,10 @@ export default function HeatMapPage() {
         </p>
       </article>
     );
-  return <HeatMapView map={map} />;
+  return <HeatMapView map={map} comparison={comparison} />;
 }
 
-function HeatMapView({ map }: { map: HeatMap }) {
+function HeatMapView({ map, comparison }: { map: HeatMap; comparison: Comparison | null }) {
   const [params, setParams] = useSearchParams();
   const measure: Measure = params.get("by") === "weight" ? "weight" : "coverage";
   const areaParam = params.get("area");
@@ -107,6 +119,28 @@ function HeatMapView({ map }: { map: HeatMap }) {
     for (const e of map.exams) out[e.date.slice(0, 7)] = e.kind === "prelims" ? "P" : "M";
     return out;
   }, [map]);
+  // The comparison with past papers: each story's questions, and its marks on the rivers.
+  const asked = useMemo(
+    () => (comparison ? questionsByStory(comparison) : new Map<string, PaperQuestion[]>()),
+    [comparison],
+  );
+  const marks = useMemo(() => {
+    const out = new Map<string, Map<string, Strength>>();
+    if (!comparison) return out;
+    const examMonth = new Map(comparison.exams.map((e) => [e.id, e.date.slice(0, 7)]));
+    for (const [id, qs] of asked) {
+      const m = new Map<string, Strength>();
+      for (const q of qs) {
+        const month = examMonth.get(q.exam);
+        if (month && m.get(month) !== "direct") m.set(month, q.strength);
+      }
+      out.set(id, m);
+    }
+    return out;
+  }, [comparison, asked]);
+  // Kept locally too, so the box ticks at once (the URL updates a moment later).
+  const [ringOn, setRingOn] = useState(params.get("asked") === "1");
+  const ring = !!comparison && ringOn;
 
   const set = (patch: Record<string, string | null>) =>
     setParams(
@@ -191,11 +225,30 @@ function HeatMapView({ map }: { map: HeatMap }) {
             </button>
           ))}
         </div>
+        {comparison && (
+          <label className="hm-check">
+            <input
+              type="checkbox"
+              checked={ring}
+              onChange={(e) => {
+                setRingOn(e.target.checked);
+                set({ asked: e.target.checked ? "1" : null });
+              }}
+            />
+            Ring stories UPSC asked about
+          </label>
+        )}
       </div>
 
       <div className="hm-top">
         <section className="hm-card hm-chart" aria-label="How long and how loud">
-          <Scatter rows={shown} total={months.length} selId={sel?.s.id} onPick={(id) => pick(id, null)} />
+          <Scatter
+            rows={shown}
+            total={months.length}
+            selId={sel?.s.id}
+            asked={ring ? asked : null}
+            onPick={(id) => pick(id, null)}
+          />
         </section>
         {sel && (
           <StoryCard
@@ -205,9 +258,14 @@ function HeatMapView({ map }: { map: HeatMap }) {
             measure={measure}
             selMonth={selMonth}
             onMonth={(m) => set({ m })}
+            comparison={comparison}
+            questions={asked.get(sel.s.id) ?? []}
+            prelimsName={(ref) => map.prelims[+ref.slice(1)]?.name ?? ref}
           />
         )}
       </div>
+
+      {comparison && <Findings c={comparison} measure={measure} />}
 
       <Rivers
         rows={shown}
@@ -216,6 +274,7 @@ function HeatMapView({ map }: { map: HeatMap }) {
         selId={sel?.s.id}
         selMonth={selMonth}
         measure={measure}
+        marks={marks}
         onPick={pick}
       />
 
@@ -275,11 +334,14 @@ function Scatter({
   rows,
   total,
   selId,
+  asked,
   onPick,
 }: {
   rows: Row[];
   total: number;
   selId?: string;
+  /** When set, stories with past-paper questions are ringed. */
+  asked: Map<string, PaperQuestion[]> | null;
   onPick: (id: string) => void;
 }) {
   const areaRef = useRef<HTMLDivElement>(null);
@@ -394,7 +456,7 @@ function Scatter({
           <button
             key={d.r.s.id}
             type="button"
-            className={`hm-dot${d.on ? " on" : ""}`}
+            className={`hm-dot${d.on ? " on" : ""}${asked?.has(d.r.s.id) ? " asked" : ""}`}
             style={{
               left: w ? d.px : `${d.x * 100}%`,
               bottom: w ? d.py : `${d.y * 100}%`,
@@ -436,6 +498,9 @@ function StoryCard({
   measure,
   selMonth,
   onMonth,
+  comparison,
+  questions,
+  prelimsName,
 }: {
   ref: RefObject<HTMLElement | null>;
   row: Row;
@@ -443,15 +508,25 @@ function StoryCard({
   measure: Measure;
   selMonth: string | null;
   onMonth: (m: string) => void;
+  comparison: Comparison | null;
+  questions: PaperQuestion[];
+  prelimsName: (ref: string) => string;
 }) {
   const { s, st, q } = row;
+  const corner = comparison?.findings.corners.find((r) => r.measure === measure && r.corner === q);
+  const cornerRate = corner && corner.stories ? corner.asked / corner.stories : null;
   const timeline = months.filter((m) => s.months[m]);
   const listRef = useRef<HTMLOListElement>(null);
+  // Bring the chosen month into view inside the card, never by scrolling the page.
   useEffect(() => {
-    if (!selMonth) return;
-    const li = listRef.current?.querySelector<HTMLElement>(`[data-m="${selMonth}"]`);
-    li?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [selMonth, s.id]);
+    const card = ref.current;
+    const li = selMonth ? listRef.current?.querySelector<HTMLElement>(`[data-m="${selMonth}"]`) : null;
+    if (!card || !li || card.scrollHeight <= card.clientHeight) return;
+    const c = card.getBoundingClientRect(),
+      r = li.getBoundingClientRect();
+    if (r.top < c.top || r.bottom > c.bottom)
+      card.scrollTo({ top: card.scrollTop + r.top - c.top - 12, behavior: "smooth" });
+  }, [selMonth, s.id, ref]);
 
   return (
     <aside className="hm-card hm-story" ref={ref} aria-label="Selected story">
@@ -486,7 +561,11 @@ function StoryCard({
           <dd>{st.last >= 0 ? monthLabel(months[st.last]) : "Never"}</dd>
         </div>
       </dl>
-      <p className="hm-blurb">{QUADRANT_BLURB[q]}</p>
+      <p className="hm-blurb">
+        {cornerRate === null
+          ? QUADRANT_BLURB[q]
+          : `${QUADRANT_TRAIT[q]} In the 2025 and 2026 papers, ${Math.round(cornerRate * 100)}% of the stories in this corner got a question in the next paper.`}
+      </p>
       <h3>Month by month</h3>
       <ol className="hm-timeline" ref={listRef}>
         {timeline.map((m) => {
@@ -516,10 +595,38 @@ function StoryCard({
           );
         })}
       </ol>
-      <div className="hm-later">
-        Past-paper questions on this story will show here after the comparison: how many, which year, and how many
-        months after its peak.
-      </div>
+      {!comparison ? (
+        <div className="hm-later">
+          Past-paper questions on this story will show here after the comparison: how many, which year, and how many
+          months after its peak.
+        </div>
+      ) : questions.length ? (
+        <div className="hm-pyq">
+          <h3>Past-paper questions</h3>
+          <ul>
+            {questions.map((pq) => (
+              <li key={pq.id}>
+                <details>
+                  <summary>
+                    <span className="hm-pyq-exam">
+                      {comparison.exams.find((e) => e.id === pq.exam)?.label ?? pq.exam} · {pq.paper} Q{pq.n}
+                    </span>
+                    <span className={`hm-str ${pq.strength}`}>{STRENGTH_LABEL[pq.strength]}</span>
+                    <span className="hm-pyq-gist">{pq.gist}</span>
+                  </summary>
+                  <p className="hm-pyq-text">{pq.text}</p>
+                  <p className="muted">
+                    {pq.why}
+                    {pq.prelims ? ` Prelims item: ${prelimsName(pq.prelims)}.` : ""}
+                  </p>
+                </details>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <div className="hm-later">No question in the 2025 or 2026 papers drew on this story.</div>
+      )}
     </aside>
   );
 }
@@ -531,6 +638,7 @@ function Rivers({
   selId,
   selMonth,
   measure,
+  marks,
   onPick,
 }: {
   rows: Row[];
@@ -539,6 +647,8 @@ function Rivers({
   selId?: string;
   selMonth: string | null;
   measure: Measure;
+  /** Story id → exam month → the strongest question on it in that exam. */
+  marks: Map<string, Map<string, Strength>>;
   onPick: (id: string, m: string | null) => void;
 }) {
   const yearStart = (i: number) => i > 0 && months[i].endsWith("-01");
@@ -553,7 +663,7 @@ function Rivers({
         <span className="muted">
           Each row is one story&apos;s life, month by month. Taller means{" "}
           {measure === "coverage" ? "more covered" : "weightier"}. Longest-lasting first. P and M mark the Prelims and
-          Mains months.
+          Mains months{marks.size ? "; a diamond marks a paper that asked about the story (hollow: drew on it)" : ""}.
         </span>
       </div>
       <div className="hm-scroll">
@@ -610,6 +720,9 @@ function Rivers({
                           } as CSSProperties
                         }
                       />
+                      {marks.get(r.s.id)?.has(months[i]) && (
+                        <b className={`hm-mark ${marks.get(r.s.id)!.get(months[i])}`} aria-hidden="true" />
+                      )}
                     </span>
                   ))}
                 </div>
@@ -623,6 +736,95 @@ function Rivers({
         <button type="button" className="chip-btn hm-more" onClick={() => setAll((v) => !v)}>
           {all ? "Show only stories hot for two months or more" : `Show ${quiet} more stories, hot for a month or less`}
         </button>
+      )}
+    </section>
+  );
+}
+
+const CORNERS: Quadrant[] = ["long-loud", "brief-loud", "slow", "background"];
+
+/** "What UPSC asked": the comparison's numbers and Claude's conclusions. */
+function Findings({ c, measure }: { c: Comparison; measure: Measure }) {
+  const corners = c.findings.corners.filter((r) => r.measure === measure);
+  const maxLag = Math.max(1, ...c.findings.lag.map((l) => l.questions));
+  return (
+    <section className="hm-card hm-findings" aria-label="What UPSC asked">
+      <div className="hm-rivers-head">
+        <h2 className="sec-h">What UPSC asked</h2>
+        <span className="muted">
+          The 2025 and 2026 papers, matched to the frozen map using only the news before each paper was set.
+        </span>
+      </div>
+      <div className="hm-exam-tiles">
+        {c.findings.byExam.map((e) => (
+          <div key={e.exam} className="hm-exam-tile">
+            <b>{c.exams.find((x) => x.id === e.exam)?.label ?? e.exam}</b>
+            <span className="hm-big">
+              {e.direct + e.related}
+              <small> of {e.total}</small>
+            </span>
+            <span className="muted">drew on the map&apos;s news; {e.direct} asked about a story itself</span>
+          </div>
+        ))}
+      </div>
+      <div className="hm-findings-grid">
+        <div>
+          <h3>Which corners UPSC drew on</h3>
+          <table className="hm-table">
+            <thead>
+              <tr>
+                <th>Corner, by {measure === "coverage" ? "coverage" : "exam weight"}</th>
+                <th>Stories</th>
+                <th>Asked</th>
+                <th>Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              {CORNERS.map((q) => {
+                const r = corners.find((x) => x.corner === q);
+                if (!r) return null;
+                const rate = r.stories ? r.asked / r.stories : 0;
+                return (
+                  <tr key={q}>
+                    <td>
+                      <span className={`hm-q q-${q}`}>{QUADRANT_LABEL[q]}</span>
+                    </td>
+                    <td>{r.stories}</td>
+                    <td>{r.asked}</td>
+                    <td>
+                      <span className="hm-rate">
+                        <i style={{ width: `${rate * 100}%` }} />
+                      </span>
+                      {Math.round(rate * 100)}%
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <p className="muted hm-note-small">
+            A story counts once per paper, placed in its corner by the news before that paper.
+          </p>
+        </div>
+        <div>
+          <h3>Months from a story&apos;s peak to the exam</h3>
+          <div className="hm-lag" role="img" aria-label="Questions by months from the story's peak to the exam">
+            {c.findings.lag.map((l) => (
+              <div key={l.label} className="hm-lag-bar" title={`${l.questions} questions`}>
+                <span className="hm-lag-n">{l.questions}</span>
+                <i style={{ height: `${(l.questions / maxLag) * 100}%` }} />
+                <span className="hm-lag-label">{l.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      {c.findings.summary.length > 0 && (
+        <ul className="hm-summary">
+          {c.findings.summary.map((t, i) => (
+            <li key={i}>{t}</li>
+          ))}
+        </ul>
       )}
     </section>
   );

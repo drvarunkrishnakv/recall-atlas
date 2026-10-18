@@ -1,0 +1,163 @@
+{
+ "madeAt": "2026-10-18",
+ "frozenAt": "2026-10-18",
+ "exams": [
+  {
+   "id": "prelims-2025",
+   "label": "Prelims 2025",
+   "date": "2025-05-25",
+   "cutoff": "2025-04"
+  },
+  {
+   "id": "mains-2025",
+   "label": "Mains 2025",
+   "date": "2025-08-22",
+   "cutoff": "2025-07"
+  }
+ ],
+ "questions": [
+  {
+   "id": "q1",
+   "exam": "prelims-2025",
+   "paper": "GS1",
+   "n": "7",
+   "text": "A sample question about the sample court case.",
+   "gist": "The sample court case",
+   "strength": "direct",
+   "story": "sample-court",
+   "prelims": null,
+   "also": [],
+   "months": [
+    "2025-04"
+   ],
+   "outsideMap": false,
+   "why": "The case was decided in April."
+  },
+  {
+   "id": "q2",
+   "exam": "mains-2025",
+   "paper": "GS2",
+   "n": "3",
+   "text": "A sample question on the wider issue behind the long story.",
+   "gist": "The issue behind the long story",
+   "strength": "related",
+   "story": "sample-long",
+   "prelims": null,
+   "also": [
+    "sample-court"
+   ],
+   "months": [
+    "2025-06",
+    "2025-07"
+   ],
+   "outsideMap": false,
+   "why": "The long story ran through the year."
+  },
+  {
+   "id": "q3",
+   "exam": "mains-2025",
+   "paper": "GS1",
+   "n": "1",
+   "text": "A sample static question.",
+   "gist": "A static topic",
+   "strength": "none",
+   "story": null,
+   "prelims": null,
+   "also": [],
+   "months": [],
+   "outsideMap": false,
+   "why": "No news link."
+  }
+ ],
+ "findings": {
+  "byExam": [
+   {
+    "exam": "prelims-2025",
+    "total": 1,
+    "direct": 1,
+    "related": 0,
+    "none": 0,
+    "outside": 0
+   },
+   {
+    "exam": "mains-2025",
+    "total": 2,
+    "direct": 0,
+    "related": 1,
+    "none": 1,
+    "outside": 0
+   }
+  ],
+  "corners": [
+   {
+    "measure": "coverage",
+    "corner": "long-loud",
+    "stories": 2,
+    "asked": 1
+   },
+   {
+    "measure": "coverage",
+    "corner": "brief-loud",
+    "stories": 3,
+    "asked": 1
+   },
+   {
+    "measure": "coverage",
+    "corner": "slow",
+    "stories": 2,
+    "asked": 0
+   },
+   {
+    "measure": "coverage",
+    "corner": "background",
+    "stories": 3,
+    "asked": 0
+   },
+   {
+    "measure": "weight",
+    "corner": "long-loud",
+    "stories": 2,
+    "asked": 1
+   },
+   {
+    "measure": "weight",
+    "corner": "brief-loud",
+    "stories": 3,
+    "asked": 1
+   },
+   {
+    "measure": "weight",
+    "corner": "slow",
+    "stories": 2,
+    "asked": 0
+   },
+   {
+    "measure": "weight",
+    "corner": "background",
+    "stories": 3,
+    "asked": 0
+   }
+  ],
+  "lag": [
+   {
+    "label": "0–2",
+    "questions": 2
+   },
+   {
+    "label": "3–5",
+    "questions": 0
+   },
+   {
+    "label": "6–11",
+    "questions": 0
+   },
+   {
+    "label": "12+",
+    "questions": 0
+   }
+  ],
+  "summary": [
+   "A sample finding for tests."
+  ]
+ }
+}

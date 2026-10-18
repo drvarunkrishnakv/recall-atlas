@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { heatmapRecords, joinHeatmap } from "./cloud-docs";
-import { heatMapProblems, monthLabel, monthRange, quadrantOf, seriesOf, storyStats, type HeatMap } from "./heatmap";
+import {
+  comparisonProblems,
+  heatMapProblems,
+  monthLabel,
+  monthRange,
+  quadrantOf,
+  questionsByStory,
+  seriesOf,
+  storyStats,
+  type Comparison,
+  type HeatMap,
+} from "./heatmap";
 
 const map = (over: Partial<HeatMap> = {}): HeatMap => ({
   from: "2024-11",
@@ -85,5 +96,54 @@ describe("heat map", () => {
     await expect(joinHeatmap(parts[0].record, async (i) => (i === 2 ? undefined : parts[i].record))).rejects.toThrow(
       /missing part 2/,
     );
+  });
+});
+
+describe("comparison with past papers", () => {
+  const frozen = () => ({ ...map(), frozenAt: "2026-10-18" });
+  const comparison = (over: Partial<Comparison> = {}): Comparison => ({
+    madeAt: "2026-10-18",
+    frozenAt: "2026-10-18",
+    exams: [{ id: "prelims-2025", label: "Prelims 2025", date: "2025-05-25", cutoff: "2025-04" }],
+    questions: [
+      {
+        id: "q1",
+        exam: "prelims-2025",
+        paper: "GS1",
+        n: "1",
+        text: "A question.",
+        gist: "Story A",
+        strength: "direct",
+        story: "story-a",
+        prelims: null,
+        also: [],
+        months: ["2024-12"],
+        outsideMap: false,
+        why: "It was in the news.",
+      },
+    ],
+    findings: { byExam: [], corners: [], lag: [], summary: [] },
+    ...over,
+  });
+
+  it("groups questions by story, leaving out those with no news link", () => {
+    const c = comparison();
+    c.questions.push({ ...c.questions[0], id: "q2", strength: "none", story: null });
+    expect([...questionsByStory(c).keys()]).toEqual(["story-a"]);
+    expect(
+      questionsByStory(c)
+        .get("story-a")
+        ?.map((q) => q.id),
+    ).toEqual(["q1"]);
+  });
+
+  it("checks a comparison against the frozen map", () => {
+    expect(comparisonProblems(comparison(), frozen())).toEqual([]);
+    expect(comparisonProblems(comparison(), map()).join()).toMatch(/Freeze the heat map/);
+    const bad = comparison();
+    bad.questions[0] = { ...bad.questions[0], story: "nope", months: ["2025-05"], exam: "mains-2030" };
+    const problems = comparisonProblems(bad, frozen()).join("\n");
+    expect(problems).toMatch(/no story nope/);
+    expect(problems).toMatch(/unknown exam/);
   });
 });

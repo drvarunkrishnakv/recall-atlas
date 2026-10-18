@@ -1,5 +1,40 @@
 # Handoff
 
+## Heat map vs the 2025 and 2026 papers — 2026-10-18
+
+- **Branch:** `claude/heatmap-pyq`, stacked on `claude/news-heat-map` (PR #41). Assisting tool: Claude Code.
+- **Freeze:** the map was frozen before any paper was opened (`frozenAt` 2026-10-18, notes-repo
+  commit e90b278, re-imported into Firestore, pushed).
+- **Papers:** Prelims 2025 and 2026 and Mains 2025 from the user's past-paper CSVs in `data/`.
+  Mains 2026 (GS1–GS4) and the 2025 and 2026 Essay papers were downloaded from upsc.gov.in (scans),
+  then OCRed (tesseract) and transcribed from the page images. 368 questions in all.
+- **Matching:** Claude agents matched each question to the frozen map only, with no web access. Only
+  news up to the month before each exam counts. Each question is direct, related or none, and
+  flagged when it rests on news the map lacks. Private: `research/heatmap/compare/` in the notes repo
+  (`analyze.py` → `heatmap-questions.json`, `results.md`; conclusions in `summary.json`).
+- **Results:**
+  - Questions drawing on the map's news: Prelims 21/100 (2025) and 17/100 (2026); Mains 19/81
+    (2025) and 40/87 (2026). GS2 and GS3 carry most of it.
+  - Long, loud stories got a question in the next paper 50% of the time, against 17% for any story
+    in the news (Mains 70%, Prelims 25%). Brief spikes: 14%.
+  - Most linked questions came 3–11 months after their story's peak.
+  - Prelims rests on small items the map missed, about 16 per paper.
+- **App:**
+  - "What UPSC asked" panel: per-paper tiles, a hit-rate table by corner (follows the Coverage /
+    Exam weight switch), the peak-to-exam months chart, and the conclusions.
+  - Each story card lists its questions (expandable, with the full text).
+  - Diamonds on the rivers mark the papers that asked about a story.
+  - A "Ring stories UPSC asked about" option on the chart.
+  - The story card now scrolls itself to a chosen month without scrolling the page.
+- **Data:** `content/heatmap-questions.json`; Firestore `heatmap/questions[-N]`;
+  `atlas heatmap-compare-import <file>` checks it against the frozen map. `/api/heatmap` returns
+  `{map, comparison}`.
+- **Checks:** `npm run check` (71 unit tests, build); `npm run test:cloud` 22 passed; `npx playwright
+  test` 53 passed + 16 desktop-only skips (installed Chrome). Screenshots (fixture):
+  `docs/design/heatmap-pyq/`.
+- **Not done:** deploy (Firestore rule and Hosting) waits for the user; a Prelims items layer (the
+  biggest gap the comparison found).
+
 ## News heat map — 2026-10-18
 
 - **Branch:** `claude/news-heat-map`, from `main` (194bb64). Assisting tool: Claude Code.

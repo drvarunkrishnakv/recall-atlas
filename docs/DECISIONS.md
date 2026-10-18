@@ -1,5 +1,19 @@
 # Decisions
 
+## 2026-10-18 — Comparing the frozen heat map with the 2025 and 2026 papers
+
+- The map was frozen first (`frozenAt`, notes-repo commit e90b278). The comparison is a separate
+  dataset (`content/heatmap-questions.json`, Firestore `heatmap/questions`), so the map never changes.
+- Papers: Prelims 2025 and 2026 (GS1), Mains 2025 and 2026 (GS1–GS4 and Essay). The 2024 papers
+  are left out: the map holds at most eight months of news before them.
+- **Cutoff:** a paper can only draw on news up to the month before its exam (papers are set
+  earlier), and each story's corner is worked out again from that news alone.
+- Each question is **direct** (about the news item itself), **related** (the wider issue a story
+  is part of, with a concrete head start) or **none**, and flagged when it rests on news the map
+  doesn't hold. Matching was done by Claude agents against the map only, without the web.
+- Hit rate = stories in a corner that got at least one direct or related question, counting each
+  story once per paper. Lag = months from a story's hottest pre-cutoff month to the exam.
+
 ## 2026-10-18 — News heat map, built blind
 
 - The user's idea: score every news story month by month from January 2024, then compare the

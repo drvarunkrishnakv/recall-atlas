@@ -29,6 +29,8 @@
 //   node cli/atlas.ts heatmap                        the news heat map's stories: months hot, peak, corner
 //   node cli/atlas.ts heatmap-import <file.json> [--force]   load a heat map (checked first; a frozen one
 //                                                    is replaced only with --force, when the user asks)
+//   node cli/atlas.ts heatmap-compare-import <file.json>   load the comparison with past papers (checked
+//                                                    against the frozen map first)
 //   node cli/atlas.ts owner [uid|email] [--remove]   list accounts, or mark the one that may open the app
 //   node cli/atlas.ts mcp-key add <grok|gemini|chatgpt> ["label"]   a key for one AI (shown once)
 //   node cli/atlas.ts mcp-key list | revoke <id>      the MCP server's keys
@@ -51,6 +53,7 @@ import { AIS, isAi, MODE_INFO, speaker, type Mode, type Seat } from "../src/lib/
 import { fileBackend, snapshot, type Backend } from "../server/backend.ts";
 import { nextDue } from "../src/lib/progress.ts";
 import {
+  comparisonProblems,
   heatMapProblems,
   monthLabel,
   monthRange,
@@ -58,6 +61,7 @@ import {
   quadrantOf,
   seriesOf,
   storyStats,
+  type Comparison,
   type HeatMap,
 } from "../src/lib/heatmap.ts";
 
@@ -498,6 +502,23 @@ switch (cmd) {
     break;
   }
 
+  case "heatmap-compare-import": {
+    const file = args[0];
+    if (!file || !existsSync(file)) fail("Usage: heatmap-compare-import <heatmap-questions.json>");
+    const c = JSON.parse(readFileSync(file, "utf8")) as Comparison;
+    const map = await db.heatmap();
+    if (!map) fail("Import the heat map first.");
+    const problems = comparisonProblems(c, map);
+    if (problems.length) fail(`Not imported (${problems.length} problems):\n- ${problems.slice(0, 40).join("\n- ")}`);
+    await db.setComparison(c);
+    const linked = c.questions.filter((q) => q.strength !== "none").length;
+    console.log(
+      `Imported the comparison into ${db.kind}: ${c.questions.length} questions from ${c.exams.length} papers, ` +
+        `${linked} drawing on the map's news.`,
+    );
+    break;
+  }
+
   case "owner": {
     const { getAuth } = await import("firebase-admin/auth");
     const { adminApp } = await import("../server/firestore-backend.ts");
@@ -569,6 +590,6 @@ switch (cmd) {
 
   default:
     fail(
-      "Commands: pages | show <ref> [--ids] | comments [--waiting|--all] | reply <ref> <thread> <text> | replace <ref> <old> <new> | captures [--all] | file-capture <id> <text> [note] | progress | cite-sources <ref> | discussions [--all] | turns | post <id> <text> | conclude <id> <text> | discuss-import <ref> <file> | heatmap | heatmap-import <file> | import <dir> | export <dir> | owner [uid|email] | mcp-key add|list|revoke | oauth list|revoke | proposals | propose | approve | reject | history | restore",
+      "Commands: pages | show <ref> [--ids] | comments [--waiting|--all] | reply <ref> <thread> <text> | replace <ref> <old> <new> | captures [--all] | file-capture <id> <text> [note] | progress | cite-sources <ref> | discussions [--all] | turns | post <id> <text> | conclude <id> <text> | discuss-import <ref> <file> | heatmap | heatmap-import <file> | heatmap-compare-import <file> | import <dir> | export <dir> | owner [uid|email] | mcp-key add|list|revoke | oauth list|revoke | proposals | propose | approve | reject | history | restore",
     );
 }
