@@ -94,6 +94,7 @@ undefined fields aren't valid Firestore values). Shapes are in `app/src/lib/clou
 | `comments/{collection}-{id}` | `json` = `{threads}` for that page |
 | `discussions/{collection}-{id}` | `json` = `{discussions}` for that page |
 | `study/progress`, `study/captures` | `json` = revision progress, and quick captures |
+| `heatmap/questions[, questions-1…]` | `json` = the comparison with past papers (`Comparison` in `app/src/lib/heatmap.ts`): each question matched to a story, and the findings. Read-only to the app; written by `atlas heatmap-compare-import` |
 | `heatmap/current[, current-1…]` | `json` = the news heat map (`app/src/lib/heatmap.ts`), split across parts of at most 300 000 characters; `current` carries `parts`. Read-only to the app; written by `atlas heatmap-import` |
 | `proposals/{collection}-{id}` | `json` = `{proposals}`: kind (edit / add / row / check), blockId, find/replace, text or cells, source, reason, origin (flag / feed / claude), status (pending / applied / rejected / stale) |
 

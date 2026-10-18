@@ -7,6 +7,7 @@
 //   discussions/{collection}-{id}    {json: {discussions}}
 //   study/progress, study/captures   {json: Progress} and {json: {captures}}
 //   heatmap/current[, current-1…]    {json, parts}: the news heat map, split when it's long
+//   heatmap/questions[, questions-1…] {json, parts}: its comparison with past papers
 //
 // Each document keeps its data as one JSON string (`json`): BlockNote's nested arrays
 // (table cells) and undefined fields aren't valid Firestore values, and a string keeps key
@@ -151,19 +152,22 @@ export function historyEntry(id: string, rec: Partial<PageRecord>): HistoryEntry
 /** Firestore keeps a string field under 1 MiB; 300 000 characters stays under it even in UTF-8. */
 export const HEATMAP_PART = 300_000;
 
-/** The heat map's documents in the `heatmap` collection: `current` holds the first part and the count. */
-export function heatmapRecords(map: unknown, now = Date.now(), max = HEATMAP_PART) {
+/**
+ * A long value's documents in the `heatmap` collection: `<base>` holds the first part and the
+ * count, `<base>-1`… the rest. `current` is the map, `questions` the comparison with past papers.
+ */
+export function heatmapRecords(map: unknown, now = Date.now(), max = HEATMAP_PART, base = "current") {
   const json = JSON.stringify(map);
   const parts: string[] = [];
   for (let i = 0; i < json.length; i += max) parts.push(json.slice(i, i + max));
   return parts.map((part, i) =>
     i === 0
-      ? { id: "current", record: { json: part, parts: parts.length, updatedAt: now } }
-      : { id: `current-${i}`, record: { json: part } },
+      ? { id: base, record: { json: part, parts: parts.length, updatedAt: now } }
+      : { id: `${base}-${i}`, record: { json: part } },
   );
 }
 
-/** Joins the parts back; `part(i)` reads `current-i`. Null when no heat map was imported. */
+/** Joins the parts back; `part(i)` reads `<base>-i`. Null when nothing was imported. */
 export async function joinHeatmap<T>(
   first: { json?: unknown; parts?: unknown } | undefined,
   part: (i: number) => Promise<{ json?: unknown } | undefined>,

@@ -30,7 +30,7 @@ import { approveProposal, restoreVersion, type ProposalIO } from "../src/lib/app
 import { applyThreadOp, type StoredThread } from "../src/lib/threads.ts";
 import { applyDiscussionOp, type Discussion } from "../src/lib/discussions.ts";
 import { applyCaptureOp, applyProgressOp, type Capture, type Progress } from "../src/lib/progress.ts";
-import type { HeatMap } from "../src/lib/heatmap.ts";
+import type { Comparison, HeatMap } from "../src/lib/heatmap.ts";
 import type { Backend } from "./backend.ts";
 
 export const KEY_PATH = join(homedir(), ".config", "mains-atlas", "service-account.json");
@@ -169,6 +169,16 @@ export function firestoreBackend(db: Firestore = getFirestore(adminApp())): Back
       for (const { id, record } of heatmapRecords(map)) batch.set(db.doc(`heatmap/${id}`), record);
       await batch.commit();
     },
+    comparison: async () =>
+      joinHeatmap<Comparison>((await db.doc("heatmap/questions").get()).data(), async (i) =>
+        (await db.doc(`heatmap/questions-${i}`).get()).data(),
+      ),
+    async setComparison(c) {
+      const batch = db.batch();
+      for (const { id, record } of heatmapRecords(c, Date.now(), undefined, "questions"))
+        batch.set(db.doc(`heatmap/${id}`), record);
+      await batch.commit();
+    },
     async restoreAll(data) {
       // Small batches: a long page is close to a megabyte on its own.
       const writes: [DocumentReference, Record<string, unknown>][] = [];
@@ -195,6 +205,8 @@ export function firestoreBackend(db: Firestore = getFirestore(adminApp())): Back
       writes.push([progressRef, { json: JSON.stringify(data.progress), updatedAt: now }]);
       writes.push([capturesRef, { json: JSON.stringify({ captures: data.captures }), updatedAt: now }]);
       for (const { id, record } of data.heatmap ? heatmapRecords(data.heatmap, now) : [])
+        writes.push([db.doc(`heatmap/${id}`), record]);
+      for (const { id, record } of data.comparison ? heatmapRecords(data.comparison, now, undefined, "questions") : [])
         writes.push([db.doc(`heatmap/${id}`), record]);
       for (let i = 0; i < writes.length; i += 10) {
         const batch = db.batch();

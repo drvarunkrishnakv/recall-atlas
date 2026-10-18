@@ -74,7 +74,7 @@ describe("Firestore rules", () => {
     expect((await getDoc(doc(owner, "heatmap/current"))).exists()).toBe(false);
     await denied(setDoc(doc(owner, "heatmap/current"), { json: "{}" }));
     for (const db of [stranger, nobody]) await denied(getDoc(doc(db, "heatmap/current")));
-    expect(await api("/api/heatmap")).toEqual({ map: null });
+    expect(await api("/api/heatmap")).toEqual({ map: null, comparison: null });
   });
 
   it("refuse a signed-out visitor and any other account, for reads and writes", async () => {

@@ -10,7 +10,7 @@ import type { Capture, CaptureOp, Progress, ProgressOp } from "../src/lib/progre
 import type { Proposal, ProposalOp } from "../src/lib/proposals.ts";
 import type { HistoryEntry } from "../src/lib/cloud-docs.ts";
 import { approveProposal, restoreVersion } from "../src/lib/approve.ts";
-import type { HeatMap } from "../src/lib/heatmap.ts";
+import type { Comparison, HeatMap } from "../src/lib/heatmap.ts";
 import {
   changeCaptures,
   changeDiscussions,
@@ -27,7 +27,9 @@ import {
   loadCaptures,
   loadProgress,
   loadThreads,
+  loadComparison,
   loadHeatmap,
+  saveComparison,
   saveHeatmap,
   savePage,
   writePageFiles,
@@ -65,6 +67,9 @@ export interface Backend {
   /** The news heat map, or null before one is imported. */
   heatmap(): Promise<HeatMap | null>;
   setHeatmap(map: HeatMap): Promise<void>;
+  /** The heat map's comparison with past papers, or null. */
+  comparison(): Promise<Comparison | null>;
+  setComparison(c: Comparison): Promise<void>;
   /**
    * Writes everything as given, without version checks: for `atlas import` and `atlas export`.
    * `prune` (files only) also removes pages, comments and discussions that `data` no longer has,
@@ -82,10 +87,11 @@ export interface Snapshot {
   progress: Progress;
   captures: Capture[];
   heatmap?: HeatMap | null;
+  comparison?: Comparison | null;
 }
 
 export async function snapshot(b: Backend): Promise<Snapshot> {
-  const [notes, cards, threads, discussions, proposals, progress, captures, heatmap] = await Promise.all([
+  const [notes, cards, threads, discussions, proposals, progress, captures, heatmap, comparison] = await Promise.all([
     b.pages("notes"),
     b.pages("cards"),
     b.allThreads(),
@@ -94,8 +100,9 @@ export async function snapshot(b: Backend): Promise<Snapshot> {
     b.progress(),
     b.captures(),
     b.heatmap(),
+    b.comparison(),
   ]);
-  return { pages: [...notes, ...cards], threads, discussions, proposals, progress, captures, heatmap };
+  return { pages: [...notes, ...cards], threads, discussions, proposals, progress, captures, heatmap, comparison };
 }
 
 const writeJson = (path: string, value: unknown) => writeFileSync(path, JSON.stringify(value, null, 1) + "\n");
@@ -127,6 +134,8 @@ export function fileBackend(dir: string): Backend {
     },
     heatmap: async () => loadHeatmap(dir),
     setHeatmap: async (map) => saveHeatmap(dir, map),
+    comparison: async () => loadComparison(dir),
+    setComparison: async (c) => saveComparison(dir, c),
     async restoreAll(data, opts) {
       if (opts?.prune) {
         const keep = new Set(data.pages.map((p) => `${p.collection}/${p.id}`));
@@ -163,6 +172,9 @@ export function fileBackend(dir: string): Backend {
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
       writeJson(join(dir, "progress.json"), data.progress);
       writeJson(join(dir, "captures.json"), { captures: data.captures });
+      if (data.comparison) saveComparison(dir, data.comparison);
+      else if (opts?.prune && data.comparison === null && existsSync(join(dir, "heatmap-questions.json")))
+        rmSync(join(dir, "heatmap-questions.json"));
       if (data.heatmap) saveHeatmap(dir, data.heatmap);
       else if (opts?.prune && data.heatmap === null && existsSync(join(dir, "heatmap.json")))
         rmSync(join(dir, "heatmap.json"));

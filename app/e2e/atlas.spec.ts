@@ -504,3 +504,22 @@ test("the news heat map opens from the sidebar; a dot, a river row and a month p
   await expect(page.locator(".hm-dot")).toHaveCount(1);
   await noSideScroll(page);
 });
+
+test("the heat map shows past-paper questions on their stories and sums them up", async ({ page }) => {
+  await page.goto("/heat-map?story=sample-court");
+  const card = page.getByRole("complementary", { name: "Selected story" });
+  await expect(card.getByRole("heading", { name: "Past-paper questions" })).toBeVisible();
+  await expect(card.locator(".hm-pyq li")).toHaveCount(2);
+  await card.getByText("Prelims 2025 · GS1 Q7").click();
+  await expect(card.getByText("A sample question about the sample court case.")).toBeVisible();
+
+  const findings = page.getByRole("region", { name: "What UPSC asked" });
+  await expect(findings.getByText("Prelims 2025", { exact: true })).toBeVisible();
+  await expect(findings.getByText("A sample finding for tests.")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Story rivers" }).locator(".hm-mark")).toHaveCount(3);
+
+  await page.getByRole("checkbox", { name: "Ring stories UPSC asked about" }).check();
+  await expect(page).toHaveURL(/asked=1/);
+  await expect(page.locator(".hm-dot.asked")).toHaveCount(2);
+  await noSideScroll(page);
+});
