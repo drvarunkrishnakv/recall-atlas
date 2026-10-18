@@ -32,8 +32,12 @@
 - **Checks:** `npm run check` (71 unit tests, build); `npm run test:cloud` 22 passed; `npx playwright
   test` 53 passed + 16 desktop-only skips (installed Chrome). Screenshots (fixture):
   `docs/design/heatmap-pyq/`.
-- **Not done:** deploy (Firestore rule and Hosting) waits for the user; a Prelims items layer (the
-  biggest gap the comparison found).
+- **Merged and deployed 2026-10-18** (on the user's say-so): PR #41 (7161149) and #42 (b3a030b) into
+  `main`; `firebase deploy --only firestore:rules` and `--only hosting` (firebase-tools 15) from that
+  tree. Live checks: the site serves the new bundle and the heat map chunk; signed-out reads of
+  `heatmap/current` and `heatmap/questions` return 403; `/mcp` without a key still returns 401.
+  Not checked signed in from here (the built-in browser isn't signed in).
+- **Not done:** a Prelims items layer (the biggest gap the comparison found).
 
 ## News heat map — 2026-10-18
 
