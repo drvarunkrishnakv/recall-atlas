@@ -1,5 +1,26 @@
 # Decisions
 
+## 2026-10-18 — News heat map, built blind
+
+- The user's idea: score every news story month by month from January 2024, then compare the
+  map with UPSC's past papers to learn which kinds of news UPSC draws on, and use that to
+  prioritise current affairs for the 2027 exam. The user chose layout C (story lifecycles)
+  from three mocks.
+- **Blind:** the map is built from the news alone. Researchers never open past papers, coaching
+  compilations (they are shaped by past papers) or `data/`. The map is frozen (`frozenAt`, a
+  commit in the notes repo) before any past paper is opened for the comparison.
+- **Two numbers per story-month:** coverage (how much the news covered it, judged from
+  developments, editorials and explainers) and exam weight (Claude's judgement, made without
+  past papers). Coverage can't leak exam knowledge; weight can, because Claude has read past
+  papers in training. The comparison will show which predicts better.
+- **Sources:** web news and official sources only. Not CA Tracker Pro: its terms forbid giving
+  the archive to an AI.
+- Peak loudness is the mean of a story's three hottest months among those at medium or above,
+  so a quiet tail doesn't drag a spike down; long means hot for 6+ months, loud means a peak of
+  High (3) or more.
+- Stored as one value (`content/heatmap.json`, Firestore `heatmap/current` in parts); the app
+  reads it, only the CLI writes it. A frozen map is replaced only with `--force`, on the user's word.
+
 ## 2026-10-18 — Proposals, history and the feed (M4)
 
 - Every change Claude wants in a note's text is a **proposal** (`edit` an exact phrase, `add` a

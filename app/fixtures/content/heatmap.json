@@ -1,0 +1,673 @@
+{
+ "from": "2025-01",
+ "to": "2025-12",
+ "builtAt": "2026-10-18",
+ "frozenAt": "2026-10-18",
+ "method": "Synthetic sample for tests.",
+ "partial": "December 2025 is a sample partial month.",
+ "exams": [
+  {
+   "date": "2025-05-25",
+   "kind": "prelims"
+  },
+  {
+   "date": "2025-08-22",
+   "kind": "mains"
+  }
+ ],
+ "stories": [
+  {
+   "id": "sample-long",
+   "name": "Sample long-running story",
+   "short": "Long story",
+   "area": "ir",
+   "months": {
+    "2025-01": {
+     "coverage": 2,
+     "weight": 2,
+     "summary": "A sample development in 2025-01.",
+     "events": [
+      {
+       "date": "2025-01-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-02": {
+     "coverage": 3,
+     "weight": 2,
+     "summary": "A sample development in 2025-02.",
+     "events": [
+      {
+       "date": "2025-02-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-03": {
+     "coverage": 3,
+     "weight": 3,
+     "summary": "A sample development in 2025-03.",
+     "events": [
+      {
+       "date": "2025-03-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-04": {
+     "coverage": 4,
+     "weight": 3,
+     "summary": "A sample development in 2025-04.",
+     "events": [
+      {
+       "date": "2025-04-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-05": {
+     "coverage": 3,
+     "weight": 3,
+     "summary": "A sample development in 2025-05.",
+     "events": [
+      {
+       "date": "2025-05-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-06": {
+     "coverage": 3,
+     "weight": 3,
+     "summary": "A sample development in 2025-06.",
+     "events": [
+      {
+       "date": "2025-06-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-07": {
+     "coverage": 2,
+     "weight": 2,
+     "summary": "A sample development in 2025-07.",
+     "events": [
+      {
+       "date": "2025-07-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-08": {
+     "coverage": 3,
+     "weight": 3,
+     "summary": "A sample development in 2025-08.",
+     "events": [
+      {
+       "date": "2025-08-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-09": {
+     "coverage": 2,
+     "weight": 2,
+     "summary": "A sample development in 2025-09.",
+     "events": [
+      {
+       "date": "2025-09-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-10": {
+     "coverage": 2,
+     "weight": 2,
+     "summary": "A sample development in 2025-10.",
+     "events": [
+      {
+       "date": "2025-10-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-11": {
+     "coverage": 3,
+     "weight": 3,
+     "summary": "A sample development in 2025-11.",
+     "events": [
+      {
+       "date": "2025-11-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-12": {
+     "coverage": 2,
+     "weight": 2,
+     "summary": "A sample development in 2025-12.",
+     "events": [
+      {
+       "date": "2025-12-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "sample-spike",
+   "name": "Sample one-month spike",
+   "short": "Spike",
+   "area": "security",
+   "months": {
+    "2025-04": {
+     "coverage": 4,
+     "weight": 4,
+     "summary": "A sample development in 2025-04.",
+     "events": [
+      {
+       "date": "2025-04-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-05": {
+     "coverage": 1,
+     "weight": 1,
+     "summary": "A sample development in 2025-05.",
+     "events": [
+      {
+       "date": "2025-05-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "sample-slow",
+   "name": "Sample slow-burning reform",
+   "short": "Slow reform",
+   "area": "governance",
+   "notes": [
+    "P06"
+   ],
+   "months": {
+    "2025-01": {
+     "coverage": 1,
+     "weight": 2,
+     "summary": "A sample development in 2025-01.",
+     "events": [
+      {
+       "date": "2025-01-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-02": {
+     "coverage": 2,
+     "weight": 3,
+     "summary": "A sample development in 2025-02.",
+     "events": [
+      {
+       "date": "2025-02-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-03": {
+     "coverage": 2,
+     "weight": 3,
+     "summary": "A sample development in 2025-03.",
+     "events": [
+      {
+       "date": "2025-03-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-04": {
+     "coverage": 1,
+     "weight": 2,
+     "summary": "A sample development in 2025-04.",
+     "events": [
+      {
+       "date": "2025-04-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-05": {
+     "coverage": 2,
+     "weight": 3,
+     "summary": "A sample development in 2025-05.",
+     "events": [
+      {
+       "date": "2025-05-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-06": {
+     "coverage": 2,
+     "weight": 2,
+     "summary": "A sample development in 2025-06.",
+     "events": [
+      {
+       "date": "2025-06-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-07": {
+     "coverage": 2,
+     "weight": 3,
+     "summary": "A sample development in 2025-07.",
+     "events": [
+      {
+       "date": "2025-07-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-08": {
+     "coverage": 1,
+     "weight": 2,
+     "summary": "A sample development in 2025-08.",
+     "events": [
+      {
+       "date": "2025-08-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-09": {
+     "coverage": 2,
+     "weight": 3,
+     "summary": "A sample development in 2025-09.",
+     "events": [
+      {
+       "date": "2025-09-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-10": {
+     "coverage": 2,
+     "weight": 2,
+     "summary": "A sample development in 2025-10.",
+     "events": [
+      {
+       "date": "2025-10-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-11": {
+     "coverage": 1,
+     "weight": 2,
+     "summary": "A sample development in 2025-11.",
+     "events": [
+      {
+       "date": "2025-11-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-12": {
+     "coverage": 2,
+     "weight": 3,
+     "summary": "A sample development in 2025-12.",
+     "events": [
+      {
+       "date": "2025-12-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "sample-quiet",
+   "name": "Sample background story",
+   "short": "Background",
+   "area": "culture",
+   "months": {
+    "2025-01": {
+     "coverage": 1,
+     "weight": 1,
+     "summary": "A sample development in 2025-01.",
+     "events": [
+      {
+       "date": "2025-01-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-04": {
+     "coverage": 2,
+     "weight": 1,
+     "summary": "A sample development in 2025-04.",
+     "events": [
+      {
+       "date": "2025-04-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-07": {
+     "coverage": 1,
+     "weight": 1,
+     "summary": "A sample development in 2025-07.",
+     "events": [
+      {
+       "date": "2025-07-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-11": {
+     "coverage": 1,
+     "weight": 1,
+     "summary": "A sample development in 2025-11.",
+     "events": [
+      {
+       "date": "2025-11-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "sample-court",
+   "name": "Sample court case",
+   "short": "Court case",
+   "area": "polity",
+   "months": {
+    "2025-03": {
+     "coverage": 1,
+     "weight": 2,
+     "summary": "A sample development in 2025-03.",
+     "events": [
+      {
+       "date": "2025-03-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-04": {
+     "coverage": 3,
+     "weight": 4,
+     "summary": "A sample development in 2025-04.",
+     "events": [
+      {
+       "date": "2025-04-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-05": {
+     "coverage": 4,
+     "weight": 4,
+     "summary": "A sample development in 2025-05.",
+     "events": [
+      {
+       "date": "2025-05-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-06": {
+     "coverage": 1,
+     "weight": 3,
+     "summary": "A sample development in 2025-06.",
+     "events": [
+      {
+       "date": "2025-06-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    },
+    "2025-09": {
+     "coverage": 2,
+     "weight": 3,
+     "summary": "A sample development in 2025-09.",
+     "events": [
+      {
+       "date": "2025-09-10",
+       "text": "A sample event for testing.",
+       "sources": [
+        {
+         "label": "Example",
+         "url": "https://example.org/"
+        }
+       ]
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "prelims": [
+  {
+   "month": "2025-04",
+   "kind": "place",
+   "name": "Sample place",
+   "text": "A sample place in the news.",
+   "date": "2025-04-02",
+   "sources": [
+    {
+     "label": "Example",
+     "url": "https://example.org/"
+    }
+   ]
+  }
+ ]
+}

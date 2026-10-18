@@ -29,6 +29,9 @@ if (!CLOUD) {
 if (import.meta.env.MODE === "cloud" && import.meta.env.PROD && "serviceWorker" in navigator)
   window.addEventListener("load", () => void navigator.serviceWorker.register("/sw.js").catch(() => undefined));
 
+// The news heat map is a page of its own, loaded only when opened.
+const HeatMapPage = lazy(() => import("./heatmap/HeatMapPage"));
+
 // An AI app asking to connect to the MCP server (OAuth); cloud build only, behind its sign-in.
 const Consent = import.meta.env.MODE === "cloud" ? lazy(() => import("./oauth/Consent")) : null;
 
@@ -53,6 +56,14 @@ const router = createBrowserRouter([
       { path: "/inbox", element: <InboxPage /> },
       { path: "/revise", element: <RevisePage /> },
       { path: "/settings", element: <SettingsPage /> },
+      {
+        path: "/heat-map",
+        element: (
+          <Suspense fallback={<p className="loading">Loading the heat map…</p>}>
+            <HeatMapPage />
+          </Suspense>
+        ),
+      },
       { path: "/cards", element: <CardsPage /> },
       { path: "/cards/:cardId", element: <CardPage /> },
       { path: "/:paperId", element: <PaperPage /> },

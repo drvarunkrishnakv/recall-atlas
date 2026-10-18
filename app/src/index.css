@@ -3889,3 +3889,499 @@ tr.planned .title-cell {
   font-size: 0.72rem;
   color: var(--muted);
 }
+
+/* ---------- News heat map (/heat-map) ---------- */
+.hm .hm-lead {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  max-width: 46rem;
+}
+.hm-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+}
+.hm-seg {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--surface);
+}
+.hm-seg button {
+  min-height: 36px;
+  padding: 0.35rem 0.85rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.hm-seg button[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--bg);
+}
+.hm-areas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.hm-dotkey {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.hm-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1.2rem;
+}
+.hm-card {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--raised);
+}
+.hm-chart {
+  flex: 999 1 560px;
+}
+.q-long-loud {
+  --q: light-dark(#b4441c, #f4a58e);
+}
+.q-brief-loud {
+  --q: light-dark(#8a5a00, #f2c46b);
+}
+.q-slow {
+  --q: light-dark(#1b4e78, #9cc8f0);
+}
+.q-background {
+  --q: var(--muted);
+}
+
+/* The chart: how many months hot (x) against how loud at the peak (y). */
+.hm-plot {
+  position: relative;
+}
+.hm-yaxis {
+  position: absolute;
+  top: 12px;
+  bottom: 40px;
+  left: 0;
+  width: 64px;
+}
+.hm-yaxis span,
+.hm-xaxis span,
+.hm-xaxis b {
+  position: absolute;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.hm-yaxis span {
+  right: 8px;
+  transform: translateY(50%);
+}
+.hm-area {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  bottom: 40px;
+  left: 64px;
+  border-bottom: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+.hm-quad {
+  position: absolute;
+  background: color-mix(in srgb, var(--q) 7%, transparent);
+  color: var(--q);
+}
+.hm-quad span {
+  position: absolute;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.hm-quad .tl {
+  top: 6px;
+  left: 8px;
+}
+.hm-quad .tr {
+  top: 6px;
+  right: 8px;
+}
+.hm-quad .bl {
+  bottom: 6px;
+  left: 8px;
+}
+.hm-quad .br {
+  right: 8px;
+  bottom: 6px;
+}
+.hm-dot {
+  position: absolute;
+  z-index: 2;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 2px solid var(--raised);
+  border-radius: 50%;
+  transform: translate(-50%, 50%);
+  cursor: pointer;
+}
+.hm-dot::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
+.hm-dot:hover {
+  transform: translate(-50%, 50%) scale(1.25);
+}
+.hm-dot.on {
+  z-index: 3;
+  width: 20px;
+  height: 20px;
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+.hm-label {
+  position: absolute;
+  z-index: 1;
+  transform: translateY(50%);
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow:
+    0 0 3px var(--raised),
+    0 0 3px var(--raised);
+}
+.hm-label.on {
+  z-index: 4;
+  font-weight: 700;
+}
+.hm-xaxis {
+  position: absolute;
+  right: 12px;
+  bottom: 0;
+  left: 64px;
+  height: 40px;
+}
+.hm-xaxis span {
+  top: 4px;
+  transform: translateX(-50%);
+}
+.hm-xaxis b {
+  top: 21px;
+  right: 0;
+}
+
+/* The chosen story. */
+.hm-story {
+  display: flex;
+  flex: 1 1 320px;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: min(46rem, 80vh);
+  overflow-y: auto;
+}
+@media (min-width: 1280px) {
+  .hm-story {
+    position: sticky;
+    top: 4.5rem;
+  }
+}
+.hm-q {
+  align-self: flex-start;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--q) 14%, transparent);
+  color: var(--q);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.hm-story h2 {
+  margin: 0;
+  font-family: var(--f-head);
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+.hm-story h3 {
+  margin: 0.3rem 0 0;
+  font-size: 0.95rem;
+}
+.hm-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.hm-tag,
+.hm-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+.hm-note {
+  border-color: transparent;
+  background: var(--go-soft);
+  color: var(--go-ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+.hm-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+.hm-stats div {
+  padding: 0.5rem 0.7rem;
+  border-radius: 10px;
+  background: var(--surface);
+}
+.hm-stats dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.hm-stats dd {
+  margin: 0.1rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.hm-blurb {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.hm-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hm-timeline > li {
+  padding: 0.25rem 0.5rem 0.25rem 0.75rem;
+  border-left: 3px solid var(--line);
+}
+.hm-timeline > li.on {
+  border-left-color: var(--accent);
+  border-radius: 0 10px 10px 0;
+  background: var(--accent-soft);
+}
+.hm-tl-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.hm-timeline p {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+}
+.hm-timeline ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0.3rem 0 0;
+  padding-left: 1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.hm-date {
+  color: var(--ink);
+  font-weight: 700;
+}
+.hm-src {
+  margin-right: 0.25rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.hm-lv {
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.hm-lv.lv2 {
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+}
+.hm-lv.lv3,
+.hm-lv.lv4 {
+  background: var(--weak-soft);
+  color: var(--weak-ink);
+}
+.hm-later {
+  padding: 0.7rem;
+  border: 1.5px dashed var(--line);
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+/* Story rivers: one row per story, one bar per month. */
+.hm-rivers-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem 0.8rem;
+  margin-bottom: 0.6rem;
+}
+.hm-rivers-head .sec-h {
+  margin: 0;
+}
+.hm-rivers-head .muted {
+  font-size: 0.85rem;
+}
+.hm-scroll {
+  overflow-x: auto;
+}
+.hm-grid {
+  display: flex;
+  flex-direction: column;
+  width: max-content;
+}
+.hm-row {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  border-radius: 8px;
+}
+.hm-row.on {
+  background: var(--surface);
+}
+.hm-rl {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.5rem;
+  width: 240px;
+  height: 30px;
+  padding: 0 0.6rem 0 0.4rem;
+  border: 0;
+  border-radius: 8px 0 0 8px;
+  background: var(--raised);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  text-align: left;
+  cursor: pointer;
+}
+span.hm-rl {
+  cursor: default;
+}
+.hm-row.on .hm-rl {
+  background: var(--surface);
+  font-weight: 700;
+}
+.hm-rl-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hm-bars {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+}
+.hm-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 30px;
+  cursor: pointer;
+}
+.hm-cell.ys {
+  margin-left: 10px;
+}
+.hm-cell.exam {
+  background: var(--accent-soft);
+}
+.hm-cell i {
+  display: block;
+  width: 14px;
+  border-radius: 3px;
+  background: var(--line);
+}
+.hm-cell.picked {
+  border-radius: 4px;
+  outline: 2px solid var(--ink);
+  outline-offset: -1px;
+}
+.hm-years,
+.hm-exams {
+  height: 20px;
+}
+.hm-years .hm-cell,
+.hm-exams .hm-cell {
+  height: 20px;
+  color: var(--muted);
+  font-size: 0.66rem;
+  cursor: default;
+}
+.hm-years b {
+  position: absolute;
+  bottom: 2px;
+  left: 0;
+  color: var(--ink);
+  font-size: 0.75rem;
+}
+.hm-exams .hm-cell.exam {
+  background: none;
+  color: var(--accent);
+  font-weight: 800;
+}
+.hm-hot {
+  width: 56px;
+  padding-right: 0.4rem;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+}
+.hm-method {
+  max-width: 60rem;
+  margin: 0;
+  font-size: 0.82rem;
+}
+@media (max-width: 600px) {
+  .hm-rl {
+    width: 150px;
+  }
+  .hm-card {
+    padding: 0.75rem;
+  }
+}

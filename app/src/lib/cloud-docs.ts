@@ -6,6 +6,7 @@
 //   comments/{collection}-{id}       {json: {threads}}
 //   discussions/{collection}-{id}    {json: {discussions}}
 //   study/progress, study/captures   {json: Progress} and {json: {captures}}
+//   heatmap/current[, current-1…]    {json, parts}: the news heat map, split when it's long
 //
 // Each document keeps its data as one JSON string (`json`): BlockNote's nested arrays
 // (table cells) and undefined fields aren't valid Firestore values, and a string keeps key
@@ -145,4 +146,34 @@ export function historyEntry(id: string, rec: Partial<PageRecord>): HistoryEntry
     ...(rec.reason ? { reason: rec.reason } : {}),
     ...(id.endsWith("-original") ? { original: true } : {}),
   };
+}
+
+/** Firestore keeps a string field under 1 MiB; 300 000 characters stays under it even in UTF-8. */
+export const HEATMAP_PART = 300_000;
+
+/** The heat map's documents in the `heatmap` collection: `current` holds the first part and the count. */
+export function heatmapRecords(map: unknown, now = Date.now(), max = HEATMAP_PART) {
+  const json = JSON.stringify(map);
+  const parts: string[] = [];
+  for (let i = 0; i < json.length; i += max) parts.push(json.slice(i, i + max));
+  return parts.map((part, i) =>
+    i === 0
+      ? { id: "current", record: { json: part, parts: parts.length, updatedAt: now } }
+      : { id: `current-${i}`, record: { json: part } },
+  );
+}
+
+/** Joins the parts back; `part(i)` reads `current-i`. Null when no heat map was imported. */
+export async function joinHeatmap<T>(
+  first: { json?: unknown; parts?: unknown } | undefined,
+  part: (i: number) => Promise<{ json?: unknown } | undefined>,
+): Promise<T | null> {
+  if (typeof first?.json !== "string") return null;
+  let json = first.json;
+  for (let i = 1; i < Number(first.parts ?? 1); i++) {
+    const p = await part(i);
+    if (typeof p?.json !== "string") throw new Error(`The heat map is missing part ${i}`);
+    json += p.json;
+  }
+  return JSON.parse(json) as T;
 }

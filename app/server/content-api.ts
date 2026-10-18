@@ -18,6 +18,7 @@
 //   POST /api/proposals/:collection/:id       a ProposalOp, or {op: "approve", proposalId} (applies it, saves history)
 //   GET  /api/history/:collection/:id[/:hid]  the page's past versions, or one of them
 //   POST /api/history/:collection/:id         {historyId}: restore that version as a new one
+//   GET  /api/heatmap                         the news heat map, {map} (null until one is imported)
 //
 // Writes are accepted only from this machine (unless ATLAS_ALLOW_LAN_WRITES=1) and only
 // from the app's own origin.
@@ -50,6 +51,7 @@ import {
   type Progress,
   type ProgressOp,
 } from "../src/lib/progress.ts";
+import type { HeatMap } from "../src/lib/heatmap.ts";
 
 const COLLECTIONS = ["notes", "cards"] as const;
 type Collection = (typeof COLLECTIONS)[number];
@@ -306,6 +308,14 @@ export function changeCaptures(dir: string, op: CaptureOp): Capture[] {
   return next;
 }
 
+export function loadHeatmap(dir: string): HeatMap | null {
+  return readJson<HeatMap | null>(join(dir, "heatmap.json"), null);
+}
+
+export function saveHeatmap(dir: string, map: HeatMap) {
+  writeAtomic(join(dir, "heatmap.json"), JSON.stringify(map, null, 1) + "\n");
+}
+
 // ---------- HTTP ----------
 
 const LOOPBACK = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
@@ -348,6 +358,7 @@ export function contentApi(appRoot: string): Connect.NextHandleFunction {
       if (req.method === "GET" && url.pathname === "/api/comments") return send(res, 200, loadAllThreads(dir));
       if (req.method === "GET" && url.pathname === "/api/discussions") return send(res, 200, loadAllDiscussions(dir));
       if (req.method === "GET" && url.pathname === "/api/proposals") return send(res, 200, loadAllProposals(dir));
+      if (req.method === "GET" && url.pathname === "/api/heatmap") return send(res, 200, { map: loadHeatmap(dir) });
       if (url.pathname === "/api/progress" || url.pathname === "/api/captures") {
         const progress = url.pathname === "/api/progress";
         if (req.method === "GET") return send(res, 200, progress ? loadProgress(dir) : { captures: loadCaptures(dir) });

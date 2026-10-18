@@ -472,3 +472,35 @@ test("a proposed change is approved into the note, recorded in history, and can 
   await latest.getByRole("button", { name: /Restore/ }).click();
   await expect(page.locator(".bn-editor").getByText("Confirm the e2e figure")).toHaveCount(0);
 });
+
+test("the news heat map opens from the sidebar; a dot, a river row and a month pick a story", async ({ page }) => {
+  await page.goto("/");
+  const menu = page.getByRole("button", { name: "Open navigator" });
+  if (await menu.isVisible()) await menu.click(); // phones: the sidebar is a drawer
+  await page.getByRole("link", { name: "News heat map" }).click();
+  await expect(page).toHaveURL(/\/heat-map$/);
+  await expect(page.getByRole("heading", { name: "Which stories lasted", level: 1 })).toBeVisible();
+  const card = page.getByRole("complementary", { name: "Selected story" });
+  const title = card.getByRole("heading", { level: 2 });
+  await expect(title).toHaveText("Sample long-running story");
+
+  // A dot on the chart.
+  await page.getByRole("button", { name: /^Sample one-month spike: hot for 1 months/ }).click();
+  await expect(title).toHaveText("Sample one-month spike");
+  await expect(card).toContainText("Loud but brief");
+  await expect(page).toHaveURL(/story=sample-spike/);
+
+  // A river row, then one of its months, which opens in the story's timeline.
+  const rivers = page.getByRole("region", { name: "Story rivers" });
+  await rivers.getByRole("button", { name: "Sample court case", exact: true }).click();
+  await expect(title).toHaveText("Sample court case");
+  await rivers.locator('.hm-row.on [data-m="2025-05"]').click();
+  await expect(card.locator('li.on[data-m="2025-05"]')).toContainText("May 2025");
+
+  // Exam weight re-scores the chart, and an area narrows it.
+  await page.getByRole("button", { name: "Exam weight" }).click();
+  await expect(page).toHaveURL(/by=weight/);
+  await page.getByRole("button", { name: "Governance", exact: true }).click();
+  await expect(page.locator(".hm-dot")).toHaveCount(1);
+  await noSideScroll(page);
+});

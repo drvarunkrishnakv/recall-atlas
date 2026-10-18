@@ -11,7 +11,7 @@ It replaced Mock A · Paper on 2026-10-16.
 ## What it does (and nothing more)
 
 - **Navigate:** a short sidebar (Search, Capture, Home, Claude inbox, Revise today, Concept
-  cards, subjects), breadcrumbs, and working back/forward. Everything is one click.
+  cards, News heat map, subjects), breadcrumbs, and working back/forward. Everything is one click.
 - **Home:** subject cards, Continue reading, Due for revision, Claude inbox, Scratch pad.
 - **Subject database:** every planned note grouped by syllabus topic, with PYQs, status,
   revision (dots + next due), confidence, Claude (questions waiting / replies) and comments;
@@ -33,6 +33,12 @@ It replaced Mock A · Paper on 2026-10-16.
 - **Find:** ⌘K search over titles, headings and text; the open note's sections show under
   it in the sidebar; "Cited in" / "Linked from" backlinks at the foot of each page.
 - **Approve (M4):** Claude's proposed updates appear inline with ✓ Approve / ✗ Reject.
+- **News heat map:** "News heat map" in the sidebar (`/heat-map`): every news story from
+  January 2024 on, scored per month for coverage and exam weight (0–4). A chart of months hot
+  against peak loudness (long and loud, loud but brief, slow burners, background), the chosen
+  story's month-by-month timeline with sources, and every story's "river". Built from the news
+  only, without past papers, so it can later be compared with what UPSC asked. Read-only in the
+  app; Claude imports it.
 
 Non-goals: multiple users, live co-editing, an AI chat box, public sharing,
 gamification, or any Notion feature we don't use.
@@ -88,6 +94,7 @@ undefined fields aren't valid Firestore values). Shapes are in `app/src/lib/clou
 | `comments/{collection}-{id}` | `json` = `{threads}` for that page |
 | `discussions/{collection}-{id}` | `json` = `{discussions}` for that page |
 | `study/progress`, `study/captures` | `json` = revision progress, and quick captures |
+| `heatmap/current[, current-1…]` | `json` = the news heat map (`app/src/lib/heatmap.ts`), split across parts of at most 300 000 characters; `current` carries `parts`. Read-only to the app; written by `atlas heatmap-import` |
 | `proposals/{collection}-{id}` | `json` = `{proposals}`: kind (edit / add / row / check), blockId, find/replace, text or cells, source, reason, origin (flag / feed / claude), status (pending / applied / rejected / stale) |
 
 - The syllabus tree (papers, subjects, topics, planned notes) is not private, so it

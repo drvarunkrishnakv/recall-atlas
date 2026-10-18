@@ -1,11 +1,13 @@
 // The CLI's Firestore backend (Admin SDK) against the emulator (npm run test:cloud): the
 // fixture imports and exports without loss, and saves and operations behave like the files.
-import { cpSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { fileBackend, snapshot, type Snapshot } from "./backend.ts";
 import { firestoreBackend } from "./firestore-backend.ts";
+import { HEATMAP_PART } from "../src/lib/cloud-docs.ts";
+import type { HeatMap } from "../src/lib/heatmap.ts";
 
 const PROJECT = process.env.GCLOUD_PROJECT ?? "demo-atlas";
 const host = process.env.FIRESTORE_EMULATOR_HOST ?? "127.0.0.1:8080";
@@ -83,5 +85,14 @@ describe("Firestore backend", () => {
     await cloud.changeCaptures({ op: "add", id: "k9", text: "file me" });
     const caps = await cloud.changeCaptures({ op: "done", id: "k9", reply: "Filed.", note: note.id });
     expect(caps.find((c) => c.id === "k9")).toMatchObject({ status: "done", note: note.id });
+  });
+
+  it("keeps a heat map too long for one document in parts", async () => {
+    const map = JSON.parse(readFileSync(join(fixture, "heatmap.json"), "utf8")) as HeatMap;
+    const story = map.stories[0];
+    for (let i = 0; i < 400; i++) map.stories.push({ ...story, id: `copy-${i}`, name: `Copy ${i}` });
+    expect(JSON.stringify(map).length).toBeGreaterThan(HEATMAP_PART);
+    await cloud.setHeatmap(map);
+    expect(await cloud.heatmap()).toEqual(map);
   });
 });
