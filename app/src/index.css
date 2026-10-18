@@ -4028,8 +4028,8 @@ tr.planned .title-cell {
 .hm-dot {
   position: absolute;
   z-index: 2;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   padding: 0;
   border: 2px solid var(--raised);
   border-radius: 50%;
@@ -4039,15 +4039,15 @@ tr.planned .title-cell {
 .hm-dot::after {
   content: "";
   position: absolute;
-  inset: -8px;
+  inset: -6px;
 }
 .hm-dot:hover {
   transform: translate(-50%, 50%) scale(1.25);
 }
 .hm-dot.on {
   z-index: 3;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   outline: 2px solid var(--ink);
   outline-offset: 1px;
 }
@@ -4372,6 +4372,9 @@ span.hm-rl {
   font-weight: 600;
   text-align: right;
 }
+.hm-more {
+  margin-top: 0.7rem;
+}
 .hm-method {
   max-width: 60rem;
   margin: 0;
@@ -4380,6 +4383,11 @@ span.hm-rl {
 @media (max-width: 600px) {
   .hm-rl {
     width: 150px;
+  }
+  .hm-dot {
+    width: 9px;
+    height: 9px;
+    border-width: 1.5px;
   }
   .hm-card {
     padding: 0.75rem;

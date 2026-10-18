@@ -153,7 +153,10 @@ function HeatMapView({ map }: { map: HeatMap }) {
         <div className="head-chips">
           <span className="pill">{map.stories.length} stories</span>
           <span className="pill review">
-            {map.frozenAt ? `News only · frozen ${dayLabel(map.frozenAt)} ${map.frozenAt.slice(0, 4)}` : "News only"}
+            News only ·{" "}
+            {map.frozenAt
+              ? `frozen ${dayLabel(map.frozenAt)} ${map.frozenAt.slice(0, 4)}`
+              : `built ${dayLabel(map.builtAt)} ${map.builtAt.slice(0, 4)}`}
           </span>
         </div>
       </header>
@@ -241,11 +244,26 @@ function useWidth(ref: RefObject<HTMLElement | null>) {
   return w;
 }
 
-/** A small, stable nudge per story so dots with the same numbers don't hide each other. */
-function jitter(id: string) {
-  let h = 2166136261;
-  for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619);
-  return { dx: ((h & 0xff) / 255 - 0.5) * 0.7, dy: (((h >>> 8) & 0xff) / 255 - 0.5) * 0.14 };
+/**
+ * Many stories share the same numbers (most were hot for a single month), so dots on the same
+ * spot fan out in a small sunflower spiral around it, in pixels.
+ */
+type Box = { x1: number; x2: number; y1: number; y2: number };
+
+function spread(rows: Row[], step: number) {
+  const groups = new Map<string, Row[]>();
+  for (const r of rows) {
+    const k = `${r.st.hot}|${r.st.peak.toFixed(2)}`;
+    groups.set(k, [...(groups.get(k) ?? []), r]);
+  }
+  const out = new Map<string, { dx: number; dy: number }>();
+  for (const list of groups.values())
+    list.forEach((r, i) => {
+      const rad = step * Math.sqrt(i),
+        a = i * 2.39996;
+      out.set(r.s.id, { dx: rad * Math.cos(a), dy: rad * Math.sin(a) });
+    });
+  return out;
 }
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
@@ -270,17 +288,19 @@ function Scatter({
   const plotH = narrow ? 320 : 420;
   const h = plotH - 52;
   const yOf = (peak: number) => clamp01((peak - PEAK_MIN) / (PEAK_MAX - PEAK_MIN));
-  const cutX = CUTS.hot / (total + 0.6),
+  // Months hot on a square-root scale: most stories were hot for a month or two, a few for years.
+  const xOf = (hot: number) => Math.sqrt(hot) / Math.sqrt(total + 0.6);
+  const cutX = xOf(CUTS.hot),
     cutY = yOf(CUTS.peak);
-
+  const offsets = spread(rows, narrow ? 4.5 : 6.5);
   const dots = rows.map((r) => {
-    const j = jitter(r.s.id);
-    return {
-      r,
-      on: r.s.id === selId,
-      x: clamp01((r.st.hot + j.dx) / (total + 0.6)),
-      y: clamp01(yOf(r.st.peak + j.dy)),
-    };
+    const o = offsets.get(r.s.id) ?? { dx: 0, dy: 0 };
+    const x = xOf(r.st.hot),
+      y = clamp01(yOf(r.st.peak));
+    // In pixels once the width is known, kept inside the plot.
+    const px = w ? Math.min(Math.max(x * w + o.dx, 5), w - 5) : 0,
+      py = w ? Math.min(Math.max(y * h + o.dy, 5), h - 5) : 0;
+    return { r, on: r.s.id === selId, x, y, px, py };
   });
 
   // Label the chosen story and the most telling others, skipping any label that would collide.
@@ -294,34 +314,48 @@ function Scatter({
       { x1: 0, x2: 100, y1: 0, y2: 26 },
       { x1: w - 100, x2: w, y1: 0, y2: 26 },
     ];
+    // Labels mustn't cover other dots either.
+    const at = (d: (typeof dots)[number]) => ({ px: d.px, py: d.py });
+    const dotBoxes = dots.map((d) => {
+      const { px, py } = at(d);
+      return { id: d.r.s.id, x1: px - 7, x2: px + 7, y1: h - py - 7, y2: h - py + 7 };
+    });
     const out: { id: string; text: string; left?: number; right?: number; bottom: number; on: boolean }[] = [];
-    const max = narrow ? 5 : 12;
-    for (const d of [...dots].sort((a, b) => score(b) - score(a))) {
+    const max = narrow ? 5 : 14;
+    const worth = (d: (typeof dots)[number]) =>
+      d.on || d.r.q === "long-loud" || (d.r.q === "brief-loud" && d.r.st.hot >= 3);
+    for (const d of dots.filter(worth).sort((a, b) => score(b) - score(a))) {
       if (!d.on && out.length >= max) continue;
       const text = d.r.s.short ?? d.r.s.name;
       const tw = text.length * 6.6 + 8;
-      const px = d.x * w,
-        py = d.y * h,
-        gap = d.on ? 17 : 12;
-      const right = px + 12 + tw <= w;
-      const box = right
-        ? { x1: px + 10, x2: px + 12 + tw, y1: h - py - 8, y2: h - py + 8 }
-        : { x1: px - 12 - tw, x2: px - 10, y1: h - py - 8, y2: h - py + 8 };
-      const hit = boxes.some((b) => box.x1 < b.x2 && box.x2 > b.x1 && box.y1 < b.y2 && box.y2 > b.y1);
-      if (hit && !d.on) continue;
-      boxes.push(box);
-      out.push({
-        id: d.r.s.id,
-        text,
-        on: d.on,
-        bottom: py,
-        ...(right ? { left: px + gap } : { right: w - px + gap }),
-      });
+      const { px, py } = at(d);
+      const gap = d.on ? 15 : 10;
+      const overlaps = (box: Box) => (b: Box) => box.x1 < b.x2 && box.x2 > b.x1 && box.y1 < b.y2 && box.y2 > b.y1;
+      const clear = (box: Box) =>
+        !boxes.some(overlaps(box)) && !dotBoxes.some((b) => b.id !== d.r.s.id && overlaps(box)(b));
+      // Try beside the dot, then above or below it (rows of dots leave room between them).
+      const mid = Math.min(Math.max(px - tw / 2, 0), w - tw);
+      const spots = [
+        {
+          box: { x1: px + gap - 2, x2: px + gap + tw, y1: h - py - 8, y2: h - py + 8 },
+          pos: { left: px + gap, bottom: py },
+        },
+        {
+          box: { x1: px - gap - tw, x2: px - gap + 2, y1: h - py - 8, y2: h - py + 8 },
+          pos: { right: w - px + gap, bottom: py },
+        },
+        { box: { x1: mid, x2: mid + tw, y1: h - py - 23, y2: h - py - 7 }, pos: { left: mid + 4, bottom: py + 15 } },
+        { box: { x1: mid, x2: mid + tw, y1: h - py + 7, y2: h - py + 23 }, pos: { left: mid + 4, bottom: py - 15 } },
+      ].filter((p) => p.box.x1 >= 0 && p.box.x2 <= w && p.box.y1 >= 0 && p.box.y2 <= h);
+      const spot = spots.find((p) => clear(p.box)) ?? (d.on ? spots[0] : undefined);
+      if (!spot) continue;
+      boxes.push(spot.box);
+      out.push({ id: d.r.s.id, text, on: d.on, ...spot.pos });
     }
     return out;
   })();
 
-  const xTicks = [0, 6, 12, 18, 24, 30, 36].filter((t) => t <= total);
+  const xTicks = [0, 1, 3, 6, 12, 24].filter((t) => t <= total);
   return (
     <div className="hm-plot" style={{ height: plotH }}>
       <div className="hm-yaxis" aria-hidden="true">
@@ -361,7 +395,11 @@ function Scatter({
             key={d.r.s.id}
             type="button"
             className={`hm-dot${d.on ? " on" : ""}`}
-            style={{ left: `${d.x * 100}%`, bottom: `${d.y * 100}%`, background: AREA_COLOR[d.r.s.area] }}
+            style={{
+              left: w ? d.px : `${d.x * 100}%`,
+              bottom: w ? d.py : `${d.y * 100}%`,
+              background: AREA_COLOR[d.r.s.area],
+            }}
             aria-pressed={d.on}
             aria-label={`${d.r.s.name}: hot for ${d.r.st.hot} months, peak ${d.r.st.peak.toFixed(1)} of 4`}
             title={`${d.r.s.name} · hot ${d.r.st.hot} mo · peak ${d.r.st.peak.toFixed(1)}`}
@@ -381,11 +419,11 @@ function Scatter({
       </div>
       <div className="hm-xaxis" aria-hidden="true">
         {xTicks.map((t) => (
-          <span key={t} style={{ left: `${(t / (total + 0.6)) * 100}%` }}>
+          <span key={t} style={{ left: `${xOf(t) * 100}%` }}>
             {t}
           </span>
         ))}
-        <b>months hot (medium or above)</b>
+        <b>months hot (medium or above), on a square-root scale</b>
       </div>
     </div>
   );
@@ -504,6 +542,10 @@ function Rivers({
   onPick: (id: string, m: string | null) => void;
 }) {
   const yearStart = (i: number) => i > 0 && months[i].endsWith("-01");
+  // Stories hot for a month or less are many; they show on request.
+  const [all, setAll] = useState(false);
+  const quiet = rows.filter((r) => r.st.hot < 2 && r.s.id !== selId).length;
+  const list = all ? rows : rows.filter((r) => r.st.hot >= 2 || r.s.id === selId);
   return (
     <section className="hm-card hm-rivers" aria-label="Story rivers">
       <div className="hm-rivers-head">
@@ -536,7 +578,7 @@ function Rivers({
               ))}
             </div>
           </div>
-          {rows.map((r) => {
+          {list.map((r) => {
             const on = r.s.id === selId;
             return (
               <div
@@ -577,6 +619,11 @@ function Rivers({
           })}
         </div>
       </div>
+      {quiet > 0 && (
+        <button type="button" className="chip-btn hm-more" onClick={() => setAll((v) => !v)}>
+          {all ? "Show only stories hot for two months or more" : `Show ${quiet} more stories, hot for a month or less`}
+        </button>
+      )}
     </section>
   );
 }
