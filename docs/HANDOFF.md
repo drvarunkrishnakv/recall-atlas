@@ -1,5 +1,38 @@
 # Handoff
 
+## News heat map — 2026-10-18
+
+- **Branch:** `claude/news-heat-map`, from `main` (194bb64). Assisting tool: Claude Code.
+- **What (user's request):** a month-by-month heat map of news stories from January 2024, built
+  without past papers, to compare later with what UPSC asked. The user chose layout C (story
+  lifecycles) from three mocks (https://claude.ai/artifact/1d9Ave1Z2bv8h69PGijebA).
+- **App:** "News heat map" in the sidebar (`/heat-map`, lazy-loaded `src/heatmap/HeatMapPage.tsx`):
+  a chart of months hot against peak (four corners), Coverage / Exam weight switch, area
+  filter, the chosen story's month-by-month timeline with sources and Atlas note links, and
+  story rivers with Prelims/Mains months marked. Selection is in the URL (replaced, not pushed).
+- **Data:** `src/lib/heatmap.ts` (shape, metrics, checks). `content/heatmap.json` locally;
+  Firestore `heatmap/current[, current-N]` in parts of ≤300 000 characters; owner read-only
+  rule. CLI `atlas heatmap` and `atlas heatmap-import <file> [--force]` (refuses to replace a
+  frozen map without `--force`). Export/import carry it.
+- **Research (private, `output/heatmap-research/`):** six Claude researchers wrote `raw/YYYY-MM.json`
+  (stories with coverage, weight, events and sources; Prelims items). `stories.json` merges thread
+  names into stories; `build.py` builds `heatmap.json`, dropping links `linkcheck.py` found dead.
+  The shared web-search limit ran out early for every researcher, so most months were sourced
+  from Wikipedia's monthly pages, PRS reviews and the links they cite; some events are missing
+  (listed in the researchers' reports, kept in `output/heatmap-research/gaps.md`).
+- **Result:** 230 stories over 34 months (559 story-months), 289 Prelims items; 1 352 source
+  links checked (1 024 opened, ~310 refuse robots, 19 dead and dropped). Longest and loudest:
+  Israel–Gaza (28 months hot), Russia–Ukraine (26), Iran's wars and Hormuz (15), the SIR (14),
+  monsoon floods, Naxalism and RBI policy (12 each), US tariffs and the space programme (11).
+  Imported into Firestore and the mirror; the blind build is notes-repo commit 55fa3f8
+  (`research/heatmap/`, not pushed yet). Not frozen: freeze it just before the comparison.
+- **Checks:** `npm run check` (69 unit tests, build); `npm run test:cloud` 22 passed (rules:
+  owner reads, nobody writes; a map split across parts round-trips); `npx playwright test` 50
+  passed + 16 desktop-only skips (run on the installed Chrome, as Playwright's own browsers were
+  missing). Screenshots (fixture): `docs/design/heatmap/`.
+- **Not done:** deploying the Firestore rule and Hosting (needs the user's say-so); the freeze
+  and the comparison with past papers; Grok and Gemini adding to the map.
+
 ## Proposals, history and the feed (M4) — 2026-10-18
 
 - **Branch:** `claude/proposals-history-feed`, from `main` (a0b03af). Assisting tool: Claude Code.

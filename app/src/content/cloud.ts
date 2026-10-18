@@ -27,7 +27,7 @@ import { applyThreadOp, type StoredThread, type ThreadOp } from "../lib/threads"
 import { applyDiscussionOp, type Discussion, type DiscussionOp } from "../lib/discussions";
 import { applyProposalOp, type Proposal, type ProposalOp } from "../lib/proposals";
 import { approveProposal, restoreVersion, type ProposalIO } from "../lib/approve";
-import { historyEntry } from "../lib/cloud-docs";
+import { historyEntry, joinHeatmap } from "../lib/cloud-docs";
 import {
   applyCaptureOp,
   applyProgressOp,
@@ -115,6 +115,13 @@ export function cloudApi(db: Firestore) {
       return allKeyed<Proposal>(db, "proposals", (v) => (v as { proposals?: Proposal[] }).proposals ?? []);
     if (path === "/api/discussions" && method === "GET")
       return allKeyed<Discussion>(db, "discussions", (v) => (v as { discussions?: Discussion[] }).discussions ?? []);
+
+    if (path === "/api/heatmap" && method === "GET")
+      return {
+        map: await joinHeatmap((await getDoc(doc(db, "heatmap", "current"))).data(), async (i) =>
+          (await getDoc(doc(db, "heatmap", `current-${i}`))).data(),
+        ),
+      };
 
     if (path === "/api/progress") {
       const ref = doc(db, "study", "progress");

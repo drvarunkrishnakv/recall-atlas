@@ -85,6 +85,10 @@ function Sidebar({ onCapture, onSearch }: { onCapture: () => void; onSearch: () 
           <Icon name="cards" />
           Concept cards
         </NavLink>
+        <NavLink to="/heat-map">
+          <Icon name="heat" />
+          News heat map
+        </NavLink>
         <div className="side-label">Subjects</div>
         {PAPERS.flatMap((paper) =>
           paper.subjects.map((s) => {
@@ -139,6 +143,8 @@ function Crumbs() {
     add("/revise", "Revise today");
   } else if (pathname === "/settings") {
     add("/settings", "Settings");
+  } else if (pathname === "/heat-map") {
+    add("/heat-map", "News heat map");
   } else {
     const located = params.noteId ? locateNote(params.noteId, note?.parent) : null;
     const loc = located ?? (params.topicId ? findTopic(params.paperId!, params.subjectId!, params.topicId) : null);

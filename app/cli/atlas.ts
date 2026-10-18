@@ -26,6 +26,9 @@
 //   node cli/atlas.ts import <content-dir> [--force]  copy a content folder into Firestore (once, at the switch)
 //   node cli/atlas.ts export <content-dir>           write Firestore out as files: the notes repo's mirror
 //                                                    (files for pages, comments and discussions gone from Firestore are removed)
+//   node cli/atlas.ts heatmap                        the news heat map's stories: months hot, peak, corner
+//   node cli/atlas.ts heatmap-import <file.json> [--force]   load a heat map (checked first; a frozen one
+//                                                    is replaced only with --force, when the user asks)
 //   node cli/atlas.ts owner [uid|email] [--remove]   list accounts, or mark the one that may open the app
 //   node cli/atlas.ts mcp-key add <grok|gemini|chatgpt> ["label"]   a key for one AI (shown once)
 //   node cli/atlas.ts mcp-key list | revoke <id>      the MCP server's keys
@@ -47,6 +50,16 @@ import { briefing, nextUp, progress } from "../src/lib/discussions.ts";
 import { AIS, isAi, MODE_INFO, speaker, type Mode, type Seat } from "../src/lib/personas.ts";
 import { fileBackend, snapshot, type Backend } from "../server/backend.ts";
 import { nextDue } from "../src/lib/progress.ts";
+import {
+  heatMapProblems,
+  monthLabel,
+  monthRange,
+  QUADRANT_LABEL,
+  quadrantOf,
+  seriesOf,
+  storyStats,
+  type HeatMap,
+} from "../src/lib/heatmap.ts";
 
 const dir = process.env.ATLAS_CONTENT_DIR;
 const [cmd, ...args] = process.argv.slice(2);
@@ -450,6 +463,41 @@ switch (cmd) {
     break;
   }
 
+  case "heatmap": {
+    const map = await db.heatmap();
+    if (!map) fail("No heat map yet. Load one with heatmap-import.");
+    const months = monthRange(map.from, map.to);
+    console.log(
+      `${map.stories.length} stories, ${monthLabel(map.from)} to ${monthLabel(map.to)}, built ${map.builtAt}` +
+        `${map.frozenAt ? `, frozen ${map.frozenAt}` : ""}. ${map.prelims.length} Prelims items.`,
+    );
+    const rows = map.stories
+      .map((s) => ({ s, st: storyStats(seriesOf(s, months, "coverage")) }))
+      .sort((a, b) => b.st.hot - a.st.hot || b.st.peak - a.st.peak);
+    for (const { s, st } of rows)
+      console.log(
+        `${String(st.hot).padStart(2)} mo  peak ${st.peak.toFixed(1)}  ${QUADRANT_LABEL[quadrantOf(st)].padEnd(14)}  ${s.name} (${s.area}, ${s.id})`,
+      );
+    break;
+  }
+
+  case "heatmap-import": {
+    const file = args[0];
+    if (!file || !existsSync(file)) fail("Usage: heatmap-import <heatmap.json> [--force]");
+    const map = JSON.parse(readFileSync(file, "utf8")) as HeatMap;
+    const problems = heatMapProblems(map);
+    if (problems.length) fail(`Not imported (${problems.length} problems):\n- ${problems.slice(0, 40).join("\n- ")}`);
+    const current = await db.heatmap();
+    if (current?.frozenAt && !args.includes("--force"))
+      fail(`The heat map was frozen on ${current.frozenAt}. Replace it (--force) only when the user asks.`);
+    await db.setHeatmap(map);
+    console.log(
+      `Imported the heat map into ${db.kind}: ${map.stories.length} stories, ${monthLabel(map.from)} to ` +
+        `${monthLabel(map.to)}, ${map.prelims.length} Prelims items${map.frozenAt ? `, frozen ${map.frozenAt}` : ""}.`,
+    );
+    break;
+  }
+
   case "owner": {
     const { getAuth } = await import("firebase-admin/auth");
     const { adminApp } = await import("../server/firestore-backend.ts");
@@ -521,6 +569,6 @@ switch (cmd) {
 
   default:
     fail(
-      "Commands: pages | show <ref> [--ids] | comments [--waiting|--all] | reply <ref> <thread> <text> | replace <ref> <old> <new> | captures [--all] | file-capture <id> <text> [note] | progress | cite-sources <ref> | discussions [--all] | turns | post <id> <text> | conclude <id> <text> | discuss-import <ref> <file> | import <dir> | export <dir> | owner [uid|email] | mcp-key add|list|revoke | oauth list|revoke | proposals | propose | approve | reject | history | restore",
+      "Commands: pages | show <ref> [--ids] | comments [--waiting|--all] | reply <ref> <thread> <text> | replace <ref> <old> <new> | captures [--all] | file-capture <id> <text> [note] | progress | cite-sources <ref> | discussions [--all] | turns | post <id> <text> | conclude <id> <text> | discuss-import <ref> <file> | heatmap | heatmap-import <file> | import <dir> | export <dir> | owner [uid|email] | mcp-key add|list|revoke | oauth list|revoke | proposals | propose | approve | reject | history | restore",
     );
 }

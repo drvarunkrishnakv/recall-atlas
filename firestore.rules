@@ -27,6 +27,10 @@ service cloud.firestore {
     match /study/{id} {
       allow read, write: if isOwner();
     }
+    // The news heat map is imported by Claude's CLI (Admin SDK); the app only reads it.
+    match /heatmap/{id} {
+      allow read: if isOwner();
+    }
     // Anything else is closed.
   }
 }

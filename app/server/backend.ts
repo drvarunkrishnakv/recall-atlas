@@ -10,6 +10,7 @@ import type { Capture, CaptureOp, Progress, ProgressOp } from "../src/lib/progre
 import type { Proposal, ProposalOp } from "../src/lib/proposals.ts";
 import type { HistoryEntry } from "../src/lib/cloud-docs.ts";
 import { approveProposal, restoreVersion } from "../src/lib/approve.ts";
+import type { HeatMap } from "../src/lib/heatmap.ts";
 import {
   changeCaptures,
   changeDiscussions,
@@ -26,6 +27,8 @@ import {
   loadCaptures,
   loadProgress,
   loadThreads,
+  loadHeatmap,
+  saveHeatmap,
   savePage,
   writePageFiles,
 } from "./content-api.ts";
@@ -59,6 +62,9 @@ export interface Backend {
   history(collection: Collection, id: string): Promise<HistoryEntry[]>;
   /** Makes a past version current again, as a new version. */
   restore(collection: Collection, id: string, historyId: string): Promise<{ version: number }>;
+  /** The news heat map, or null before one is imported. */
+  heatmap(): Promise<HeatMap | null>;
+  setHeatmap(map: HeatMap): Promise<void>;
   /**
    * Writes everything as given, without version checks: for `atlas import` and `atlas export`.
    * `prune` (files only) also removes pages, comments and discussions that `data` no longer has,
@@ -75,10 +81,11 @@ export interface Snapshot {
   proposals: Record<string, Proposal[]>;
   progress: Progress;
   captures: Capture[];
+  heatmap?: HeatMap | null;
 }
 
 export async function snapshot(b: Backend): Promise<Snapshot> {
-  const [notes, cards, threads, discussions, proposals, progress, captures] = await Promise.all([
+  const [notes, cards, threads, discussions, proposals, progress, captures, heatmap] = await Promise.all([
     b.pages("notes"),
     b.pages("cards"),
     b.allThreads(),
@@ -86,13 +93,14 @@ export async function snapshot(b: Backend): Promise<Snapshot> {
     b.allProposals(),
     b.progress(),
     b.captures(),
+    b.heatmap(),
   ]);
-  return { pages: [...notes, ...cards], threads, discussions, proposals, progress, captures };
+  return { pages: [...notes, ...cards], threads, discussions, proposals, progress, captures, heatmap };
 }
 
 const writeJson = (path: string, value: unknown) => writeFileSync(path, JSON.stringify(value, null, 1) + "\n");
 
-/** The content folder: notes, cards, comments, discussions, progress and captures as files. */
+/** The content folder: notes, cards, comments, discussions, progress, captures and the heat map as files. */
 export function fileBackend(dir: string): Backend {
   return {
     kind: "files",
@@ -117,6 +125,8 @@ export function fileBackend(dir: string): Backend {
       if (!old) throw new Error(`No version ${historyId}`);
       return restoreVersion(fileProposalIO(dir, collection, id), old, `v${old.version}`);
     },
+    heatmap: async () => loadHeatmap(dir),
+    setHeatmap: async (map) => saveHeatmap(dir, map),
     async restoreAll(data, opts) {
       if (opts?.prune) {
         const keep = new Set(data.pages.map((p) => `${p.collection}/${p.id}`));
@@ -153,6 +163,9 @@ export function fileBackend(dir: string): Backend {
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
       writeJson(join(dir, "progress.json"), data.progress);
       writeJson(join(dir, "captures.json"), { captures: data.captures });
+      if (data.heatmap) saveHeatmap(dir, data.heatmap);
+      else if (opts?.prune && data.heatmap === null && existsSync(join(dir, "heatmap.json")))
+        rmSync(join(dir, "heatmap.json"));
     },
   };
 }
