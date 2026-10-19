@@ -76,6 +76,24 @@
         ]
       },
       {
+        "source": "{/,/oauth/authorize}",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      },
+      {
+        "source": "/!(mcp|oauth|assets|__|*.*){,/**/!(*.*)}",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      },
+      {
         "source": "/sw.js",
         "headers": [
           {
