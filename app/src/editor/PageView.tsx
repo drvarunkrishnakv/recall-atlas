@@ -38,7 +38,7 @@ import { ConfidenceSelect } from "../dashboard";
 import { Icon } from "../components/Icon";
 import { AtlasThreadStore } from "../comments/threadStore";
 import { anchorFor, attachMarks, changedAnchors, findAnchor, markRange } from "../comments/anchors";
-import { CommentMargin, CommentsPanel, Composer, useStoredThreads } from "../comments/CommentsUI";
+import { CommentMargin, CommentsPanel, Composer, paperOf, useStoredThreads } from "../comments/CommentsUI";
 import type { Anchor, ThreadKind } from "../lib/threads";
 import { openPeek } from "../components/peek";
 import { useResolvedTheme } from "../components/ThemeToggle";
@@ -235,10 +235,10 @@ function SourcesList({ blocks }: { blocks: Block[] }) {
 export function PageView({ collection, id, inPeek = false }: { collection: Collection; id: string; inPeek?: boolean }) {
   const page = usePage(collection, id);
   if (!page) return null;
-  return <PageEditor key={`${collection}:${id}`} page={page} inPeek={inPeek} />;
+  return <PageEditor key={`${collection}:${id}`} page={page} latest={page} inPeek={inPeek} />;
 }
 
-function PageEditor({ page: initial, inPeek }: { page: Page; inPeek: boolean }) {
+function PageEditor({ page: initial, latest, inPeek }: { page: Page; latest: Page; inPeek: boolean }) {
   const theme = useResolvedTheme();
   const width = useWidth();
   const location = useLocation();
@@ -265,6 +265,7 @@ function PageEditor({ page: initial, inPeek }: { page: Page; inPeek: boolean }) 
   const ready = useRef(false);
   const lastSaved = useRef(JSON.stringify(initial.blocks ?? []));
   const timer = useRef(0);
+  const saving = useRef(false);
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const fontsLoaded = useFontsLoaded();
 
@@ -322,6 +323,7 @@ function PageEditor({ page: initial, inPeek }: { page: Page; inPeek: boolean }) 
       (p.collection === "notes" && meta.status !== String(p.status ?? ""));
     if (json === lastSaved.current && !metaChanged) return;
     setSave("saving");
+    saving.current = true;
     try {
       const next: Page = { ...p, title: meta.title.trim() || p.title };
       if (p.collection === "cards") Object.assign(next, { summary: meta.summary, kind: meta.kind });
@@ -335,6 +337,8 @@ function PageEditor({ page: initial, inPeek }: { page: Page; inPeek: boolean }) 
       }
     } catch (e) {
       setSave(e instanceof ConflictError ? "conflict" : "error");
+    } finally {
+      saving.current = false;
     }
   }, [editor, meta, store]);
 
@@ -405,10 +409,32 @@ function PageEditor({ page: initial, inPeek }: { page: Page; inPeek: boolean }) 
     };
   }, [editor, store]);
 
-  // Sticky notes and Claude threads get their own highlight colour.
+  // A newer copy reached the store (the fresh load after the instant start, say): show it,
+  // unless something typed here isn't saved yet (the save's version check handles that case).
+  useEffect(() => {
+    if (saving.current || latest.version <= pageRef.current.version) return;
+    if (JSON.stringify(editor.document) !== lastSaved.current) return;
+    pageRef.current = latest;
+    editor.replaceBlocks(editor.document, (latest.blocks ?? []) as AtlasPartialBlock[]);
+    lastSaved.current = JSON.stringify(editor.document);
+    setMeta({
+      title: latest.title,
+      summary: String(latest.summary ?? ""),
+      status: String(latest.status ?? ""),
+      kind: String(latest.kind ?? ""),
+    });
+    attachMarks(editor, store.stored);
+  }, [latest, editor, store]);
+
+  // Claude threads and flags get their own highlight colour; a sticky note's text takes its paper's.
   const markCss = threads
     .filter((t) => t.kind !== "comment")
-    .map((t) => `.bn-thread-mark[data-bn-thread-id="${t.id}"]:not([data-orphan]){background:var(--mark-${t.kind})}`)
+    .map(
+      (t) =>
+        `.bn-thread-mark[data-bn-thread-id="${t.id}"]:not([data-orphan]){background:${
+          t.kind === "sticky" ? `var(--mark-paper-${paperOf(t.id)})` : `var(--mark-${t.kind})`
+        }}`,
+    )
     .join("\n");
 
   // Clicking highlighted text selects its thread (BlockNote tracks this in its store).
@@ -431,6 +457,21 @@ function PageEditor({ page: initial, inPeek }: { page: Page; inPeek: boolean }) 
     setSelectedId(tid);
     comments?.selectThread(tid, true);
   };
+
+  // A tap on highlighted text opens its thread every time. BlockNote only reacts when the
+  // caret moves into a highlight, so tapping the same one again after closing did nothing.
+  useEffect(() => {
+    if (!root) return;
+    const onClick = (e: MouseEvent) => {
+      const mark = (e.target as Element | null)?.closest?.(".bn-thread-mark[data-bn-thread-id]");
+      const tid = mark?.getAttribute("data-bn-thread-id");
+      if (!tid || !window.getSelection()?.isCollapsed) return;
+      select(tid);
+      if (isNarrow() || inPeek || !showMargin) setPanel(true);
+    };
+    root.addEventListener("click", onClick);
+    return () => root.removeEventListener("click", onClick);
+  });
 
   const openComposer = () => {
     const view = editor.prosemirrorView;
@@ -914,7 +955,11 @@ function PageEditor({ page: initial, inPeek }: { page: Page; inPeek: boolean }) 
             store={store}
             selectedId={selectedId}
             onSelect={select}
-            onClose={() => setPanel(false)}
+            onClose={() => {
+              // Let go of the thread too, or tapping the same highlight again changes nothing.
+              setPanel(false);
+              select(undefined);
+            }}
           />,
           document.body,
         )}

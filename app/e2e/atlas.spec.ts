@@ -91,6 +91,20 @@ test("home → subject table → note in single clicks, and back works", async (
   }
 });
 
+test("on wide screens the sidebar folds away, stays folded after a reload, and comes back", async ({ page }) => {
+  test.skip((page.viewportSize()?.width ?? 0) <= 900, "Phones use the drawer");
+  await page.goto("/");
+  const home = page.locator(".nav").getByRole("link", { name: "Home" });
+  await expect(home).toBeVisible();
+  await page.getByRole("button", { name: "Hide sidebar" }).click();
+  await expect(home).toBeHidden();
+  await page.reload();
+  await expect(home).toBeHidden();
+  await page.getByRole("button", { name: "Show sidebar" }).click();
+  await expect(home).toBeVisible();
+  await expect(page.getByRole("button", { name: "Show sidebar" })).toHaveCount(0);
+});
+
 test("the subject database has table, board and due views", async ({ page }) => {
   await page.goto("/gs2/polity");
   const main = page.locator("main");
@@ -219,6 +233,33 @@ test("a sticky note is saved, shown beside its text and restored after reload", 
   await expect(page.locator(".main .bn-thread-mark:not([data-orphan])").first()).toBeVisible();
   if (!isDesktop(page)) await page.getByRole("button", { name: /💬/ }).click();
   await expect(page.locator(".thread.kind-sticky", { hasText: text })).toBeVisible();
+});
+
+test("on a phone or tablet, tapping a sticky note's text opens it every time", async ({ page }, info) => {
+  test.skip(isDesktop(page), "Desktop shows the cards in the margin");
+  const id = `sticky-tap-${info.project.name}`;
+  const text = `Tap me again (${info.project.name})`;
+  const r = await page.request.post("/api/comments/notes/P06", {
+    headers: { "X-Atlas": "1" },
+    data: {
+      op: "create",
+      thread: { id, kind: "sticky", anchor: { blockId: "", quote: "synthetic test content" } },
+      comment: { id: `${id}-c`, body: text },
+      by: "me",
+    },
+  });
+  expect(r.ok()).toBe(true);
+  await page.goto("/notes/P06");
+  const mark = page.locator(`.main .bn-thread-mark[data-bn-thread-id="${id}"]`);
+  const card = page.locator(".comments-panel .thread", { hasText: text });
+  await mark.waitFor();
+  await page.waitForLoadState("networkidle");
+  for (let round = 0; round < 2; round++) {
+    await mark.tap();
+    await expect(card, `tap ${round + 1} opens the note`).toBeVisible();
+    await page.getByRole("button", { name: "Close comments" }).click();
+    await expect(card).toHaveCount(0);
+  }
 });
 
 test("Ask Claude: Claude's reply from the CLI appears in the thread", async ({ page }) => {

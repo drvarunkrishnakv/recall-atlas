@@ -56,6 +56,7 @@ gamification, or any Notion feature we don't use.
 | Hosting | Firebase Hosting | You already use Firebase |
 | Sign-in | Firebase Auth, Google | Only your account can open the app |
 | Data | Cloud Firestore with offline persistence | Works on all devices; readable offline |
+| Instant start | The last-loaded notes kept in IndexedDB (`content/snapshot.ts`) | Opens in about a second while sign-in finishes; wiped on sign-out |
 | Install | PWA (manifest + service worker) | Home-screen app on Android and iPad |
 
 ## Content format

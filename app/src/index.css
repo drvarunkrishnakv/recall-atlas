@@ -367,6 +367,57 @@ a {
 .nav-close {
   display: none;
 }
+.nav-fold {
+  border-color: transparent;
+  background: none;
+  color: var(--muted);
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.nav-fold:hover {
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+  color: var(--ink);
+}
+/* Wide screens: the sidebar folds away and slides back, and the page re-centres as it goes. */
+@media (min-width: 901px) {
+  .frame {
+    transition: grid-template-columns 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .frame .nav {
+    width: var(--nav-w);
+    transition:
+      opacity 0.22s ease,
+      translate 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .frame.nav-collapsed {
+    grid-template-columns: 0 minmax(0, 1fr);
+  }
+  .frame.nav-collapsed .nav {
+    opacity: 0;
+    translate: -1.5rem 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity 0.22s ease,
+      translate 0.32s cubic-bezier(0.2, 0.8, 0.2, 1),
+      visibility 0s 0.32s;
+  }
+  .nav-unfold {
+    animation: fade-in 0.3s ease 0.15s backwards;
+  }
+}
+@media (max-width: 900px) {
+  .nav-fold,
+  .nav-unfold {
+    display: none;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
 .scrim {
   display: none;
 }
@@ -1125,6 +1176,7 @@ a.tile:hover {
   transition: top 0.15s ease-out;
 }
 .thread {
+  position: relative;
   background: var(--raised);
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -1363,48 +1415,171 @@ a.tile:hover {
   margin-top: 0.5rem;
 }
 
-/* Sticky notes: paper, slightly tilted, with a pin; they straighten when opened. */
-.thread.kind-sticky {
-  background: var(--sticky-bg);
-  color: var(--scratch-ink);
-  border: 0;
-  border-radius: 3px 3px 16px 3px;
-  padding: 0.7rem 0.8rem 0.75rem;
-  box-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.04),
-    0 6px 14px -8px rgba(60, 45, 0, 0.35);
+/* Sticky notes: bright paper in one of six colours, a marker hand, a folded corner and a
+   small tilt. They straighten and lift on hover, and when opened. Dark ink on every paper,
+   in light and dark themes alike, as real paper would be. */
+:root {
+  --paper-0: #ffe066;
+  --paper-1: #ffb1ac;
+  --paper-2: #b9bcfb;
+  --paper-3: #92e3d6;
+  --paper-4: #e6c8fb;
+  --paper-5: #ffb37f;
+  --paper-ink: #26221a;
+  --paper-shadow: rgba(48, 36, 4, 0.42);
 }
-.thread.kind-sticky:hover {
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper-0: #ead05a;
+    --paper-1: #ec9f9a;
+    --paper-2: #a4a8ee;
+    --paper-3: #7fd0c3;
+    --paper-4: #d2b3ea;
+    --paper-5: #eda06c;
+    --paper-shadow: rgba(0, 0, 0, 0.7);
+  }
+}
+:root[data-theme="dark"] {
+  --paper-0: #ead05a;
+  --paper-1: #ec9f9a;
+  --paper-2: #a4a8ee;
+  --paper-3: #7fd0c3;
+  --paper-4: #d2b3ea;
+  --paper-5: #eda06c;
+  --paper-shadow: rgba(0, 0, 0, 0.7);
+}
+:root {
+  --mark-paper-0: color-mix(in srgb, var(--paper-0) 55%, transparent);
+  --mark-paper-1: color-mix(in srgb, var(--paper-1) 55%, transparent);
+  --mark-paper-2: color-mix(in srgb, var(--paper-2) 55%, transparent);
+  --mark-paper-3: color-mix(in srgb, var(--paper-3) 55%, transparent);
+  --mark-paper-4: color-mix(in srgb, var(--paper-4) 55%, transparent);
+  --mark-paper-5: color-mix(in srgb, var(--paper-5) 55%, transparent);
+}
+.thread.kind-sticky {
+  --paper: var(--paper-0);
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  background: var(--paper);
+  color: var(--paper-ink);
+  border: 0;
+  border-radius: 2px;
+  padding: 0.8rem 0.9rem 0.65rem;
+  rotate: var(--tilt, 0deg);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.08),
+    0 14px 22px -14px var(--paper-shadow);
+  transition:
+    rotate 0.3s var(--ease),
+    translate 0.3s var(--ease),
+    box-shadow 0.3s var(--ease),
+    top 0.15s ease-out;
+  animation: paper-in 0.4s var(--ease) backwards;
+}
+.thread.kind-sticky.paper-1 {
+  --paper: var(--paper-1);
+}
+.thread.kind-sticky.paper-2 {
+  --paper: var(--paper-2);
+}
+.thread.kind-sticky.paper-3 {
+  --paper: var(--paper-3);
+}
+.thread.kind-sticky.paper-4 {
+  --paper: var(--paper-4);
+}
+.thread.kind-sticky.paper-5 {
+  --paper: var(--paper-5);
+}
+/* The folded corner: a darker flap over a cut that shows the page behind. */
+.thread.kind-sticky::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 22px;
+  height: 22px;
+  background: linear-gradient(
+    to bottom right,
+    color-mix(in srgb, var(--paper) 68%, #000) 50%,
+    var(--bg) calc(50% + 0.5px)
+  );
+  pointer-events: none;
+}
+.thread.kind-sticky:hover,
+.thread.kind-sticky.selected {
   rotate: 0deg;
+  translate: 0 -2px;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.08),
+    0 24px 34px -16px var(--paper-shadow);
+}
+.panel-list .thread.kind-sticky {
+  margin: 0.2rem 0.15rem;
+}
+@keyframes paper-in {
+  from {
+    opacity: 0;
+    scale: 0.9;
+    rotate: calc(var(--tilt, 0deg) - 5deg);
+  }
 }
 .paper-head {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-}
-.paper-pin {
-  font-size: 0.95rem;
-  margin-top: -0.25rem;
+  margin-bottom: 0.35rem;
 }
 .thread.kind-sticky .badge {
-  color: var(--scratch-ink);
-  opacity: 0.8;
+  color: var(--paper-ink);
+  background: rgba(255, 255, 255, 0.35);
 }
 .thread.kind-sticky .quote {
-  background: color-mix(in srgb, var(--scratch-ink) 8%, transparent);
-  color: var(--scratch-ink);
+  background: rgba(255, 255, 255, 0.38);
+  border-left: 0;
+  color: var(--paper-ink);
+  opacity: 0.85;
 }
 .thread.kind-sticky .comment .text {
-  font-size: 0.92rem;
-  line-height: 1.5;
+  font-family: "Shantell Sans", var(--f-text);
+  font-weight: 600;
+  font-size: 1.04rem;
+  line-height: 1.38;
+}
+.paper-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+  padding-right: 1.4rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+.paper-foot time {
+  font-weight: 500;
+  opacity: 0.7;
 }
 .thread.kind-sticky .comment .who,
 .thread.kind-sticky .comment .who time {
-  color: var(--scratch-ink);
+  color: var(--paper-ink);
   opacity: 0.75;
 }
 .thread.kind-sticky .th-replies {
-  border-left-color: color-mix(in srgb, var(--scratch-ink) 25%, transparent);
+  border-left-color: rgba(0, 0, 0, 0.18);
+}
+.thread.kind-sticky .reply textarea {
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--paper-ink);
+}
+.thread.kind-sticky .chip-btn {
+  background: rgba(255, 255, 255, 0.5);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: var(--paper-ink);
+}
+@media (prefers-reduced-motion: reduce) {
+  .thread.kind-sticky {
+    animation: none;
+    transition: none;
+  }
 }
 .comment-bubble {
   position: absolute;

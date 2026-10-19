@@ -168,10 +168,32 @@ function Crumbs() {
   );
 }
 
+/** Wide screens can fold the sidebar away (⌘\ or the button); the choice is remembered. */
+function useCollapsed() {
+  const [collapsed, set] = useState(() => {
+    try {
+      return localStorage.getItem("atlas-nav") === "collapsed";
+    } catch {
+      return false;
+    }
+  });
+  const toggle = () =>
+    set((v) => {
+      try {
+        localStorage.setItem("atlas-nav", v ? "open" : "collapsed");
+      } catch {
+        /* storage unavailable */
+      }
+      return !v;
+    });
+  return [collapsed, toggle] as const;
+}
+
 export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [navOpen, setNavOpen] = useState(false);
+  const [collapsed, toggleCollapsed] = useCollapsed();
   const [searching, setSearching] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const { status, error } = useContent();
@@ -189,6 +211,10 @@ export function Layout() {
         e.preventDefault();
         setSearching(true);
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === "\\" && window.innerWidth > 900) {
+        e.preventDefault();
+        toggleCollapsed();
+      }
     };
     const onFocus = () => void refreshStudy();
     document.addEventListener("keydown", onKey);
@@ -202,7 +228,7 @@ export function Layout() {
   }, []);
 
   return (
-    <div className={`frame${navOpen ? " nav-open" : ""}`}>
+    <div className={`frame${navOpen ? " nav-open" : ""}${collapsed ? " nav-collapsed" : ""}`}>
       <aside className="nav" aria-label="Sidebar">
         <div className="nav-head">
           <Link className="brand" to="/">
@@ -211,6 +237,15 @@ export function Layout() {
             </span>
             Mains Atlas
           </Link>
+          <button
+            className="iconbtn nav-fold"
+            type="button"
+            aria-label="Hide sidebar"
+            title="Hide sidebar (⌘\)"
+            onClick={toggleCollapsed}
+          >
+            <Icon name="sidebar" />
+          </button>
           <button
             className="iconbtn nav-close"
             type="button"
@@ -236,6 +271,17 @@ export function Layout() {
           >
             <Icon name="menu" />
           </button>
+          {collapsed && (
+            <button
+              className="iconbtn nav-unfold"
+              type="button"
+              aria-label="Show sidebar"
+              title="Show sidebar (⌘\)"
+              onClick={toggleCollapsed}
+            >
+              <Icon name="sidebar" />
+            </button>
+          )}
           <button className="iconbtn" type="button" aria-label="Back" disabled={idx === 0} onClick={() => navigate(-1)}>
             <Icon name="back" />
           </button>

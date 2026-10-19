@@ -2,6 +2,7 @@
 // (for the inbox and the subject table), and recently opened notes (this device only).
 import { useSyncExternalStore } from "react";
 import { api } from "./store";
+import { readSnapshot, writeSnapshot } from "./snapshot";
 import { today, type Capture, type CaptureOp, type Confidence, type Progress, type ProgressOp } from "../lib/progress";
 import { isWaitingForClaude, type StoredThread } from "../lib/threads";
 import type { Proposal } from "../lib/proposals";
@@ -28,10 +29,20 @@ function readRecent(): string[] {
 
 let state: StudyState = { progress: { notes: {} }, captures: [], threads: {}, proposals: {}, recent: readRecent() };
 const listeners = new Set<() => void>();
+type Kept = Omit<StudyState, "recent">;
+let fresh = false;
 const set = (next: Partial<StudyState>) => {
   state = { ...state, ...next };
+  const { progress, captures, threads, proposals } = state;
+  writeSnapshot("study", (): Kept => ({ progress, captures, threads, proposals }));
   listeners.forEach((l) => l());
 };
+
+/** Cloud build: shows the study data this device last loaded until the fresh load lands. */
+export async function paintStudyFromSnapshot() {
+  const kept = await readSnapshot<Kept>("study");
+  if (kept && !fresh) set(kept);
+}
 
 export function useStudy(): StudyState {
   return useSyncExternalStore(
@@ -50,6 +61,7 @@ export async function loadStudy() {
     api("/api/comments") as Promise<Record<string, StoredThread[]>>,
     api("/api/proposals") as Promise<Record<string, Proposal[]>>,
   ]);
+  fresh = true;
   set({ progress, captures: captures.captures, threads, proposals });
 }
 

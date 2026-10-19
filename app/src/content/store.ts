@@ -4,6 +4,7 @@
 // Firestore (cloud.ts). The rest of the app only sees this module.
 import { useSyncExternalStore } from "react";
 import { backlinks, type Block, type PageDoc } from "../lib/blocks";
+import { readSnapshot, writeSnapshot } from "./snapshot";
 
 export type Collection = "notes" | "cards";
 export interface Page extends PageDoc {
@@ -26,7 +27,16 @@ const listeners = new Set<() => void>();
 function set(next: Partial<State>) {
   state = { ...state, ...next };
   if (next.pages) state.links = backlinks([...state.pages.values()].filter((p) => p.blocks));
+  if (next.pages && state.status === "ready") writeSnapshot("pages", () => [...state.pages.values()]);
   listeners.forEach((l) => l());
+}
+
+/** Cloud build: shows the pages this device last loaded while the fresh load is on its way. */
+export async function paintFromSnapshot(): Promise<boolean> {
+  const kept = await readSnapshot<Page[]>("pages");
+  if (!kept?.length || state.status !== "loading") return false;
+  set({ status: "ready", pages: new Map(kept.map((p) => [key(p.collection, p.id), p])) });
+  return true;
 }
 
 export function useContent(): State {
@@ -120,6 +130,7 @@ let loading: Promise<void> | null = null;
 /** Loads all content once; converts any Markdown-only page to blocks and saves it. */
 export function loadContent(): Promise<void> {
   loading ??= (async () => {
+    if (state.status === "error") set({ status: "loading", error: undefined });
     try {
       const data = (await api("/api/content")) as Record<Collection, Page[]>;
       const pages = new Map<string, Page>();
@@ -136,7 +147,10 @@ export function loadContent(): Promise<void> {
       }
       set({ status: "ready", pages });
     } catch (e) {
-      set({ status: "error", error: e instanceof Error ? e.message : String(e) });
+      // Let a later call try again (say, once the owner claim is set and "Try again" is tapped).
+      loading = null;
+      // Showing the kept copy (offline, say)? Keep it rather than an error.
+      if (state.status !== "ready") set({ status: "error", error: e instanceof Error ? e.message : String(e) });
     }
   })();
   return loading;

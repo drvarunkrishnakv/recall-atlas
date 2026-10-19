@@ -126,8 +126,12 @@ function FlagTrail({ t }: { t: StoredThread }) {
   );
 }
 
+const hash = (id: string) => [...id].reduce((n, c) => (n * 31 + c.charCodeAt(0)) >>> 0, 7);
 /** Small deterministic tilt for sticky notes, so a stack of them looks like paper. */
-const tilt = (id: string) => [-1.4, 0.9, -0.6, 1.2][[...id].reduce((n, c) => n + c.charCodeAt(0), 0) % 4];
+const tilt = (id: string) => [-1.6, 1.1, -0.7, 1.4, -1.1, 0.6][hash(id) % 6];
+/** Each sticky note keeps one of six paper colours (index.css --paper-0…5), chosen by its id. */
+export const PAPERS = 6;
+export const paperOf = (id: string) => (hash(id) >>> 3) % PAPERS;
 
 export function ThreadCard({
   thread,
@@ -160,19 +164,18 @@ export function ThreadCard({
   return (
     <div
       ref={cardRef}
-      className={`thread kind-${thread.kind}${selected ? " selected" : ""}${thread.resolved ? " resolved" : ""}`}
-      style={sticky && !selected ? { ...style, rotate: `${tilt(thread.id)}deg` } : style}
+      className={`thread kind-${thread.kind}${sticky ? ` paper-${paperOf(thread.id)}` : ""}${selected ? " selected" : ""}${thread.resolved ? " resolved" : ""}`}
+      style={sticky ? ({ ...style, "--tilt": `${tilt(thread.id)}deg` } as React.CSSProperties) : style}
       data-thread={thread.id}
+      aria-label={sticky ? info.label : undefined}
       onClick={() => onSelect(thread.id)}
     >
       {sticky ? (
-        <div className="paper-head">
-          <span className="paper-pin" aria-hidden>
-            📌
-          </span>
-          <span className="badge">{info.label}</span>
-          {thread.detached && <span className="badge muted">Text removed</span>}
-        </div>
+        thread.detached && (
+          <div className="paper-head">
+            <span className="badge muted">Text removed</span>
+          </div>
+        )
       ) : (
         <div className="thread-head">
           {first && <Avatar userId={first.userId} />}
@@ -201,12 +204,14 @@ export function ThreadCard({
       {thread.anchor.quote && <blockquote className="quote">{thread.anchor.quote}</blockquote>}
       {first && (
         <div className={`comment first by-${first.userId}`}>
+          <div className="text">{first.body}</div>
           {sticky && (
-            <div className="who">
-              {who(thread, first.userId)} <time>{when(first.createdAt)}</time>
+            <div className="paper-foot">
+              <Avatar userId={first.userId} size={18} />
+              <span>{who(thread, first.userId)}</span>
+              <time>{when(first.createdAt)}</time>
             </div>
           )}
-          <div className="text">{first.body}</div>
           {thread.flag && thread.flag.sources.length > 0 && (
             <div className="flag-srcs">
               {thread.flag.sources.map((s, j) => (

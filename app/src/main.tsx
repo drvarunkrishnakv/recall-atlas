@@ -7,6 +7,7 @@ import "@fontsource/figtree/600.css";
 import "@fontsource/figtree/700.css";
 import "@fontsource/bricolage-grotesque/600.css";
 import "@fontsource/bricolage-grotesque/700.css";
+import "@fontsource/shantell-sans/600.css";
 import "./index.css";
 import { Layout } from "./components/Layout";
 import { applySavedTheme } from "./components/ThemeToggle";
