@@ -367,8 +367,126 @@ a {
 .nav-close {
   display: none;
 }
+.nav-fold {
+  border-color: transparent;
+  background: none;
+  color: var(--muted);
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.nav-fold:hover {
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+  color: var(--ink);
+}
+/* Wide screens: the sidebar folds away and slides back, and the page re-centres as it goes. */
+@media (min-width: 901px) {
+  .frame {
+    transition: grid-template-columns 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .frame .nav {
+    width: var(--nav-w);
+    transition:
+      opacity 0.22s ease,
+      translate 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .frame.nav-collapsed {
+    grid-template-columns: 0 minmax(0, 1fr);
+  }
+  .frame.nav-collapsed .nav {
+    opacity: 0;
+    translate: -1.5rem 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity 0.22s ease,
+      translate 0.32s cubic-bezier(0.2, 0.8, 0.2, 1),
+      visibility 0s 0.32s;
+  }
+  .nav-unfold {
+    animation: fade-in 0.3s ease 0.15s backwards;
+  }
+}
+@media (max-width: 900px) {
+  .nav-fold,
+  .nav-unfold {
+    display: none;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
 .scrim {
   display: none;
+}
+
+/* ---------- Page transitions (View Transitions, where the browser has them) ---------- */
+/* The page glides in while the sidebar stays put; a note's title glides from the list into
+   its heading. Theme switches use a plain crossfade (.vt-fade). */
+.nav {
+  view-transition-name: sidebar;
+}
+.topbar {
+  view-transition-name: topbar;
+}
+.page.doc > h1,
+.page.doc > .title-input {
+  view-transition-name: page-title;
+}
+.peek .page.doc > h1,
+.peek .page.doc > .title-input {
+  view-transition-name: none;
+}
+.morph-title {
+  display: inline-block;
+}
+::view-transition-group(sidebar),
+::view-transition-old(sidebar),
+::view-transition-new(sidebar) {
+  animation: none;
+}
+::view-transition-old(root) {
+  animation: vt-out 0.16s cubic-bezier(0.4, 0, 1, 1) both;
+}
+::view-transition-new(root) {
+  animation: vt-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+::view-transition-group(page-title) {
+  animation-duration: 0.36s;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+:root.vt-fade::view-transition-old(root),
+:root.vt-fade::view-transition-old(sidebar) {
+  animation: vt-out 0.35s ease both;
+}
+:root.vt-fade::view-transition-new(root),
+:root.vt-fade::view-transition-new(sidebar) {
+  animation: vt-fade-in 0.35s ease both;
+}
+@keyframes vt-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes vt-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }
 
 /* ---------- Page ---------- */
@@ -1122,9 +1240,17 @@ a.tile:hover {
   position: absolute;
   left: 0;
   right: 0;
-  transition: top 0.15s ease-out;
+  /* Cards glide to their new places when one opens or the text reflows. */
+  transition:
+    top 0.42s cubic-bezier(0.2, 0.8, 0.2, 1),
+    translate 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    rotate 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.2s,
+    border-color 0.2s,
+    scale 0.12s;
 }
 .thread {
+  position: relative;
   background: var(--raised);
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -1135,7 +1261,30 @@ a.tile:hover {
   transition:
     box-shadow 0.15s,
     border-color 0.15s,
-    rotate 0.2s;
+    rotate 0.2s,
+    translate 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
+    scale 0.12s;
+}
+/* Its highlighted text is under the mouse: the card steps forward. */
+.thread.linked {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  box-shadow: var(--shadow);
+  translate: -6px 0;
+}
+.thread.kind-sticky.linked {
+  rotate: 0deg;
+  translate: -6px -2px;
+}
+/* Its card is under the mouse: the highlighted text glows. */
+@keyframes mark-glow {
+  50% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+}
+.bn-thread-mark {
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  border-radius: 3px;
 }
 .thread:hover {
   border-color: color-mix(in srgb, var(--ink) 18%, var(--line));
@@ -1363,48 +1512,217 @@ a.tile:hover {
   margin-top: 0.5rem;
 }
 
-/* Sticky notes: paper, slightly tilted, with a pin; they straighten when opened. */
-.thread.kind-sticky {
-  background: var(--sticky-bg);
-  color: var(--scratch-ink);
-  border: 0;
-  border-radius: 3px 3px 16px 3px;
-  padding: 0.7rem 0.8rem 0.75rem;
-  box-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.04),
-    0 6px 14px -8px rgba(60, 45, 0, 0.35);
+/* Sticky notes: bright paper in one of six colours, a marker hand, a folded corner and a
+   small tilt. They straighten and lift on hover, and when opened. Dark ink on every paper,
+   in light and dark themes alike, as real paper would be. */
+:root {
+  --paper-0: #ffe066;
+  --paper-1: #ffb1ac;
+  --paper-2: #b9bcfb;
+  --paper-3: #92e3d6;
+  --paper-4: #e6c8fb;
+  --paper-5: #ffb37f;
+  --paper-ink: #26221a;
+  --paper-shadow: rgba(48, 36, 4, 0.42);
 }
-.thread.kind-sticky:hover {
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper-0: #ead05a;
+    --paper-1: #ec9f9a;
+    --paper-2: #a4a8ee;
+    --paper-3: #7fd0c3;
+    --paper-4: #d2b3ea;
+    --paper-5: #eda06c;
+    --paper-shadow: rgba(0, 0, 0, 0.7);
+  }
+}
+:root[data-theme="dark"] {
+  --paper-0: #ead05a;
+  --paper-1: #ec9f9a;
+  --paper-2: #a4a8ee;
+  --paper-3: #7fd0c3;
+  --paper-4: #d2b3ea;
+  --paper-5: #eda06c;
+  --paper-shadow: rgba(0, 0, 0, 0.7);
+}
+:root {
+  --mark-paper-0: color-mix(in srgb, var(--paper-0) 55%, transparent);
+  --mark-paper-1: color-mix(in srgb, var(--paper-1) 55%, transparent);
+  --mark-paper-2: color-mix(in srgb, var(--paper-2) 55%, transparent);
+  --mark-paper-3: color-mix(in srgb, var(--paper-3) 55%, transparent);
+  --mark-paper-4: color-mix(in srgb, var(--paper-4) 55%, transparent);
+  --mark-paper-5: color-mix(in srgb, var(--paper-5) 55%, transparent);
+}
+.thread.kind-sticky {
+  --paper: var(--paper-0);
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  background: var(--paper);
+  color: var(--paper-ink);
+  border: 0;
+  border-radius: 2px;
+  padding: 0.8rem 0.9rem 0.65rem;
+  rotate: var(--tilt, 0deg);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.08),
+    0 14px 22px -14px var(--paper-shadow);
+  transition:
+    background-color 0.3s ease,
+    rotate 0.3s var(--ease),
+    translate 0.3s var(--ease),
+    box-shadow 0.3s var(--ease),
+    top 0.42s var(--ease),
+    scale 0.12s;
+  animation: paper-in 0.4s var(--ease) backwards;
+}
+.thread.kind-sticky.paper-1 {
+  --paper: var(--paper-1);
+}
+.thread.kind-sticky.paper-2 {
+  --paper: var(--paper-2);
+}
+.thread.kind-sticky.paper-3 {
+  --paper: var(--paper-3);
+}
+.thread.kind-sticky.paper-4 {
+  --paper: var(--paper-4);
+}
+.thread.kind-sticky.paper-5 {
+  --paper: var(--paper-5);
+}
+/* The folded corner: a darker flap over a cut that shows the page behind. */
+.thread.kind-sticky::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 22px;
+  height: 22px;
+  background: linear-gradient(
+    to bottom right,
+    color-mix(in srgb, var(--paper) 68%, #000) 50%,
+    var(--bg) calc(50% + 0.5px)
+  );
+  pointer-events: none;
+}
+.thread.kind-sticky:hover,
+.thread.kind-sticky.selected {
   rotate: 0deg;
+  translate: 0 -2px;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.08),
+    0 24px 34px -16px var(--paper-shadow);
+}
+.panel-list .thread.kind-sticky {
+  margin: 0.2rem 0.15rem;
+}
+@keyframes paper-in {
+  from {
+    opacity: 0;
+    scale: 0.9;
+    rotate: calc(var(--tilt, 0deg) - 5deg);
+  }
+}
+/* Picking a paper: six round swatches on an open sticky note. */
+.paper-swatches {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+.paper-swatches .swatch {
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.18);
+  background: var(--paper);
+  cursor: pointer;
+  transition:
+    scale 0.15s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.15s;
+}
+.paper-swatches .swatch:hover {
+  scale: 1.12;
+}
+.paper-swatches .swatch[aria-pressed="true"] {
+  box-shadow:
+    0 0 0 2px var(--paper),
+    0 0 0 4px var(--paper-ink);
+}
+.swatch.paper-0 {
+  --paper: var(--paper-0);
+}
+.swatch.paper-1 {
+  --paper: var(--paper-1);
+}
+.swatch.paper-2 {
+  --paper: var(--paper-2);
+}
+.swatch.paper-3 {
+  --paper: var(--paper-3);
+}
+.swatch.paper-4 {
+  --paper: var(--paper-4);
+}
+.swatch.paper-5 {
+  --paper: var(--paper-5);
 }
 .paper-head {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-}
-.paper-pin {
-  font-size: 0.95rem;
-  margin-top: -0.25rem;
+  margin-bottom: 0.35rem;
 }
 .thread.kind-sticky .badge {
-  color: var(--scratch-ink);
-  opacity: 0.8;
+  color: var(--paper-ink);
+  background: rgba(255, 255, 255, 0.35);
 }
 .thread.kind-sticky .quote {
-  background: color-mix(in srgb, var(--scratch-ink) 8%, transparent);
-  color: var(--scratch-ink);
+  background: rgba(255, 255, 255, 0.38);
+  border-left: 0;
+  color: var(--paper-ink);
+  opacity: 0.85;
 }
 .thread.kind-sticky .comment .text {
-  font-size: 0.92rem;
-  line-height: 1.5;
+  font-family: "Shantell Sans", var(--f-text);
+  font-weight: 600;
+  font-size: 1.04rem;
+  line-height: 1.38;
+}
+.paper-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+  padding-right: 1.4rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+.paper-foot time {
+  font-weight: 500;
+  opacity: 0.7;
 }
 .thread.kind-sticky .comment .who,
 .thread.kind-sticky .comment .who time {
-  color: var(--scratch-ink);
+  color: var(--paper-ink);
   opacity: 0.75;
 }
 .thread.kind-sticky .th-replies {
-  border-left-color: color-mix(in srgb, var(--scratch-ink) 25%, transparent);
+  border-left-color: rgba(0, 0, 0, 0.18);
+}
+.thread.kind-sticky .reply textarea {
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--paper-ink);
+}
+.thread.kind-sticky .chip-btn {
+  background: rgba(255, 255, 255, 0.5);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: var(--paper-ink);
+}
+@media (prefers-reduced-motion: reduce) {
+  .thread.kind-sticky {
+    animation: none;
+    transition: none;
+  }
 }
 .comment-bubble {
   position: absolute;
@@ -2104,7 +2422,9 @@ kbd {
   overflow: hidden;
   color: var(--ink);
   text-decoration: none;
-  transition: transform 0.12s ease;
+  transition:
+    transform 0.12s ease,
+    scale 0.14s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 a.subject-card:hover {
   transform: translateY(-2px);
@@ -4597,4 +4917,236 @@ span.hm-rl {
   margin: 0;
   padding-left: 1.1rem;
   font-size: 0.92rem;
+}
+
+/* ---------- Sheets and gestures ---------- */
+/* Phones: sheets rise from the bottom and can be dragged down by their top to close
+   (components/gestures.ts); wide screens: drawers slide in from the side. */
+.sheet-grab {
+  display: none;
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(40%);
+    opacity: 0.4;
+  }
+}
+@keyframes drawer-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+.comments-panel {
+  animation: drawer-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (max-width: 700px) {
+  .sheet-grab {
+    display: block;
+    flex: none;
+    width: 40px;
+    height: 5px;
+    margin: 8px auto 0;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--ink) 22%, transparent);
+  }
+  .comments-panel,
+  .capture,
+  .composer.sheet {
+    animation: sheet-up 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .comments-panel .sheet-grab,
+  .comments-panel .panel-head,
+  .ds-panel .sheet-grab,
+  .ds-top,
+  .capture .sheet-grab,
+  .capture-head,
+  .composer.sheet .quote {
+    touch-action: none;
+  }
+  .comments-panel .tabs,
+  .ds-tabs {
+    touch-action: pan-x;
+  }
+}
+/* The round arrow that follows a swipe in from the left edge (home-screen app on iPhone/iPad). */
+.edge-back {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 90;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--raised);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  opacity: 0;
+  pointer-events: none;
+  transition: scale 0.15s;
+}
+.edge-back svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+/* ---------- Press feedback ---------- */
+/* Buttons give a little under a finger or a click, and spring back; cards a little less. */
+:where(
+  .chip-btn,
+  .pill-btn,
+  .iconbtn,
+  .capture-btn,
+  .capture-fab,
+  .more-btn,
+  .search-btn,
+  .signin-btn,
+  .signin-quiet,
+  .side-nav a,
+  .nav-foot a,
+  .segmented button,
+  .chip,
+  .ds-toggle,
+  .note-row,
+  .due-row,
+  .concept-card,
+  .board-card,
+  .inbox-card,
+  .inbox-item
+) {
+  transition:
+    scale 0.14s cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s,
+    color 0.15s;
+}
+:where(
+    .chip-btn,
+    .pill-btn,
+    .iconbtn,
+    .capture-btn,
+    .capture-fab,
+    .more-btn,
+    .search-btn,
+    .signin-btn,
+    .signin-quiet,
+    .side-nav a,
+    .nav-foot a,
+    .segmented button,
+    .chip,
+    .ds-toggle
+  ):active:not(:disabled) {
+  scale: 0.95;
+}
+:where(
+  .subject-card,
+  .note-row,
+  .due-row,
+  .concept-card,
+  .board-card,
+  .inbox-card,
+  .inbox-item,
+  .thread:not(.selected)
+):active {
+  scale: 0.985;
+}
+
+/* ---------- Loading ---------- */
+/* A soft shimmer in the page's shape while notes load; the first page then fades in. */
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.sk {
+  display: block;
+  height: 0.95rem;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    var(--surface) 0%,
+    color-mix(in srgb, var(--surface) 45%, var(--raised)) 50%,
+    var(--surface) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.sk-pills {
+  width: 45%;
+  height: 1.5rem;
+  border-radius: 999px;
+}
+.sk-title {
+  width: 70%;
+  height: 2.4rem;
+  margin: 0.4rem 0 0.6rem;
+}
+.sk-line.short {
+  width: 60%;
+}
+.sk-block {
+  height: 8rem;
+  margin: 0.6rem 0;
+  border-radius: 14px;
+}
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+.shimmer-text {
+  background: linear-gradient(90deg, var(--muted) 0%, var(--ink) 50%, var(--muted) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 1.6s linear infinite;
+}
+.main.arriving > :not(.topbar) {
+  animation: content-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes content-in {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+
+/* ---------- Reading progress ---------- */
+.read-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  height: 3px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.read-progress > div {
+  height: 100%;
+  transform: scaleX(0);
+  transform-origin: left;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(90deg, var(--go), color-mix(in srgb, var(--go) 55%, var(--accent)));
+  transition: transform 0.12s linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk,
+  .shimmer-text {
+    animation: none;
+  }
+  .shimmer-text {
+    color: var(--muted);
+  }
+  .main.arriving > :not(.topbar) {
+    animation: none;
+  }
 }

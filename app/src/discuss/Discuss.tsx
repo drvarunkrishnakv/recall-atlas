@@ -5,6 +5,7 @@
 // the Atlas MCP server and Claude's scheduled task; this panel shows them as they land.
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useSwipeToClose } from "../components/gestures";
 import { api, type Collection } from "../content/store";
 import { anchorFor } from "../comments/anchors";
 import type { AtlasEditor } from "../editor/schema";
@@ -573,6 +574,8 @@ export function Discuss({
   onPin: (anchor: Anchor | null, text: string) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
+  const [sheet, setSheet] = useState<HTMLElement | null>(null);
+  useSwipeToClose(sheet, () => setOpen(false));
   const [mode, setMode] = useState<Mode>("debate");
   const [view, setView] = useState<string | null>(null);
   const [ctx, setCtx] = useState<ReturnType<typeof pickContext>>({ anchor: null });
@@ -633,7 +636,8 @@ export function Discuss({
 
       {open &&
         createPortal(
-          <aside className="ds-panel" aria-label="Discuss">
+          <aside className="ds-panel" aria-label="Discuss" ref={setSheet}>
+            <div className="sheet-grab" aria-hidden="true" />
             <header className="ds-top">
               <div>
                 <b>Discuss</b>

@@ -7,6 +7,9 @@ import { isAi, type AiId } from "./personas.ts";
 
 export type Author = "me" | "claude" | AiId;
 
+/** How many paper colours a sticky note can have (index.css --paper-0…5). */
+export const PAPERS = 6;
+
 /** How sure a reviewer bot is that a passage has a problem. */
 export type FlagLevel = "uncertain" | "wrong" | "outdated" | "unsourced";
 export const FLAG_LEVELS: FlagLevel[] = ["uncertain", "wrong", "outdated", "unsourced"];
@@ -40,6 +43,8 @@ export interface StoredThread {
   detached?: boolean;
   /** Set on flags raised by an AI reviewer bot through the Atlas MCP server. */
   flag?: Flag;
+  /** A sticky note's paper colour, 0 to PAPERS − 1; unset, it follows from the thread's id. */
+  color?: number;
   resolved: boolean;
   resolvedAt?: string;
   createdAt: string;
@@ -61,6 +66,7 @@ export type ThreadOp =
   | { op: "resolve"; threadId: string }
   | { op: "unresolve"; threadId: string }
   | { op: "kind"; threadId: string; kind: ThreadKind }
+  | { op: "color"; threadId: string; color: number }
   | { op: "anchors"; anchors: Record<string, Anchor | null> };
 
 export class ThreadOpError extends Error {}
@@ -130,6 +136,11 @@ export function applyThreadOp(threads: StoredThread[], op: ThreadOp, now = new D
     case "kind":
       find(op.threadId);
       return update(op.threadId, (t) => ({ ...t, kind: op.kind, resolved: op.kind === "sticky" ? false : t.resolved }));
+    case "color":
+      find(op.threadId);
+      if (!Number.isInteger(op.color) || op.color < 0 || op.color >= PAPERS)
+        throw new ThreadOpError("No such paper colour");
+      return update(op.threadId, (t) => ({ ...t, color: op.color }));
     case "anchors":
       return threads.map((t) => {
         if (!(t.id in op.anchors)) return t;

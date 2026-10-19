@@ -14,8 +14,9 @@ import {
 } from "firebase/auth";
 import { clearIndexedDbPersistence, doc, getDoc, terminate } from "firebase/firestore";
 import { auth, db, firebaseConfigured } from "../content/firebase";
-import { loadContent } from "../content/store";
-import { refreshStudy } from "../content/study";
+import { loadContent, paintFromSnapshot } from "../content/store";
+import { paintStudyFromSnapshot, refreshStudy } from "../content/study";
+import { clearSnapshot, setSnapshotOwner, snapshotOwner } from "../content/snapshot";
 import { Icon } from "./Icon";
 
 type Gate = "starting" | "signed-out" | "checking" | "refused" | "open";
@@ -36,17 +37,27 @@ async function canRead(user: User): Promise<boolean> {
   return false;
 }
 
-/** Opens the notes for `u`, or shows why not. */
-async function admit(u: User, setGate: (g: Gate) => void) {
-  setGate("checking");
-  if (!(await canRead(u))) return setGate("refused");
-  setGate("open");
+/** Opens the notes for `u`, or shows why not. `quiet`: the kept copy is already showing. */
+async function admit(u: User, setGate: (g: Gate) => void, quiet = false) {
+  if (!quiet) setGate("checking");
+  // Keep what loads for an instant start next time; wiped below if this account can't read.
+  setSnapshotOwner(u.uid);
+  // Start fetching the notes alongside the read check rather than after it: one round trip
+  // fewer before the first page shows. If the check refuses, these reads are refused too.
   void loadContent();
   void refreshStudy();
+  if (!(await canRead(u))) {
+    await clearSnapshot();
+    return setGate("refused");
+  }
+  setGate("open");
+  // Usually the same load still in flight; a fresh one if it was refused before the token caught up.
+  void loadContent();
 }
 
 /** Signs out and wipes this device's offline copy of the notes. */
 export async function signOutAndClear() {
+  await clearSnapshot();
   await signOut(auth);
   await terminate(db);
   await clearIndexedDbPersistence(db).catch(() => undefined);
@@ -59,11 +70,22 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // Signed in here before? Show the notes this device kept while Firebase confirms the
+    // account (a second or more); a signed-out, refused or different account wipes the copy.
+    const owner = snapshotOwner();
+    if (owner)
+      void Promise.all([paintFromSnapshot(), paintStudyFromSnapshot()]).then(
+        ([painted]) => painted && setGate((g) => (g === "starting" ? "open" : g)),
+      );
     getRedirectResult(auth).catch((e) => setError(signInMessage(e)));
     return onAuthStateChanged(auth, (u) => {
       setUser(u);
-      if (u) void admit(u, setGate);
-      else setGate("signed-out");
+      if (!u) {
+        if (owner) void clearSnapshot();
+        return setGate("signed-out");
+      }
+      if (owner && owner !== u.uid) void clearSnapshot();
+      void admit(u, setGate, owner === u.uid);
     });
   }, []);
 
@@ -123,7 +145,9 @@ export default function AuthGate({ children }: { children: ReactNode }) {
             </div>
           </>
         ) : (
-          <p className="loading">{gate === "checking" ? "Opening your notes…" : "Starting…"}</p>
+          <p className="loading shimmer-text" role="status">
+            {gate === "checking" ? "Opening your notes…" : "Starting…"}
+          </p>
         )}
         {error && <p className="signin-error">{error}</p>}
       </div>

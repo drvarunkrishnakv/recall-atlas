@@ -1,5 +1,44 @@
 # Decisions
 
+## 2026-10-19 — Motion and gestures in the reader
+
+- The user asked for smooth animation after comparing the app with YouLearn: page transitions,
+  linked margin notes and highlights, phone gestures, a sticky colour picker, a loading shimmer,
+  press feedback and a reading-progress bar. They didn't want the YouLearn-style panel layout.
+- **Page transitions** use the browser's View Transitions through React Router (`viewTransition`
+  on links, wrapped once in `components/nav.tsx`), not an animation library: no extra code to
+  load, and browsers without it simply change page. Only a change of page animates (not a
+  filter or a peek); back and forward replay it. A note's title glides between list and heading
+  (`view-transition-name: page-title`). Theme switches crossfade the same way.
+- **Gestures** are a small hook (`components/gestures.ts`) on pointer and touch events, not a
+  library. Sheets close when dragged down by their top band only, so the list inside still
+  scrolls. The edge swipe for back is on only in the iPhone/iPad home-screen app, because
+  browsers and Android have their own and would go back twice.
+- **Paper colour** is stored on the thread (`color`, 0–5, new `color` thread op); without it the
+  colour still follows from the id, so older notes keep theirs.
+- Every animation stops for `prefers-reduced-motion`.
+
+## 2026-10-19 — Faster start: show the kept copy while sign-in finishes
+
+- Measured on the live site: about 3 s to the first page, of which about 1.3 s is Firebase Auth
+  refreshing the token and looking up the account (it must finish before Firestore will read
+  anything), and about 1 s is Firestore round trips. Moving between pages was already quick
+  (about 0.2 s); a note's diagram took about 2.8 s, mostly Mermaid 12 fetching its 1.4 MB ELK
+  layout engine.
+- **Instant start:** the cloud build keeps the last pages and study data it loaded in IndexedDB
+  (`content/snapshot.ts`) and, for the account that kept them, shows them at once on the next
+  launch; fresh data replaces them when Firestore answers, and an open note takes the newer copy
+  unless something typed is unsaved. The copy holds nothing the Firestore offline cache doesn't
+  already keep on the device. Signing out, a refused account or a different account wipes it.
+  Trade-off: if the account's access is withdrawn elsewhere, this device still shows its copy
+  for the second or two until Firebase says so.
+- The read check and the first loads now run together instead of one after the other.
+- **Diagrams:** Mermaid uses the classic dagre layout (no ELK download), and drawn diagrams are
+  kept by code and theme (in memory and localStorage, last 40), so a note's diagram shows at once
+  the next time.
+- **Tried and dropped:** loading the editor as a separate chunk. It cut Home by about 0.1 s but
+  made every note open 0.2–0.5 s slower on a slowed phone CPU, and notes are what the app is for.
+
 ## 2026-10-18 — Comparing the frozen heat map with the 2025 and 2026 papers
 
 - The map was frozen first (`frozenAt`, notes-repo commit e90b278). The comparison is a separate

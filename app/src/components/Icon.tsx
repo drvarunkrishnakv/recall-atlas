@@ -1,5 +1,6 @@
 const PATHS: Record<string, string> = {
   menu: "M3 6h18M3 12h18M3 18h18",
+  sidebar: "M5 4h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2zM9 4v16",
   close: "M6 6l12 12M18 6L6 18",
   back: "M15 5l-7 7 7 7",
   forward: "M9 5l7 7-7 7",

@@ -25,7 +25,7 @@ export function Search({ open, onClose }: { open: boolean; onClose: () => void }
     const h = hits[n];
     if (!h) return;
     onClose();
-    navigate(`/${h.collection}/${h.id}`, { state: { block: h.blockId } });
+    navigate(`/${h.collection}/${h.id}`, { state: { block: h.blockId }, viewTransition: true });
   };
   return createPortal(
     <>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router";
+import { Navigate, useNavigate, useParams, useSearchParams } from "react-router";
+import { Link, MorphTitle } from "./components/nav";
 import { PAPERS, subjectStyle } from "./content/syllabus";
 import { allPages, createPage, getPage, KIND_LABEL, linksTo, useContent } from "./content/store";
 import { PageView } from "./editor/PageView";
@@ -106,7 +107,7 @@ function NewCard() {
     let id = `${kind}-${slug(title)}`;
     while (getPage("cards", id)) id += "-2";
     await createPage({ collection: "cards", id, title: title.trim(), kind, summary: "", blocks: CARD_TEMPLATE });
-    navigate(`/cards/${id}`);
+    navigate(`/cards/${id}`, { viewTransition: true });
   };
   return (
     <form
@@ -165,7 +166,9 @@ export function CardsPage() {
               {cards.map((c) => (
                 <Link key={c.id} className={`concept-card kind-${g}`} to={`/cards/${c.id}`}>
                   <span className="kind">{KIND_LABEL[g]}</span>
-                  <b>{c.title}</b>
+                  <b>
+                    <MorphTitle to={`/cards/${c.id}`}>{c.title}</MorphTitle>
+                  </b>
                   {c.summary ? <span className="summary">{String(c.summary)}</span> : null}
                   <span className="muted">
                     Cited in {linksTo("card", c.id).filter((l) => l.collection === "notes").length}
