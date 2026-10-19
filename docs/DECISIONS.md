@@ -1,5 +1,24 @@
 # Decisions
 
+## 2026-10-19 — App pages are not cached for an hour
+
+- Hosting matches header rules against the requested path, before the rewrite to `/index.html`.
+  App routes (`/`, `/notes/P06`, `/gs2/polity`) have no file extension, so the
+  `**/*.@(html|webmanifest)` rule missed them and Hosting gave them its default `max-age=3600`.
+  A browser, and the service worker's network-first page fetch, could keep the old app for up to
+  an hour after a deploy.
+- Two header rules now send `Cache-Control: no-cache` to app routes: `{/,/oauth/authorize}` and
+  `/!(mcp|oauth|assets|__|*.*){,/**/!(*.*)}` (every path whose last part has no extension, minus
+  the prefixes below). `no-cache` makes the browser revalidate with the ETag each time, so an
+  unchanged page costs only a 304.
+- Left out on purpose: `/mcp` and `/oauth/*` (the MCP function; its OAuth replies set `no-store`,
+  which a Hosting header must not replace), `/.well-known/**` (also the function), `/assets/**`
+  (hashed files, kept for a year) and `/__/**` (Firebase's own sign-in pages). `/oauth/authorize`
+  is the one app page under `/oauth`, so it is named. The simpler `**/!(*.*)` was rejected: it
+  misses `/` and catches `/mcp` and `/oauth/token`.
+- A new app route needs nothing. A new function rewrite without an extension must be added to the
+  excluded prefixes.
+
 ## 2026-10-19 — Motion and gestures in the reader
 
 - The user asked for smooth animation after comparing the app with YouLearn: page transitions,

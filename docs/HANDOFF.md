@@ -1,5 +1,24 @@
 # Handoff
 
+## Hosting: app pages no longer cached for an hour — 2026-10-19
+
+- **Branch:** `claude/hosting-no-cache-routes`, from `main` (254f6b3). Assisting tool: Claude Code.
+- **Problem (live site, 19 Oct):** `/` and `/notes/P06` came with `cache-control: max-age=3600`,
+  `/index.html` with `no-cache`, so a deploy could take up to an hour to show. Why, and the
+  rules chosen: DECISIONS (2026-10-19).
+- **Change:** `firebase.json` only: two `Cache-Control: no-cache` header rules for app routes.
+- **Checks:** cloud build (internal-disk copy). Hosting emulator (firebase-tools 15.34.0),
+  `curl -sI`, before → after: `/`, `/notes/P06`, `/gs2/polity`, `/oauth/authorize` none →
+  `no-cache`; `/index.html`, `/sw.js`, `/manifest.webmanifest` `no-cache` (unchanged);
+  `/assets/index-….js` `public, max-age=31536000, immutable` (unchanged). The globs were also run
+  through the emulator's matcher (minimatch) on 24 paths: `/mcp`, `/oauth/register|client|approve|token`,
+  `/.well-known/…`, `/assets/…`, `/__/auth/handler` and files with extensions don't match. The
+  function paths themselves give 404 in the emulator (functions not emulated).
+- **Not done:** deploy. It takes effect on the next Hosting deploy, which needs the user's
+  go-ahead. Then `curl -sI https://recall-atlas-511913.web.app/notes/P06` should show
+  `cache-control: no-cache`. Browsers that already hold a one-hour copy keep it until it runs
+  out, so that first deploy can still take up to an hour to show; later ones show at once.
+
 ## Reader polish: sticky notes, sidebar, speed — 2026-10-19
 
 - **Branch:** `claude/reader-polish`, from `main` (b3a030b). Assisting tool: Claude Code.
@@ -47,7 +66,7 @@
 - **Next:** Grok Bot needs a new key in its connector (`atlas mcp-key add grok`, then revoke
   `d99d2d20`) and the new routine prompt; the user is doing this. Hosting serves app routes
   (`/`, `/notes/…`) with a one-hour cache, so a browser can show the old app for up to an hour
-  after a deploy; a `no-cache` header for those routes would fix it (not done).
+  after a deploy; a `no-cache` header for those routes would fix it (done: Hosting entry above).
 
 ## Heat map vs the 2025 and 2026 papers — 2026-10-18
 
