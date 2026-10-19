@@ -1,5 +1,22 @@
 # Handoff
 
+## Sticky notes: heading and text, the rest behind ⋯ — 2026-10-19
+
+- **Branch:** `claude/sticky-menu`, from `main` (4cefbf8). Assisting tool: Claude Code.
+- **Why:** the user found the sticky note too busy (quote chip, author and time, reply box,
+  six swatches, Unpin and Delete all on the note) and asked for just a heading and the text.
+- **Now:** a sticky note shows a heading (the words it's pinned to, small and bold) and its text
+  in the marker hand. A faint ⋯ in its corner opens a small menu just below the note: paper
+  colour, who wrote it and when, any replies, and Edit, Reply, Unpin, Delete. Edit changes the
+  text in place (the existing `edit` thread op). On phones the menu opens inside the note in the
+  comments sheet. Other comments, Ask Claude threads and flags are unchanged.
+- **Checks:** Prettier, `tsc -b`, 72 unit tests, build; `npx playwright test` 62 passed + 22
+  skips (installed Chrome; the sticky test now checks the face holds nothing but heading and
+  text, then picks a colour and edits the text through ⋯). Screenshots (fixture):
+  `docs/design/sticky-menu/`.
+- **Next:** the user reviews the PR; deploying waits for their go-ahead.
+
+
 ## Hosting: app pages no longer cached for an hour — 2026-10-19
 
 - **Branch:** `claude/hosting-no-cache-routes`, from `main` (254f6b3). Assisting tool: Claude Code.
