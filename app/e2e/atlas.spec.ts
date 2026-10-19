@@ -91,6 +91,20 @@ test("home → subject table → note in single clicks, and back works", async (
   }
 });
 
+test("on wide screens the sidebar folds away, stays folded after a reload, and comes back", async ({ page }) => {
+  test.skip((page.viewportSize()?.width ?? 0) <= 900, "Phones use the drawer");
+  await page.goto("/");
+  const home = page.locator(".nav").getByRole("link", { name: "Home" });
+  await expect(home).toBeVisible();
+  await page.getByRole("button", { name: "Hide sidebar" }).click();
+  await expect(home).toBeHidden();
+  await page.reload();
+  await expect(home).toBeHidden();
+  await page.getByRole("button", { name: "Show sidebar" }).click();
+  await expect(home).toBeVisible();
+  await expect(page.getByRole("button", { name: "Show sidebar" })).toHaveCount(0);
+});
+
 test("the subject database has table, board and due views", async ({ page }) => {
   await page.goto("/gs2/polity");
   const main = page.locator("main");
@@ -219,6 +233,101 @@ test("a sticky note is saved, shown beside its text and restored after reload", 
   await expect(page.locator(".main .bn-thread-mark:not([data-orphan])").first()).toBeVisible();
   if (!isDesktop(page)) await page.getByRole("button", { name: /💬/ }).click();
   await expect(page.locator(".thread.kind-sticky", { hasText: text })).toBeVisible();
+});
+
+test("on a phone or tablet, tapping a sticky note's text opens it every time", async ({ page }, info) => {
+  test.skip(isDesktop(page), "Desktop shows the cards in the margin");
+  const id = `sticky-tap-${info.project.name}`;
+  const text = `Tap me again (${info.project.name})`;
+  const r = await page.request.post("/api/comments/notes/P06", {
+    headers: { "X-Atlas": "1" },
+    data: {
+      op: "create",
+      thread: { id, kind: "sticky", anchor: { blockId: "", quote: "synthetic test content" } },
+      comment: { id: `${id}-c`, body: text },
+      by: "me",
+    },
+  });
+  expect(r.ok()).toBe(true);
+  await page.goto("/notes/P06");
+  const mark = page.locator(`.main .bn-thread-mark[data-bn-thread-id="${id}"]`);
+  const card = page.locator(".comments-panel .thread", { hasText: text });
+  await mark.waitFor();
+  await page.waitForLoadState("networkidle");
+  for (let round = 0; round < 2; round++) {
+    await mark.tap();
+    await expect(card, `tap ${round + 1} opens the note`).toBeVisible();
+    await page.getByRole("button", { name: "Close comments" }).click();
+    await expect(card).toHaveCount(0);
+  }
+});
+
+test("a sticky note's paper colour can be picked, and it stays after a reload", async ({ page }) => {
+  test.skip(!isDesktop(page), "Once is enough");
+  const r = await page.request.post("/api/comments/notes/P06", {
+    headers: { "X-Atlas": "1" },
+    data: {
+      op: "create",
+      thread: { id: "paper-pick", kind: "sticky", anchor: { blockId: "", quote: "Second row" } },
+      comment: { id: "paper-pick-c", body: "Pick my colour" },
+      by: "me",
+    },
+  });
+  expect(r.ok()).toBe(true);
+  await page.goto("/notes/P06");
+  const card = page.locator('.margin .thread[data-thread="paper-pick"]');
+  await card.click();
+  await card.getByRole("button", { name: "Mint paper" }).click();
+  await expect(card).toHaveClass(/paper-3/);
+  await expect(card.getByRole("button", { name: "Mint paper" })).toHaveAttribute("aria-pressed", "true");
+  await page.reload();
+  await expect(page.locator('.margin .thread[data-thread="paper-pick"]')).toHaveClass(/paper-3/);
+});
+
+test("a thin bar at the top fills as you read down a note", async ({ page }) => {
+  await page.goto("/notes/P06");
+  await page.locator(".main .bn-editor h2").first().waitFor();
+  const fill = () =>
+    page.evaluate(() => {
+      const el = document.querySelector<HTMLElement>(".read-progress > div");
+      return el ? new DOMMatrix(getComputedStyle(el).transform).a : -1;
+    });
+  expect(await fill()).toBe(0);
+  // Scroll to the end (again, if a diagram or chart grows the page meanwhile).
+  await expect
+    .poll(async () => {
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      return fill();
+    })
+    .toBeGreaterThan(0.95);
+  await expect(page.locator(".read-progress")).toHaveCSS("opacity", "1");
+});
+
+test("on a phone, dragging the comments sheet down by its top closes it", async ({ page }) => {
+  test.skip((page.viewportSize()?.width ?? 0) > 700, "Sheets are a phone thing");
+  await page.goto("/notes/P06");
+  await page.locator(".main .bn-editor").waitFor();
+  await page.getByRole("button", { name: /💬/ }).click();
+  const sheet = page.locator(".comments-panel");
+  await expect(sheet).toBeVisible();
+  await sheet.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished))); // risen fully
+  // A small drag springs back.
+  const grab = (await sheet.locator(".sheet-grab").boundingBox())!;
+  const x = grab.x + grab.width / 2;
+  const y = grab.y + grab.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y + 40, { steps: 8 });
+  await page.waitForTimeout(150);
+  await page.mouse.up();
+  await expect(sheet).toBeVisible();
+  // A long drag closes it.
+  await page.waitForTimeout(400);
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y + 320, { steps: 12 });
+  await page.mouse.up();
+  await expect(sheet).toHaveCount(0);
 });
 
 test("Ask Claude: Claude's reply from the CLI appears in the thread", async ({ page }) => {

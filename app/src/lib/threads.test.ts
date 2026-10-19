@@ -23,6 +23,12 @@ describe("applyThreadOp", () => {
     const [t] = applyThreadOp(resolved, { op: "kind", threadId: "t1", kind: "sticky" });
     expect(t).toMatchObject({ kind: "sticky", resolved: false });
   });
+  it("a sticky note keeps the paper colour picked for it, and only a real one", () => {
+    const [t] = applyThreadOp(make("sticky"), { op: "color", threadId: "t1", color: 3 });
+    expect(t.color).toBe(3);
+    expect(() => applyThreadOp(make("sticky"), { op: "color", threadId: "t1", color: 6 })).toThrow(ThreadOpError);
+    expect(() => applyThreadOp(make("sticky"), { op: "color", threadId: "t1", color: 1.5 })).toThrow(ThreadOpError);
+  });
   it("deleting the first comment deletes the thread", () => {
     expect(applyThreadOp(make("comment"), { op: "deleteComment", threadId: "t1", commentId: "c1" })).toEqual([]);
   });

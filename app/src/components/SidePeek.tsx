@@ -63,7 +63,7 @@ export function Peek() {
           <button type="button" className="iconbtn" aria-label="Close side peek" onClick={close}>
             <Icon name="close" />
           </button>
-          <button type="button" className="chip-btn" onClick={() => navigate(fullPath)}>
+          <button type="button" className="chip-btn" onClick={() => navigate(fullPath, { viewTransition: true })}>
             Open as page ↗
           </button>
         </div>

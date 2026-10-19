@@ -6,8 +6,9 @@
 //   flag     — raised by an AI reviewer bot on a doubtful passage; Claude checks it and replies
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { AtlasThreadStore } from "./threadStore";
-import { isWaitingForClaude, type FlagLevel, type StoredThread, type ThreadKind } from "../lib/threads";
+import { isWaitingForClaude, PAPERS, type FlagLevel, type StoredThread, type ThreadKind } from "../lib/threads";
 import { AGENTS, AIS, agentOf, bot, isAi } from "../lib/personas";
+import { useSwipeToClose } from "../components/gestures";
 
 export const KIND_INFO: Record<ThreadKind, { label: string; icon: string; hint: string }> = {
   comment: { label: "Comment", icon: "💬", hint: "Closes when you tick ✓" },
@@ -126,8 +127,12 @@ function FlagTrail({ t }: { t: StoredThread }) {
   );
 }
 
+const hash = (id: string) => [...id].reduce((n, c) => (n * 31 + c.charCodeAt(0)) >>> 0, 7);
 /** Small deterministic tilt for sticky notes, so a stack of them looks like paper. */
-const tilt = (id: string) => [-1.4, 0.9, -0.6, 1.2][[...id].reduce((n, c) => n + c.charCodeAt(0), 0) % 4];
+const tilt = (id: string) => [-1.6, 1.1, -0.7, 1.4, -1.1, 0.6][hash(id) % 6];
+/** A sticky note's paper colour (index.css --paper-0…5): the one picked, else one chosen by its id. */
+export const paperOf = (t: Pick<StoredThread, "id" | "color">) => t.color ?? (hash(t.id) >>> 3) % PAPERS;
+const PAPER_NAMES = ["Yellow", "Pink", "Lavender", "Mint", "Lilac", "Peach"];
 
 export function ThreadCard({
   thread,
@@ -136,6 +141,8 @@ export function ThreadCard({
   onSelect,
   style,
   cardRef,
+  linked = false,
+  onHover,
 }: {
   thread: StoredThread;
   store: AtlasThreadStore;
@@ -143,6 +150,10 @@ export function ThreadCard({
   onSelect: (id: string | undefined) => void;
   style?: React.CSSProperties;
   cardRef?: (el: HTMLDivElement | null) => void;
+  /** Its highlighted text is being pointed at. */
+  linked?: boolean;
+  /** Pointing at the card lights up its highlight in the text. */
+  onHover?: (id: string | undefined) => void;
 }) {
   // A kind this build doesn't know (added by a newer app or server) shows as a plain comment.
   const info = KIND_INFO[thread.kind] ?? KIND_INFO.comment;
@@ -160,19 +171,20 @@ export function ThreadCard({
   return (
     <div
       ref={cardRef}
-      className={`thread kind-${thread.kind}${selected ? " selected" : ""}${thread.resolved ? " resolved" : ""}`}
-      style={sticky && !selected ? { ...style, rotate: `${tilt(thread.id)}deg` } : style}
+      className={`thread kind-${thread.kind}${sticky ? ` paper-${paperOf(thread)}` : ""}${selected ? " selected" : ""}${linked ? " linked" : ""}${thread.resolved ? " resolved" : ""}`}
+      style={sticky ? ({ ...style, "--tilt": `${tilt(thread.id)}deg` } as React.CSSProperties) : style}
       data-thread={thread.id}
+      aria-label={sticky ? info.label : undefined}
       onClick={() => onSelect(thread.id)}
+      onPointerEnter={(e) => e.pointerType === "mouse" && onHover?.(thread.id)}
+      onPointerLeave={(e) => e.pointerType === "mouse" && onHover?.(undefined)}
     >
       {sticky ? (
-        <div className="paper-head">
-          <span className="paper-pin" aria-hidden>
-            📌
-          </span>
-          <span className="badge">{info.label}</span>
-          {thread.detached && <span className="badge muted">Text removed</span>}
-        </div>
+        thread.detached && (
+          <div className="paper-head">
+            <span className="badge muted">Text removed</span>
+          </div>
+        )
       ) : (
         <div className="thread-head">
           {first && <Avatar userId={first.userId} />}
@@ -201,12 +213,14 @@ export function ThreadCard({
       {thread.anchor.quote && <blockquote className="quote">{thread.anchor.quote}</blockquote>}
       {first && (
         <div className={`comment first by-${first.userId}`}>
+          <div className="text">{first.body}</div>
           {sticky && (
-            <div className="who">
-              {who(thread, first.userId)} <time>{when(first.createdAt)}</time>
+            <div className="paper-foot">
+              <Avatar userId={first.userId} size={18} />
+              <span>{who(thread, first.userId)}</span>
+              <time>{when(first.createdAt)}</time>
             </div>
           )}
-          <div className="text">{first.body}</div>
           {thread.flag && thread.flag.sources.length > 0 && (
             <div className="flag-srcs">
               {thread.flag.sources.map((s, j) => (
@@ -260,6 +274,20 @@ export function ThreadCard({
       {selected && (
         <>
           <Submit placeholder="Reply…" onSubmit={(t) => store.reply(thread.id, t)} />
+          {sticky && (
+            <div className="paper-swatches" role="group" aria-label="Paper colour">
+              {PAPER_NAMES.map((name, i) => (
+                <button
+                  key={name}
+                  type="button"
+                  className={`swatch paper-${i}`}
+                  aria-label={`${name} paper`}
+                  aria-pressed={paperOf(thread) === i}
+                  onClick={(e) => act(e, () => store.setColor(thread.id, i))}
+                />
+              ))}
+            </div>
+          )}
           <div className="actions">
             {thread.kind !== "sticky" && !thread.resolved && (
               <button
@@ -337,6 +365,8 @@ export function Composer({
   onCancel: () => void;
 }) {
   const [kind, setKind] = useState<ThreadKind>("comment");
+  const [sheet, setSheet] = useState<HTMLElement | null>(null);
+  useSwipeToClose(at ? null : sheet, onCancel);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -360,6 +390,7 @@ export function Composer({
     <>
       {!at && <div className="sheet-scrim" onClick={onCancel} />}
       <div
+        ref={setSheet}
         className={`composer${at ? "" : " sheet"}`}
         style={at ? { top: at.top, left: at.left } : undefined}
         role="dialog"
@@ -429,12 +460,16 @@ export function CommentMargin({
   selectedId,
   onSelect,
   root,
+  hoverId,
+  onHover,
 }: {
   threads: StoredThread[];
   store: AtlasThreadStore;
   selectedId: string | undefined;
   onSelect: (id: string | undefined) => void;
   root: HTMLElement | null;
+  hoverId?: string;
+  onHover?: (id: string | undefined) => void;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const cards = useRef(new Map<string, HTMLDivElement>());
@@ -496,6 +531,8 @@ export function CommentMargin({
           store={store}
           selected={t.id === selectedId}
           onSelect={onSelect}
+          linked={t.id === hoverId}
+          onHover={onHover}
           cardRef={(el) => {
             const prev = cards.current.get(t.id);
             if (prev && prev !== el) cardResize.current?.unobserve(prev);
@@ -528,6 +565,18 @@ export function CommentsPanel({
   onClose: () => void;
 }) {
   const [filter, setFilter] = useState<Filter>("open");
+  const list = useRef<HTMLDivElement>(null);
+  const [sheet, setSheet] = useState<HTMLElement | null>(null);
+  useSwipeToClose(sheet, onClose);
+  // The note you tapped glides into view in the list.
+  useEffect(() => {
+    if (!selectedId) return;
+    const el = list.current?.querySelector(`[data-thread="${CSS.escape(selectedId)}"]`);
+    el?.scrollIntoView({
+      behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      block: "nearest",
+    });
+  }, [selectedId, filter]);
   const counts: Record<Filter, StoredThread[]> = {
     open: threads.filter((t) => !t.resolved),
     flags: threads.filter((t) => t.kind === "flag" && !t.resolved),
@@ -545,7 +594,8 @@ export function CommentsPanel({
   return (
     <>
       <div className="sheet-scrim panel-scrim" onClick={onClose} />
-      <aside className="comments-panel" aria-label="Comments">
+      <aside className="comments-panel" aria-label="Comments" ref={setSheet}>
+        <div className="sheet-grab" aria-hidden="true" />
         <div className="panel-head">
           <b>Comments</b>
           <button type="button" className="iconbtn" aria-label="Close comments" onClick={onClose}>
@@ -559,7 +609,7 @@ export function CommentsPanel({
             </button>
           ))}
         </div>
-        <div className="panel-list">
+        <div className="panel-list" ref={list}>
           {counts[filter].length === 0 && (
             <p className="empty">
               {filter === "open" ? "No open comments. Select text on the page to add one." : "Nothing here."}

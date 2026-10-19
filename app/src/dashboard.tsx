@@ -1,6 +1,7 @@
 // Home, the subject database (table / board / due), Revise today and the Claude inbox.
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
+import { Link, MorphTitle } from "./components/nav";
 import {
   COMING_SUBJECTS,
   PAPERS,
@@ -150,7 +151,7 @@ export function StartNote({
           pyqs: note.pyqs,
           blocks: noteTemplate(),
         });
-        navigate(`/notes/${note.id}`);
+        navigate(`/notes/${note.id}`, { viewTransition: true });
       }}
     >
       Start this note
@@ -297,7 +298,9 @@ export function HomePage() {
                   {n.id}
                 </span>
                 <span>
-                  <b>{n.title}</b>
+                  <b>
+                    <MorphTitle to={`/notes/${n.id}`}>{n.title}</MorphTitle>
+                  </b>
                   <span className="muted">
                     <RevisionText p={progress.notes[n.id]} />
                   </span>
@@ -566,7 +569,13 @@ export function SubjectPage() {
                     shown.map(({ note, page, p, threads }) => (
                       <tr key={note.id} className={page ? "" : "planned"}>
                         <td className="title-cell">
-                          {page ? <Link to={`/notes/${note.id}`}>{page.title}</Link> : <span>{note.title}</span>}
+                          {page ? (
+                            <Link to={`/notes/${note.id}`}>
+                              <MorphTitle to={`/notes/${note.id}`}>{page.title}</MorphTitle>
+                            </Link>
+                          ) : (
+                            <span>{note.title}</span>
+                          )}
                         </td>
                         <td>{note.pyqs}</td>
                         <td>
@@ -674,7 +683,9 @@ function DueList({ rows }: { rows: { note: PlannedNote; page?: Page; p?: NotePro
           {unread.map((r, i) => (
             <span key={r.note.id}>
               {i > 0 && ", "}
-              <Link to={`/notes/${r.note.id}`}>{r.page?.title ?? r.note.title}</Link>
+              <Link to={`/notes/${r.note.id}`}>
+                <MorphTitle to={`/notes/${r.note.id}`}>{r.page?.title ?? r.note.title}</MorphTitle>
+              </Link>
             </span>
           ))}
         </p>
@@ -688,7 +699,9 @@ function DueRow({ id, title, p, late }: { id: string; title: string; p: NoteProg
   return (
     <div className={`due-item${late ? " late" : ""}`}>
       <Link to={`/notes/${id}`} className="grow">
-        <b>{title}</b>
+        <b>
+          <MorphTitle to={`/notes/${id}`}>{title}</MorphTitle>
+        </b>
         <span className="muted">
           <RevisionText p={p} />
         </span>

@@ -7,6 +7,7 @@ import "@fontsource/figtree/600.css";
 import "@fontsource/figtree/700.css";
 import "@fontsource/bricolage-grotesque/600.css";
 import "@fontsource/bricolage-grotesque/700.css";
+import "@fontsource/shantell-sans/600.css";
 import "./index.css";
 import { Layout } from "./components/Layout";
 import { applySavedTheme } from "./components/ThemeToggle";
@@ -15,6 +16,7 @@ import { refreshStudy } from "./content/study";
 import { PaperPage, TopicPage, NotePage, CardPage, CardsPage, NotFound } from "./pages";
 import { HomePage, InboxPage, RevisePage, SubjectPage } from "./dashboard";
 import { SettingsPage } from "./settings";
+import { PageSkeleton } from "./components/Skeleton";
 
 applySavedTheme();
 // The cloud build loads notes only after Google sign-in (AuthGate); locally they load at once.
@@ -59,7 +61,7 @@ const router = createBrowserRouter([
       {
         path: "/heat-map",
         element: (
-          <Suspense fallback={<p className="loading">Loading the heat map…</p>}>
+          <Suspense fallback={<PageSkeleton label="Loading the heat map" />}>
             <HeatMapPage />
           </Suspense>
         ),
