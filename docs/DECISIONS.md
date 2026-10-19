@@ -1,5 +1,23 @@
 # Decisions
 
+## 2026-10-19 — Motion and gestures in the reader
+
+- The user asked for smooth animation after comparing the app with YouLearn: page transitions,
+  linked margin notes and highlights, phone gestures, a sticky colour picker, a loading shimmer,
+  press feedback and a reading-progress bar. They didn't want the YouLearn-style panel layout.
+- **Page transitions** use the browser's View Transitions through React Router (`viewTransition`
+  on links, wrapped once in `components/nav.tsx`), not an animation library: no extra code to
+  load, and browsers without it simply change page. Only a change of page animates (not a
+  filter or a peek); back and forward replay it. A note's title glides between list and heading
+  (`view-transition-name: page-title`). Theme switches crossfade the same way.
+- **Gestures** are a small hook (`components/gestures.ts`) on pointer and touch events, not a
+  library. Sheets close when dragged down by their top band only, so the list inside still
+  scrolls. The edge swipe for back is on only in the iPhone/iPad home-screen app, because
+  browsers and Android have their own and would go back twice.
+- **Paper colour** is stored on the thread (`color`, 0–5, new `color` thread op); without it the
+  colour still follows from the id, so older notes keep theirs.
+- Every animation stops for `prefers-reduced-motion`.
+
 ## 2026-10-19 — Faster start: show the kept copy while sign-in finishes
 
 - Measured on the live site: about 3 s to the first page, of which about 1.3 s is Firebase Auth

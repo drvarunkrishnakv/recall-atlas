@@ -2,8 +2,8 @@
 
 ## Reader polish: sticky notes, sidebar, speed — 2026-10-19
 
-- **Branch:** `claude/reader-polish`, from `main` (b3a030b). Assisting tool: Claude Code. Not
-  committed or pushed yet. PR #43 (handoff note) also edits the top of this file.
+- **Branch:** `claude/reader-polish`, from `main` (b3a030b), five commits. Assisting tool:
+  Claude Code. PR #43 (handoff note) also edits the top of this file.
 - **Sticky notes reopen on touch:** on phones and tablets a highlight opened its note once, and a
   second tap did nothing (BlockNote reacts only when the caret moves into a highlight). A tap on
   any highlight now opens its thread, and closing the panel lets go of it. New e2e test (iPad,
@@ -26,10 +26,23 @@
   that a scheduled run can't give. Fix on Grok's side: keep the key in the connector settings its
   scheduled tasks use, or mint a new one (`atlas mcp-key add grok`) for the user to paste there.
   Ten never-approved OAuth clients are left over (`atlas oauth list`); harmless.
-- **Checks:** Prettier, `tsc -b`, 71 unit tests, build; `npx playwright test` 57 passed + 18
-  skips (installed Chrome, internal-disk copy). Screenshots (fixture): `docs/design/reader-polish/`.
-- **Next:** the user reviews; commit, push and open the PR when they say so. Deploying waits for
-  their go-ahead.
+- **Motion and gestures** (the user's picks, see DECISIONS 2026-10-19):
+  - Page transitions: the page glides in and the sidebar stays put; a note's title glides from
+    the list into its heading; back and forward replay it; theme switches crossfade.
+  - Linked notes: pointing at highlighted text steps its card forward, pointing at a card makes
+    its text glow, cards glide to new places, and a tapped note scrolls into view in the panel.
+  - Phone gestures: every bottom sheet (Comments, Discuss, Capture, proposals, history, the
+    new-comment box) closes when dragged down by its top, with a grab bar; the iPhone/iPad
+    home-screen app goes back on a swipe in from the left edge.
+  - Sticky colour picker: six swatches on an open sticky note, saved on the thread.
+  - Loading shimmer in the page's shape, then a fade-in; press feedback on buttons and cards;
+    a thin reading-progress bar at the top of notes and cards.
+- **Checks:** Prettier, `tsc -b`, 72 unit tests, build; `npx playwright test` 62 passed + 22
+  skips (installed Chrome, internal-disk copy; new tests: tap a sticky twice, fold the sidebar,
+  pick a paper colour, drag a sheet closed, the progress bar). The edge swipe needs the
+  home-screen app, so it was not tested. Screenshots (fixture): `docs/design/reader-polish/`.
+- **Next:** the user reviews the PR. Deploying waits for their go-ahead. Grok Bot's key needs
+  fixing in Grok's connector settings (above).
 
 ## Heat map vs the 2025 and 2026 papers — 2026-10-18
 
