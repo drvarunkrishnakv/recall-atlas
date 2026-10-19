@@ -434,7 +434,7 @@ function PageEditor({ page: initial, latest, inPeek }: { page: Page; latest: Pag
     .map(
       (t) =>
         `.bn-thread-mark[data-bn-thread-id="${t.id}"]:not([data-orphan]){background:${
-          t.kind === "sticky" ? `var(--mark-paper-${paperOf(t.id)})` : `var(--mark-${t.kind})`
+          t.kind === "sticky" ? `var(--mark-paper-${paperOf(t)})` : `var(--mark-${t.kind})`
         }}`,
     )
     .concat(

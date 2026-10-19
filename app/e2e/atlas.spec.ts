@@ -262,6 +262,28 @@ test("on a phone or tablet, tapping a sticky note's text opens it every time", a
   }
 });
 
+test("a sticky note's paper colour can be picked, and it stays after a reload", async ({ page }) => {
+  test.skip(!isDesktop(page), "Once is enough");
+  const r = await page.request.post("/api/comments/notes/P06", {
+    headers: { "X-Atlas": "1" },
+    data: {
+      op: "create",
+      thread: { id: "paper-pick", kind: "sticky", anchor: { blockId: "", quote: "Second row" } },
+      comment: { id: "paper-pick-c", body: "Pick my colour" },
+      by: "me",
+    },
+  });
+  expect(r.ok()).toBe(true);
+  await page.goto("/notes/P06");
+  const card = page.locator('.margin .thread[data-thread="paper-pick"]');
+  await card.click();
+  await card.getByRole("button", { name: "Mint paper" }).click();
+  await expect(card).toHaveClass(/paper-3/);
+  await expect(card.getByRole("button", { name: "Mint paper" })).toHaveAttribute("aria-pressed", "true");
+  await page.reload();
+  await expect(page.locator('.margin .thread[data-thread="paper-pick"]')).toHaveClass(/paper-3/);
+});
+
 test("on a phone, dragging the comments sheet down by its top closes it", async ({ page }) => {
   test.skip((page.viewportSize()?.width ?? 0) > 700, "Sheets are a phone thing");
   await page.goto("/notes/P06");

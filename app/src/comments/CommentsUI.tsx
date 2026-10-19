@@ -6,7 +6,7 @@
 //   flag     — raised by an AI reviewer bot on a doubtful passage; Claude checks it and replies
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { AtlasThreadStore } from "./threadStore";
-import { isWaitingForClaude, type FlagLevel, type StoredThread, type ThreadKind } from "../lib/threads";
+import { isWaitingForClaude, PAPERS, type FlagLevel, type StoredThread, type ThreadKind } from "../lib/threads";
 import { AGENTS, AIS, agentOf, bot, isAi } from "../lib/personas";
 import { useSwipeToClose } from "../components/gestures";
 
@@ -130,9 +130,9 @@ function FlagTrail({ t }: { t: StoredThread }) {
 const hash = (id: string) => [...id].reduce((n, c) => (n * 31 + c.charCodeAt(0)) >>> 0, 7);
 /** Small deterministic tilt for sticky notes, so a stack of them looks like paper. */
 const tilt = (id: string) => [-1.6, 1.1, -0.7, 1.4, -1.1, 0.6][hash(id) % 6];
-/** Each sticky note keeps one of six paper colours (index.css --paper-0…5), chosen by its id. */
-export const PAPERS = 6;
-export const paperOf = (id: string) => (hash(id) >>> 3) % PAPERS;
+/** A sticky note's paper colour (index.css --paper-0…5): the one picked, else one chosen by its id. */
+export const paperOf = (t: Pick<StoredThread, "id" | "color">) => t.color ?? (hash(t.id) >>> 3) % PAPERS;
+const PAPER_NAMES = ["Yellow", "Pink", "Lavender", "Mint", "Lilac", "Peach"];
 
 export function ThreadCard({
   thread,
@@ -171,7 +171,7 @@ export function ThreadCard({
   return (
     <div
       ref={cardRef}
-      className={`thread kind-${thread.kind}${sticky ? ` paper-${paperOf(thread.id)}` : ""}${selected ? " selected" : ""}${linked ? " linked" : ""}${thread.resolved ? " resolved" : ""}`}
+      className={`thread kind-${thread.kind}${sticky ? ` paper-${paperOf(thread)}` : ""}${selected ? " selected" : ""}${linked ? " linked" : ""}${thread.resolved ? " resolved" : ""}`}
       style={sticky ? ({ ...style, "--tilt": `${tilt(thread.id)}deg` } as React.CSSProperties) : style}
       data-thread={thread.id}
       aria-label={sticky ? info.label : undefined}
@@ -274,6 +274,20 @@ export function ThreadCard({
       {selected && (
         <>
           <Submit placeholder="Reply…" onSubmit={(t) => store.reply(thread.id, t)} />
+          {sticky && (
+            <div className="paper-swatches" role="group" aria-label="Paper colour">
+              {PAPER_NAMES.map((name, i) => (
+                <button
+                  key={name}
+                  type="button"
+                  className={`swatch paper-${i}`}
+                  aria-label={`${name} paper`}
+                  aria-pressed={paperOf(thread) === i}
+                  onClick={(e) => act(e, () => store.setColor(thread.id, i))}
+                />
+              ))}
+            </div>
+          )}
           <div className="actions">
             {thread.kind !== "sticky" && !thread.resolved && (
               <button
