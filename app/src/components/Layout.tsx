@@ -6,6 +6,7 @@ import { usePage, useContent } from "../content/store";
 import { claudeState, refreshStudy, useStudy } from "../content/study";
 import { isDue } from "../lib/progress";
 import { Capture } from "./Capture";
+import { useEdgeBack } from "./gestures";
 import { Icon } from "./Icon";
 import { Peek, usePeekHost } from "./SidePeek";
 import { Search } from "./Search";
@@ -200,6 +201,8 @@ export function Layout() {
   const { status, error } = useContent();
   usePeekHost();
   const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+  const edgeArrow = useRef<HTMLDivElement>(null);
+  useEdgeBack(edgeArrow, () => ((window.history.state as { idx?: number } | null)?.idx ?? 0) > 0 && navigate(-1));
 
   useEffect(() => {
     setNavOpen(false);
@@ -308,6 +311,9 @@ export function Layout() {
         Capture
       </button>
       {status === "ready" && <Peek />}
+      <div className="edge-back" ref={edgeArrow} aria-hidden="true">
+        <Icon name="back" />
+      </div>
       <Search open={searching} onClose={() => setSearching(false)} />
       {capturing && <Capture onClose={() => setCapturing(false)} />}
     </div>

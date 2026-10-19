@@ -262,6 +262,32 @@ test("on a phone or tablet, tapping a sticky note's text opens it every time", a
   }
 });
 
+test("on a phone, dragging the comments sheet down by its top closes it", async ({ page }) => {
+  test.skip((page.viewportSize()?.width ?? 0) > 700, "Sheets are a phone thing");
+  await page.goto("/notes/P06");
+  await page.locator(".main .bn-editor").waitFor();
+  await page.getByRole("button", { name: /💬/ }).click();
+  const sheet = page.locator(".comments-panel");
+  await expect(sheet).toBeVisible();
+  // A small drag springs back.
+  const grab = (await sheet.locator(".sheet-grab").boundingBox())!;
+  const x = grab.x + grab.width / 2;
+  const y = grab.y + grab.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y + 40, { steps: 8 });
+  await page.waitForTimeout(150);
+  await page.mouse.up();
+  await expect(sheet).toBeVisible();
+  // A long drag closes it.
+  await page.waitForTimeout(400);
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y + 320, { steps: 12 });
+  await page.mouse.up();
+  await expect(sheet).toHaveCount(0);
+});
+
 test("Ask Claude: Claude's reply from the CLI appears in the thread", async ({ page }) => {
   test.skip(!isDesktop(page), "One run is enough for the CLI round trip");
   await page.goto("/notes/P06");

@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { addCapture } from "../content/study";
+import { useSwipeToClose } from "./gestures";
 
 /** Quick capture: jot a thought in your own words; Claude files it into the right note. */
 export function Capture({ onClose }: { onClose: () => void }) {
+  const [sheet, setSheet] = useState<HTMLElement | null>(null);
+  useSwipeToClose(sheet, onClose);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -26,7 +29,8 @@ export function Capture({ onClose }: { onClose: () => void }) {
   return createPortal(
     <>
       <div className="sheet-scrim capture-scrim" onClick={onClose} />
-      <div className="capture" role="dialog" aria-label="Quick capture">
+      <div className="capture" role="dialog" aria-label="Quick capture" ref={setSheet}>
+        <div className="sheet-grab" aria-hidden="true" />
         <div className="capture-head">
           <b>Quick capture</b>
           <span>Claude files it into the right note on its next run.</span>

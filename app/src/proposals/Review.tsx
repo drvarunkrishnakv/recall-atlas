@@ -8,6 +8,7 @@ import { blocksToMarkdown, type Block, type PageDoc } from "../lib/blocks";
 import type { HistoryEntry } from "../lib/cloud-docs";
 import { changedHunks, diffLines } from "../lib/diff";
 import { preview, type Proposal } from "../lib/proposals";
+import { useSwipeToClose } from "../components/gestures";
 
 export function useProposals(collection: Collection, id: string) {
   const path = `/api/proposals/${collection}/${id}`;
@@ -159,13 +160,16 @@ export function ReviewPanel({
   onClose: () => void;
 }) {
   const [tab, setTab] = useState<"pending" | "done">("pending");
+  const [sheet, setSheet] = useState<HTMLElement | null>(null);
+  useSwipeToClose(sheet, onClose);
   const pending = proposals.filter((p) => p.status === "pending");
   const done = proposals.filter((p) => p.status !== "pending").reverse();
   const shown = tab === "pending" ? pending : done;
   return (
     <>
       <div className="sheet-scrim panel-scrim" onClick={onClose} />
-      <aside className="comments-panel review-panel" aria-label="Proposed changes">
+      <aside className="comments-panel review-panel" aria-label="Proposed changes" ref={setSheet}>
+        <div className="sheet-grab" aria-hidden="true" />
         <div className="panel-head">
           <b>Proposed changes</b>
           <button type="button" className="iconbtn" aria-label="Close" onClick={onClose}>
@@ -223,6 +227,8 @@ export function HistoryPanel({
   onClose: () => void;
 }) {
   const [versions, setVersions] = useState<HistoryEntry[] | null>(null);
+  const [sheet, setSheet] = useState<HTMLElement | null>(null);
+  useSwipeToClose(sheet, onClose);
   const [open, setOpen] = useState<string | null>(null);
   const [old, setOld] = useState<PageDoc | null>(null);
   const [busy, setBusy] = useState(false);
@@ -246,7 +252,8 @@ export function HistoryPanel({
   return (
     <>
       <div className="sheet-scrim panel-scrim" onClick={onClose} />
-      <aside className="comments-panel history-panel" aria-label="Version history">
+      <aside className="comments-panel history-panel" aria-label="Version history" ref={setSheet}>
+        <div className="sheet-grab" aria-hidden="true" />
         <div className="panel-head">
           <b>Version history</b>
           <button type="button" className="iconbtn" aria-label="Close" onClick={onClose}>

@@ -8,6 +8,7 @@ import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } fr
 import type { AtlasThreadStore } from "./threadStore";
 import { isWaitingForClaude, type FlagLevel, type StoredThread, type ThreadKind } from "../lib/threads";
 import { AGENTS, AIS, agentOf, bot, isAi } from "../lib/personas";
+import { useSwipeToClose } from "../components/gestures";
 
 export const KIND_INFO: Record<ThreadKind, { label: string; icon: string; hint: string }> = {
   comment: { label: "Comment", icon: "💬", hint: "Closes when you tick ✓" },
@@ -350,6 +351,8 @@ export function Composer({
   onCancel: () => void;
 }) {
   const [kind, setKind] = useState<ThreadKind>("comment");
+  const [sheet, setSheet] = useState<HTMLElement | null>(null);
+  useSwipeToClose(at ? null : sheet, onCancel);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -373,6 +376,7 @@ export function Composer({
     <>
       {!at && <div className="sheet-scrim" onClick={onCancel} />}
       <div
+        ref={setSheet}
         className={`composer${at ? "" : " sheet"}`}
         style={at ? { top: at.top, left: at.left } : undefined}
         role="dialog"
@@ -548,6 +552,8 @@ export function CommentsPanel({
 }) {
   const [filter, setFilter] = useState<Filter>("open");
   const list = useRef<HTMLDivElement>(null);
+  const [sheet, setSheet] = useState<HTMLElement | null>(null);
+  useSwipeToClose(sheet, onClose);
   // The note you tapped glides into view in the list.
   useEffect(() => {
     if (!selectedId) return;
@@ -574,7 +580,8 @@ export function CommentsPanel({
   return (
     <>
       <div className="sheet-scrim panel-scrim" onClick={onClose} />
-      <aside className="comments-panel" aria-label="Comments">
+      <aside className="comments-panel" aria-label="Comments" ref={setSheet}>
+        <div className="sheet-grab" aria-hidden="true" />
         <div className="panel-head">
           <b>Comments</b>
           <button type="button" className="iconbtn" aria-label="Close comments" onClick={onClose}>
