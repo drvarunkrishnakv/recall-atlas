@@ -2,6 +2,7 @@
 // Settings and is kept per device (localStorage); applySavedTheme runs before first paint.
 import { useEffect, useState } from "react";
 import { Icon } from "./Icon";
+import { withFade } from "./nav";
 
 type Mode = "system" | "light" | "dark";
 const MODES: { mode: Mode; label: string; icon: string }[] = [
@@ -30,14 +31,21 @@ export function applySavedTheme() {
 export function ThemeSetting() {
   const [mode, setMode] = useState<Mode>(readMode);
   useEffect(() => {
-    if (mode === "system") document.documentElement.removeAttribute("data-theme");
-    else document.documentElement.setAttribute("data-theme", mode);
+    const root = document.documentElement;
+    const next = mode === "system" ? null : mode;
+    // A soft crossfade between light and dark rather than a snap.
+    // The theme event goes out once the new colours are on, so diagrams redraw in them.
+    if (root.getAttribute("data-theme") !== next)
+      withFade(() => {
+        if (next) root.setAttribute("data-theme", next);
+        else root.removeAttribute("data-theme");
+        window.dispatchEvent(new Event("atlas-theme"));
+      });
     try {
       localStorage.setItem("atlas-theme", mode);
     } catch {
       /* storage blocked: the choice lasts for this visit only */
     }
-    window.dispatchEvent(new Event("atlas-theme"));
   }, [mode]);
   return (
     <div className="segmented" role="radiogroup" aria-label="Theme">

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router";
+import { Outlet, useLocation, useNavigate, useParams } from "react-router";
+import { Link, NavLink } from "./nav";
 import { COMING_SUBJECTS, PAPERS, locateNote, findTopic, subjectStyle } from "../content/syllabus";
 import { usePage, useContent } from "../content/store";
 import { claudeState, refreshStudy, useStudy } from "../content/study";

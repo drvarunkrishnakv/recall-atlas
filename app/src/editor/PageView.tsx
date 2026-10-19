@@ -258,6 +258,8 @@ function PageEditor({ page: initial, latest, inPeek }: { page: Page; latest: Pag
   }>(null);
   const [bubble, setBubble] = useState<null | { top: number; left: number }>(null);
   const [selectedId, setSelectedId] = useState<string | undefined>();
+  // The thread whose card or highlight the mouse is on; the other one lights up.
+  const [hoverId, setHoverId] = useState<string | undefined>();
   const [panel, setPanel] = useState(false);
   const [showMargin, setShowMargin] = useState(true);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -435,6 +437,9 @@ function PageEditor({ page: initial, latest, inPeek }: { page: Page; latest: Pag
           t.kind === "sticky" ? `var(--mark-paper-${paperOf(t.id)})` : `var(--mark-${t.kind})`
         }}`,
     )
+    .concat(
+      hoverId ? [`.bn-thread-mark[data-bn-thread-id="${hoverId}"]{animation:mark-glow 1.4s ease-in-out infinite}`] : [],
+    )
     .join("\n");
 
   // Clicking highlighted text selects its thread (BlockNote tracks this in its store).
@@ -470,7 +475,23 @@ function PageEditor({ page: initial, latest, inPeek }: { page: Page; latest: Pag
       if (isNarrow() || inPeek || !showMargin) setPanel(true);
     };
     root.addEventListener("click", onClick);
-    return () => root.removeEventListener("click", onClick);
+    // Pointing at highlighted text lifts its card in the margin.
+    const markOf = (t: EventTarget | null) =>
+      (t as Element | null)?.closest?.(".bn-thread-mark[data-bn-thread-id]")?.getAttribute("data-bn-thread-id") ??
+      undefined;
+    const onOver = (e: PointerEvent) => {
+      // The margin's cards say for themselves which thread they are.
+      if (e.pointerType !== "mouse" || (e.target as Element | null)?.closest?.(".margin")) return;
+      setHoverId(markOf(e.target));
+    };
+    const onLeave = () => setHoverId(undefined);
+    root.addEventListener("pointerover", onOver);
+    root.addEventListener("pointerleave", onLeave);
+    return () => {
+      root.removeEventListener("click", onClick);
+      root.removeEventListener("pointerover", onOver);
+      root.removeEventListener("pointerleave", onLeave);
+    };
   });
 
   const openComposer = () => {
@@ -875,7 +896,15 @@ function PageEditor({ page: initial, latest, inPeek }: { page: Page; latest: Pag
           <SuggestionMenuController triggerCharacter="@" getItems={async (q) => mentionItems(editor, q, self)} />
         </BlockNoteView>
         {wide && (
-          <CommentMargin threads={threads} store={store} selectedId={selectedId} onSelect={select} root={root} />
+          <CommentMargin
+            threads={threads}
+            store={store}
+            selectedId={selectedId}
+            onSelect={select}
+            root={root}
+            hoverId={hoverId}
+            onHover={setHoverId}
+          />
         )}
       </div>
 

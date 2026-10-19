@@ -422,6 +422,73 @@ a {
   display: none;
 }
 
+/* ---------- Page transitions (View Transitions, where the browser has them) ---------- */
+/* The page glides in while the sidebar stays put; a note's title glides from the list into
+   its heading. Theme switches use a plain crossfade (.vt-fade). */
+.nav {
+  view-transition-name: sidebar;
+}
+.topbar {
+  view-transition-name: topbar;
+}
+.page.doc > h1,
+.page.doc > .title-input {
+  view-transition-name: page-title;
+}
+.peek .page.doc > h1,
+.peek .page.doc > .title-input {
+  view-transition-name: none;
+}
+.morph-title {
+  display: inline-block;
+}
+::view-transition-group(sidebar),
+::view-transition-old(sidebar),
+::view-transition-new(sidebar) {
+  animation: none;
+}
+::view-transition-old(root) {
+  animation: vt-out 0.16s cubic-bezier(0.4, 0, 1, 1) both;
+}
+::view-transition-new(root) {
+  animation: vt-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+::view-transition-group(page-title) {
+  animation-duration: 0.36s;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+:root.vt-fade::view-transition-old(root),
+:root.vt-fade::view-transition-old(sidebar) {
+  animation: vt-out 0.35s ease both;
+}
+:root.vt-fade::view-transition-new(root),
+:root.vt-fade::view-transition-new(sidebar) {
+  animation: vt-fade-in 0.35s ease both;
+}
+@keyframes vt-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes vt-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
 /* ---------- Page ---------- */
 .page {
   max-width: var(--measure);
@@ -1173,7 +1240,14 @@ a.tile:hover {
   position: absolute;
   left: 0;
   right: 0;
-  transition: top 0.15s ease-out;
+  /* Cards glide to their new places when one opens or the text reflows. */
+  transition:
+    top 0.42s cubic-bezier(0.2, 0.8, 0.2, 1),
+    translate 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    rotate 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.2s,
+    border-color 0.2s,
+    scale 0.12s;
 }
 .thread {
   position: relative;
@@ -1187,7 +1261,30 @@ a.tile:hover {
   transition:
     box-shadow 0.15s,
     border-color 0.15s,
-    rotate 0.2s;
+    rotate 0.2s,
+    translate 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
+    scale 0.12s;
+}
+/* Its highlighted text is under the mouse: the card steps forward. */
+.thread.linked {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  box-shadow: var(--shadow);
+  translate: -6px 0;
+}
+.thread.kind-sticky.linked {
+  rotate: 0deg;
+  translate: -6px -2px;
+}
+/* Its card is under the mouse: the highlighted text glows. */
+@keyframes mark-glow {
+  50% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+}
+.bn-thread-mark {
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  border-radius: 3px;
 }
 .thread:hover {
   border-color: color-mix(in srgb, var(--ink) 18%, var(--line));
@@ -1472,7 +1569,8 @@ a.tile:hover {
     rotate 0.3s var(--ease),
     translate 0.3s var(--ease),
     box-shadow 0.3s var(--ease),
-    top 0.15s ease-out;
+    top 0.42s var(--ease),
+    scale 0.12s;
   animation: paper-in 0.4s var(--ease) backwards;
 }
 .thread.kind-sticky.paper-1 {

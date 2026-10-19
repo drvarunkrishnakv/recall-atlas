@@ -4,7 +4,8 @@
 // compared with past papers, each question shows on its story and "What UPSC asked" sums them
 // up. Read-only: Claude imports both with the CLI. Selection lives in the URL (replaced, not pushed).
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from "react";
-import { Link, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
+import { Link } from "../components/nav";
 import { api, getPage } from "../content/store";
 import {
   AREAS,

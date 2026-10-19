@@ -140,6 +140,8 @@ export function ThreadCard({
   onSelect,
   style,
   cardRef,
+  linked = false,
+  onHover,
 }: {
   thread: StoredThread;
   store: AtlasThreadStore;
@@ -147,6 +149,10 @@ export function ThreadCard({
   onSelect: (id: string | undefined) => void;
   style?: React.CSSProperties;
   cardRef?: (el: HTMLDivElement | null) => void;
+  /** Its highlighted text is being pointed at. */
+  linked?: boolean;
+  /** Pointing at the card lights up its highlight in the text. */
+  onHover?: (id: string | undefined) => void;
 }) {
   // A kind this build doesn't know (added by a newer app or server) shows as a plain comment.
   const info = KIND_INFO[thread.kind] ?? KIND_INFO.comment;
@@ -164,11 +170,13 @@ export function ThreadCard({
   return (
     <div
       ref={cardRef}
-      className={`thread kind-${thread.kind}${sticky ? ` paper-${paperOf(thread.id)}` : ""}${selected ? " selected" : ""}${thread.resolved ? " resolved" : ""}`}
+      className={`thread kind-${thread.kind}${sticky ? ` paper-${paperOf(thread.id)}` : ""}${selected ? " selected" : ""}${linked ? " linked" : ""}${thread.resolved ? " resolved" : ""}`}
       style={sticky ? ({ ...style, "--tilt": `${tilt(thread.id)}deg` } as React.CSSProperties) : style}
       data-thread={thread.id}
       aria-label={sticky ? info.label : undefined}
       onClick={() => onSelect(thread.id)}
+      onPointerEnter={(e) => e.pointerType === "mouse" && onHover?.(thread.id)}
+      onPointerLeave={(e) => e.pointerType === "mouse" && onHover?.(undefined)}
     >
       {sticky ? (
         thread.detached && (
@@ -434,12 +442,16 @@ export function CommentMargin({
   selectedId,
   onSelect,
   root,
+  hoverId,
+  onHover,
 }: {
   threads: StoredThread[];
   store: AtlasThreadStore;
   selectedId: string | undefined;
   onSelect: (id: string | undefined) => void;
   root: HTMLElement | null;
+  hoverId?: string;
+  onHover?: (id: string | undefined) => void;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const cards = useRef(new Map<string, HTMLDivElement>());
@@ -501,6 +513,8 @@ export function CommentMargin({
           store={store}
           selected={t.id === selectedId}
           onSelect={onSelect}
+          linked={t.id === hoverId}
+          onHover={onHover}
           cardRef={(el) => {
             const prev = cards.current.get(t.id);
             if (prev && prev !== el) cardResize.current?.unobserve(prev);
@@ -533,6 +547,16 @@ export function CommentsPanel({
   onClose: () => void;
 }) {
   const [filter, setFilter] = useState<Filter>("open");
+  const list = useRef<HTMLDivElement>(null);
+  // The note you tapped glides into view in the list.
+  useEffect(() => {
+    if (!selectedId) return;
+    const el = list.current?.querySelector(`[data-thread="${CSS.escape(selectedId)}"]`);
+    el?.scrollIntoView({
+      behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      block: "nearest",
+    });
+  }, [selectedId, filter]);
   const counts: Record<Filter, StoredThread[]> = {
     open: threads.filter((t) => !t.resolved),
     flags: threads.filter((t) => t.kind === "flag" && !t.resolved),
@@ -564,7 +588,7 @@ export function CommentsPanel({
             </button>
           ))}
         </div>
-        <div className="panel-list">
+        <div className="panel-list" ref={list}>
           {counts[filter].length === 0 && (
             <p className="empty">
               {filter === "open" ? "No open comments. Select text on the page to add one." : "Nothing here."}
