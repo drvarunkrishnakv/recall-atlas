@@ -16,6 +16,7 @@ import { refreshStudy } from "./content/study";
 import { PaperPage, TopicPage, NotePage, CardPage, CardsPage, NotFound } from "./pages";
 import { HomePage, InboxPage, RevisePage, SubjectPage } from "./dashboard";
 import { SettingsPage } from "./settings";
+import { PageSkeleton } from "./components/Skeleton";
 
 applySavedTheme();
 // The cloud build loads notes only after Google sign-in (AuthGate); locally they load at once.
@@ -60,7 +61,7 @@ const router = createBrowserRouter([
       {
         path: "/heat-map",
         element: (
-          <Suspense fallback={<p className="loading">Loading the heat map…</p>}>
+          <Suspense fallback={<PageSkeleton label="Loading the heat map" />}>
             <HeatMapPage />
           </Suspense>
         ),

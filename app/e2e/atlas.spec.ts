@@ -284,6 +284,25 @@ test("a sticky note's paper colour can be picked, and it stays after a reload", 
   await expect(page.locator('.margin .thread[data-thread="paper-pick"]')).toHaveClass(/paper-3/);
 });
 
+test("a thin bar at the top fills as you read down a note", async ({ page }) => {
+  await page.goto("/notes/P06");
+  await page.locator(".main .bn-editor h2").first().waitFor();
+  const fill = () =>
+    page.evaluate(() => {
+      const el = document.querySelector<HTMLElement>(".read-progress > div");
+      return el ? new DOMMatrix(getComputedStyle(el).transform).a : -1;
+    });
+  expect(await fill()).toBe(0);
+  // Scroll to the end (again, if a diagram or chart grows the page meanwhile).
+  await expect
+    .poll(async () => {
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      return fill();
+    })
+    .toBeGreaterThan(0.95);
+  await expect(page.locator(".read-progress")).toHaveCSS("opacity", "1");
+});
+
 test("on a phone, dragging the comments sheet down by its top closes it", async ({ page }) => {
   test.skip((page.viewportSize()?.width ?? 0) > 700, "Sheets are a phone thing");
   await page.goto("/notes/P06");
@@ -291,6 +310,7 @@ test("on a phone, dragging the comments sheet down by its top closes it", async 
   await page.getByRole("button", { name: /💬/ }).click();
   const sheet = page.locator(".comments-panel");
   await expect(sheet).toBeVisible();
+  await sheet.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished))); // risen fully
   // A small drag springs back.
   const grab = (await sheet.locator(".sheet-grab").boundingBox())!;
   const x = grab.x + grab.width / 2;

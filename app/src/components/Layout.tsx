@@ -6,6 +6,7 @@ import { usePage, useContent } from "../content/store";
 import { claudeState, refreshStudy, useStudy } from "../content/study";
 import { isDue } from "../lib/progress";
 import { Capture } from "./Capture";
+import { PageSkeleton } from "./Skeleton";
 import { useEdgeBack } from "./gestures";
 import { Icon } from "./Icon";
 import { Peek, usePeekHost } from "./SidePeek";
@@ -199,6 +200,14 @@ export function Layout() {
   const [searching, setSearching] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const { status, error } = useContent();
+  // The first page fades in where the shimmer was (only then; page changes have their own glide).
+  const [arriving, setArriving] = useState(false);
+  useEffect(() => {
+    if (status !== "ready") return;
+    setArriving(true);
+    const t = window.setTimeout(() => setArriving(false), 700);
+    return () => window.clearTimeout(t);
+  }, [status]);
   usePeekHost();
   const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
   const edgeArrow = useRef<HTMLDivElement>(null);
@@ -265,7 +274,7 @@ export function Layout() {
         />
       </aside>
       <div className="scrim" onClick={() => setNavOpen(false)} />
-      <main className="main">
+      <main className={`main${arriving ? " arriving" : ""}`}>
         <div className="topbar">
           <button
             className="iconbtn menu-btn"
@@ -300,10 +309,12 @@ export function Layout() {
         </div>
         {status === "ready" ? (
           <Outlet />
-        ) : (
+        ) : status === "error" ? (
           <article className="page">
-            <p className="loading">{status === "error" ? `Couldn't load the notes: ${error}` : "Loading notes…"}</p>
+            <p className="loading">Couldn't load the notes: {error}</p>
           </article>
+        ) : (
+          <PageSkeleton label="Loading notes" />
         )}
       </main>
       <button type="button" className="capture-fab" onClick={() => setCapturing(true)}>

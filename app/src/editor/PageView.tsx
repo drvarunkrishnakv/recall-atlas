@@ -45,6 +45,7 @@ import { useResolvedTheme } from "../components/ThemeToggle";
 import { Discuss } from "../discuss/Discuss";
 import { AI_IDS, AIS } from "../lib/personas";
 import { HistoryPanel, ProposalsBar, ReviewPanel, useProposals } from "../proposals/Review";
+import { ReadingProgress } from "../components/ReadingProgress";
 
 const USERS = [
   { id: "me", username: "You", avatarUrl: "" },
@@ -669,6 +670,7 @@ function PageEditor({ page: initial, latest, inPeek }: { page: Page; latest: Pag
   return (
     <article className={`page doc${wide && threads.some((t) => !t.resolved && !t.detached) ? " with-margin" : ""}`}>
       {markCss && <style>{markCss}</style>}
+      {!inPeek && <ReadingProgress target={root} />}
       {proposalCss && <style>{proposalCss}</style>}
       <div className="doc-bar">
         <div className="meta">

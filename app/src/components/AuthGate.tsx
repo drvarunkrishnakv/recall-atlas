@@ -145,7 +145,9 @@ export default function AuthGate({ children }: { children: ReactNode }) {
             </div>
           </>
         ) : (
-          <p className="loading">{gate === "checking" ? "Opening your notes…" : "Starting…"}</p>
+          <p className="loading shimmer-text" role="status">
+            {gate === "checking" ? "Opening your notes…" : "Starting…"}
+          </p>
         )}
         {error && <p className="signin-error">{error}</p>}
       </div>

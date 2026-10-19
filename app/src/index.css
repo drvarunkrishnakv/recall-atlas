@@ -2422,7 +2422,9 @@ kbd {
   overflow: hidden;
   color: var(--ink);
   text-decoration: none;
-  transition: transform 0.12s ease;
+  transition:
+    transform 0.12s ease,
+    scale 0.14s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 a.subject-card:hover {
   transform: translateY(-2px);
@@ -4988,4 +4990,163 @@ span.hm-rl {
 .edge-back svg {
   width: 1.1rem;
   height: 1.1rem;
+}
+
+/* ---------- Press feedback ---------- */
+/* Buttons give a little under a finger or a click, and spring back; cards a little less. */
+:where(
+  .chip-btn,
+  .pill-btn,
+  .iconbtn,
+  .capture-btn,
+  .capture-fab,
+  .more-btn,
+  .search-btn,
+  .signin-btn,
+  .signin-quiet,
+  .side-nav a,
+  .nav-foot a,
+  .segmented button,
+  .chip,
+  .ds-toggle,
+  .note-row,
+  .due-row,
+  .concept-card,
+  .board-card,
+  .inbox-card,
+  .inbox-item
+) {
+  transition:
+    scale 0.14s cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s,
+    color 0.15s;
+}
+:where(
+    .chip-btn,
+    .pill-btn,
+    .iconbtn,
+    .capture-btn,
+    .capture-fab,
+    .more-btn,
+    .search-btn,
+    .signin-btn,
+    .signin-quiet,
+    .side-nav a,
+    .nav-foot a,
+    .segmented button,
+    .chip,
+    .ds-toggle
+  ):active:not(:disabled) {
+  scale: 0.95;
+}
+:where(
+  .subject-card,
+  .note-row,
+  .due-row,
+  .concept-card,
+  .board-card,
+  .inbox-card,
+  .inbox-item,
+  .thread:not(.selected)
+):active {
+  scale: 0.985;
+}
+
+/* ---------- Loading ---------- */
+/* A soft shimmer in the page's shape while notes load; the first page then fades in. */
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.sk {
+  display: block;
+  height: 0.95rem;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    var(--surface) 0%,
+    color-mix(in srgb, var(--surface) 45%, var(--raised)) 50%,
+    var(--surface) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.sk-pills {
+  width: 45%;
+  height: 1.5rem;
+  border-radius: 999px;
+}
+.sk-title {
+  width: 70%;
+  height: 2.4rem;
+  margin: 0.4rem 0 0.6rem;
+}
+.sk-line.short {
+  width: 60%;
+}
+.sk-block {
+  height: 8rem;
+  margin: 0.6rem 0;
+  border-radius: 14px;
+}
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+.shimmer-text {
+  background: linear-gradient(90deg, var(--muted) 0%, var(--ink) 50%, var(--muted) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 1.6s linear infinite;
+}
+.main.arriving > :not(.topbar) {
+  animation: content-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes content-in {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+
+/* ---------- Reading progress ---------- */
+.read-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  height: 3px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.read-progress > div {
+  height: 100%;
+  transform: scaleX(0);
+  transform-origin: left;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(90deg, var(--go), color-mix(in srgb, var(--go) 55%, var(--accent)));
+  transition: transform 0.12s linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk,
+  .shimmer-text {
+    animation: none;
+  }
+  .shimmer-text {
+    color: var(--muted);
+  }
+  .main.arriving > :not(.topbar) {
+    animation: none;
+  }
 }
