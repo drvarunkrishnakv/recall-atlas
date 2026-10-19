@@ -155,11 +155,23 @@ export function ThreadCard({
   /** Pointing at the card lights up its highlight in the text. */
   onHover?: (id: string | undefined) => void;
 }) {
+  if (thread.kind === "sticky")
+    return (
+      <StickyCard
+        thread={thread}
+        store={store}
+        selected={selected}
+        onSelect={onSelect}
+        style={style}
+        cardRef={cardRef}
+        linked={linked}
+        onHover={onHover}
+      />
+    );
   // A kind this build doesn't know (added by a newer app or server) shows as a plain comment.
   const info = KIND_INFO[thread.kind] ?? KIND_INFO.comment;
   const waiting = isWaitingForClaude(thread);
-  const sticky = thread.kind === "sticky";
-  const full = selected || sticky;
+  const full = selected;
   const [first, ...replies] = thread.comments;
   const shownReplies = full ? replies : [];
   const more = replies.length - shownReplies.length;
@@ -171,56 +183,40 @@ export function ThreadCard({
   return (
     <div
       ref={cardRef}
-      className={`thread kind-${thread.kind}${sticky ? ` paper-${paperOf(thread)}` : ""}${selected ? " selected" : ""}${linked ? " linked" : ""}${thread.resolved ? " resolved" : ""}`}
-      style={sticky ? ({ ...style, "--tilt": `${tilt(thread.id)}deg` } as React.CSSProperties) : style}
+      className={`thread kind-${thread.kind}${selected ? " selected" : ""}${linked ? " linked" : ""}${thread.resolved ? " resolved" : ""}`}
+      style={style}
       data-thread={thread.id}
-      aria-label={sticky ? info.label : undefined}
       onClick={() => onSelect(thread.id)}
       onPointerEnter={(e) => e.pointerType === "mouse" && onHover?.(thread.id)}
       onPointerLeave={(e) => e.pointerType === "mouse" && onHover?.(undefined)}
     >
-      {sticky ? (
-        thread.detached && (
-          <div className="paper-head">
-            <span className="badge muted">Text removed</span>
-          </div>
-        )
-      ) : (
-        <div className="thread-head">
-          {first && <Avatar userId={first.userId} />}
-          <span className="th-who">{first ? who(thread, first.userId) : info.label}</span>
-          {first && <time>{when(first.createdAt)}</time>}
-          <span className="th-tags">
-            {thread.flag ? (
-              <>
-                <span className="badge th-kind">{info.label}</span>
-                <span className={`badge level ${thread.flag.level}`}>
-                  <span aria-hidden>{STAMP[thread.flag.level]}</span> {LEVEL[thread.flag.level]}
-                </span>
-              </>
-            ) : (
-              thread.kind !== "comment" && (
-                <span className="badge th-kind">
-                  {info.icon} {info.label}
-                </span>
-              )
-            )}
-            {thread.resolved && <span className="badge muted">Resolved</span>}
-            {thread.detached && <span className="badge muted">Text removed</span>}
-          </span>
-        </div>
-      )}
+      <div className="thread-head">
+        {first && <Avatar userId={first.userId} />}
+        <span className="th-who">{first ? who(thread, first.userId) : info.label}</span>
+        {first && <time>{when(first.createdAt)}</time>}
+        <span className="th-tags">
+          {thread.flag ? (
+            <>
+              <span className="badge th-kind">{info.label}</span>
+              <span className={`badge level ${thread.flag.level}`}>
+                <span aria-hidden>{STAMP[thread.flag.level]}</span> {LEVEL[thread.flag.level]}
+              </span>
+            </>
+          ) : (
+            thread.kind !== "comment" && (
+              <span className="badge th-kind">
+                {info.icon} {info.label}
+              </span>
+            )
+          )}
+          {thread.resolved && <span className="badge muted">Resolved</span>}
+          {thread.detached && <span className="badge muted">Text removed</span>}
+        </span>
+      </div>
       {thread.anchor.quote && <blockquote className="quote">{thread.anchor.quote}</blockquote>}
       {first && (
         <div className={`comment first by-${first.userId}`}>
           <div className="text">{first.body}</div>
-          {sticky && (
-            <div className="paper-foot">
-              <Avatar userId={first.userId} size={18} />
-              <span>{who(thread, first.userId)}</span>
-              <time>{when(first.createdAt)}</time>
-            </div>
-          )}
           {thread.flag && thread.flag.sources.length > 0 && (
             <div className="flag-srcs">
               {thread.flag.sources.map((s, j) => (
@@ -274,22 +270,8 @@ export function ThreadCard({
       {selected && (
         <>
           <Submit placeholder="Reply…" onSubmit={(t) => store.reply(thread.id, t)} />
-          {sticky && (
-            <div className="paper-swatches" role="group" aria-label="Paper colour">
-              {PAPER_NAMES.map((name, i) => (
-                <button
-                  key={name}
-                  type="button"
-                  className={`swatch paper-${i}`}
-                  aria-label={`${name} paper`}
-                  aria-pressed={paperOf(thread) === i}
-                  onClick={(e) => act(e, () => store.setColor(thread.id, i))}
-                />
-              ))}
-            </div>
-          )}
           <div className="actions">
-            {thread.kind !== "sticky" && !thread.resolved && (
+            {!thread.resolved && (
               <button
                 type="button"
                 className="chip-btn"
@@ -307,23 +289,13 @@ export function ThreadCard({
                 Reopen
               </button>
             )}
-            {thread.kind !== "sticky" ? (
-              <button
-                type="button"
-                className="chip-btn"
-                onClick={(e) => act(e, () => store.setKind(thread.id, "sticky"))}
-              >
-                📌 Pin as sticky
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="chip-btn"
-                onClick={(e) => act(e, () => store.setKind(thread.id, "comment"))}
-              >
-                Unpin
-              </button>
-            )}
+            <button
+              type="button"
+              className="chip-btn"
+              onClick={(e) => act(e, () => store.setKind(thread.id, "sticky"))}
+            >
+              📌 Pin as sticky
+            </button>
             {thread.kind === "comment" && (
               <button
                 type="button"
@@ -347,6 +319,213 @@ export function ThreadCard({
             </button>
           </div>
         </>
+      )}
+    </div>
+  );
+}
+
+/** A sticky note: just a heading (the words it's pinned to) and its text. Everything else
+ *  (colour, who wrote it and when, replies, Edit, Reply, Unpin, Delete) sits behind its ⋯ button. */
+function StickyCard({
+  thread,
+  store,
+  selected,
+  onSelect,
+  style,
+  cardRef,
+  linked,
+  onHover,
+}: {
+  thread: StoredThread;
+  store: AtlasThreadStore;
+  selected: boolean;
+  onSelect: (id: string | undefined) => void;
+  style?: React.CSSProperties;
+  cardRef?: (el: HTMLDivElement | null) => void;
+  linked: boolean;
+  onHover?: (id: string | undefined) => void;
+}) {
+  const [menu, setMenu] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [replying, setReplying] = useState(false);
+  const [draft, setDraft] = useState("");
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [first, ...replies] = thread.comments;
+
+  // The menu closes on a click elsewhere or Escape.
+  useEffect(() => {
+    if (!menu) return;
+    const away = (e: PointerEvent) => {
+      if (!menuRef.current?.contains(e.target as Node) && !(e.target as Element).closest?.(".paper-more"))
+        setMenu(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setMenu(false);
+    document.addEventListener("pointerdown", away);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("pointerdown", away);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [menu]);
+
+  const act = (e: React.MouseEvent, fn: () => Promise<unknown>) => {
+    e.stopPropagation();
+    void fn();
+  };
+  const startEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDraft(first?.body ?? "");
+    setEditing(true);
+    setMenu(false);
+  };
+  const saveEdit = async () => {
+    const text = draft.trim();
+    if (first && text && text !== first.body) await store.edit(thread.id, first.id, text);
+    setEditing(false);
+  };
+
+  return (
+    <div
+      ref={cardRef}
+      className={`thread kind-sticky paper-${paperOf(thread)}${selected ? " selected" : ""}${linked ? " linked" : ""}${menu ? " menu-open" : ""}`}
+      style={{ ...style, "--tilt": `${tilt(thread.id)}deg` } as React.CSSProperties}
+      data-thread={thread.id}
+      aria-label="Sticky note"
+      onClick={() => onSelect(thread.id)}
+      onPointerEnter={(e) => e.pointerType === "mouse" && onHover?.(thread.id)}
+      onPointerLeave={(e) => e.pointerType === "mouse" && onHover?.(undefined)}
+    >
+      <button
+        type="button"
+        className="paper-more"
+        aria-label="Sticky note options"
+        aria-expanded={menu}
+        onClick={(e) => {
+          e.stopPropagation();
+          setMenu((v) => !v);
+        }}
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="5" cy="12" r="1.8" />
+          <circle cx="12" cy="12" r="1.8" />
+          <circle cx="19" cy="12" r="1.8" />
+        </svg>
+      </button>
+      {thread.anchor.quote && <div className="paper-title">{thread.anchor.quote}</div>}
+      {editing ? (
+        <div className="paper-edit" onClick={(e) => e.stopPropagation()}>
+          <textarea
+            autoFocus
+            rows={3}
+            value={draft}
+            aria-label="Sticky note text"
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void saveEdit();
+              if (e.key === "Escape") setEditing(false);
+            }}
+          />
+          <div className="row">
+            <button type="button" className="chip-btn primary" disabled={!draft.trim()} onClick={() => void saveEdit()}>
+              Save
+            </button>
+            <button type="button" className="chip-btn" onClick={() => setEditing(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        first && <div className="paper-text">{first.body}</div>
+      )}
+
+      {menu && (
+        <div
+          className="paper-menu"
+          ref={menuRef}
+          role="dialog"
+          aria-label="Sticky note options"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="paper-swatches" role="group" aria-label="Paper colour">
+            {PAPER_NAMES.map((name, i) => (
+              <button
+                key={name}
+                type="button"
+                className={`swatch paper-${i}`}
+                aria-label={`${name} paper`}
+                aria-pressed={paperOf(thread) === i}
+                onClick={(e) => act(e, () => store.setColor(thread.id, i))}
+              />
+            ))}
+          </div>
+          {first && (
+            <div className="paper-meta">
+              <Avatar userId={first.userId} size={18} />
+              <span>
+                {who(thread, first.userId)} · <time>{when(first.createdAt)}</time>
+              </span>
+            </div>
+          )}
+          {thread.detached && <p className="paper-meta muted">The words it was pinned to are gone from the page.</p>}
+          {replies.length > 0 && (
+            <div className="th-replies">
+              {replies.map((c) => (
+                <div key={c.id} className={`comment by-${c.userId}`}>
+                  <div className="who">
+                    <Avatar userId={c.userId} size={16} />
+                    {who(thread, c.userId)} <time>{when(c.createdAt)}</time>
+                  </div>
+                  <div className="text">{c.body}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          {replying && (
+            <Submit
+              autoFocus
+              placeholder="Reply…"
+              onSubmit={async (t) => {
+                await store.reply(thread.id, t);
+                setReplying(false);
+              }}
+            />
+          )}
+          <div className="paper-actions">
+            <button type="button" className="paper-act" onClick={startEdit}>
+              Edit
+            </button>
+            <button
+              type="button"
+              className="paper-act"
+              aria-pressed={replying}
+              onClick={(e) => {
+                e.stopPropagation();
+                setReplying((v) => !v);
+              }}
+            >
+              Reply
+            </button>
+            <button
+              type="button"
+              className="paper-act"
+              onClick={(e) => act(e, () => store.setKind(thread.id, "comment"))}
+            >
+              Unpin
+            </button>
+            <button
+              type="button"
+              className="paper-act danger"
+              onClick={(e) =>
+                act(e, async () => {
+                  await store.deleteThread({ threadId: thread.id });
+                  onSelect(undefined);
+                })
+              }
+            >
+              Delete
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

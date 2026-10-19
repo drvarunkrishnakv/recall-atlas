@@ -262,7 +262,7 @@ test("on a phone or tablet, tapping a sticky note's text opens it every time", a
   }
 });
 
-test("a sticky note's paper colour can be picked, and it stays after a reload", async ({ page }) => {
+test("a sticky note shows only its heading and text; ⋯ holds colour, edit and the rest", async ({ page }) => {
   test.skip(!isDesktop(page), "Once is enough");
   const r = await page.request.post("/api/comments/notes/P06", {
     headers: { "X-Atlas": "1" },
@@ -276,12 +276,26 @@ test("a sticky note's paper colour can be picked, and it stays after a reload", 
   expect(r.ok()).toBe(true);
   await page.goto("/notes/P06");
   const card = page.locator('.margin .thread[data-thread="paper-pick"]');
+  await expect(card.locator(".paper-title")).toHaveText("Second row");
+  await expect(card.locator(".paper-text")).toHaveText("Pick my colour");
+  // Nothing else on the face, even when it's opened.
   await card.click();
+  for (const name of ["Mint paper", "Edit", "Unpin", "Delete"])
+    await expect(card.getByRole("button", { name })).toHaveCount(0);
+  await card.getByRole("button", { name: "Sticky note options" }).click();
+  await expect(card.getByText("You ·")).toBeVisible();
   await card.getByRole("button", { name: "Mint paper" }).click();
   await expect(card).toHaveClass(/paper-3/);
   await expect(card.getByRole("button", { name: "Mint paper" })).toHaveAttribute("aria-pressed", "true");
+  // Edit the text in place.
+  await card.getByRole("button", { name: "Edit" }).click();
+  await card.getByRole("textbox", { name: "Sticky note text" }).fill("Picked mint");
+  await card.getByRole("button", { name: "Save" }).click();
+  await expect(card.locator(".paper-text")).toHaveText("Picked mint");
   await page.reload();
-  await expect(page.locator('.margin .thread[data-thread="paper-pick"]')).toHaveClass(/paper-3/);
+  const again = page.locator('.margin .thread[data-thread="paper-pick"]');
+  await expect(again).toHaveClass(/paper-3/);
+  await expect(again.locator(".paper-text")).toHaveText("Picked mint");
 });
 
 test("a thin bar at the top fills as you read down a note", async ({ page }) => {

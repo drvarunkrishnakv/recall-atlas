@@ -72,6 +72,7 @@ export class AtlasThreadStore extends ThreadStore {
     this.send({ op: "reply", threadId, comment: { id: uid(), body }, by: "me" });
   setKind = (threadId: string, kind: ThreadKind) => this.send({ op: "kind", threadId, kind });
   setColor = (threadId: string, color: number) => this.send({ op: "color", threadId, color });
+  edit = (threadId: string, commentId: string, body: string) => this.send({ op: "edit", threadId, commentId, body });
   syncAnchors = (anchors: Record<string, Anchor | null>) => this.send({ op: "anchors", anchors });
 
   // --- BlockNote ThreadStore interface ---

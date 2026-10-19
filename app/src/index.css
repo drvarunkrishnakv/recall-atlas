@@ -1622,7 +1622,7 @@ a.tile:hover {
     rotate: calc(var(--tilt, 0deg) - 5deg);
   }
 }
-/* Picking a paper: six round swatches on an open sticky note. */
+/* Picking a paper: six round swatches in the sticky note's menu. */
 .paper-swatches {
   display: flex;
   gap: 0.4rem;
@@ -1666,57 +1666,167 @@ a.tile:hover {
 .swatch.paper-5 {
   --paper: var(--paper-5);
 }
-.paper-head {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin-bottom: 0.35rem;
+/* The face of a sticky note: a heading (the words it's pinned to) and the text. */
+.paper-title {
+  margin: 0 1.6rem 0.3rem 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  opacity: 0.65;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
-.thread.kind-sticky .badge {
-  color: var(--paper-ink);
-  background: rgba(255, 255, 255, 0.35);
-}
-.thread.kind-sticky .quote {
-  background: rgba(255, 255, 255, 0.38);
-  border-left: 0;
-  color: var(--paper-ink);
-  opacity: 0.85;
-}
-.thread.kind-sticky .comment .text {
+.paper-text {
   font-family: "Shantell Sans", var(--f-text);
   font-weight: 600;
   font-size: 1.04rem;
   line-height: 1.38;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding-right: 0.6rem;
 }
-.paper-foot {
+/* ⋯ in the corner opens the rest. */
+.paper-more {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--paper-ink);
+  opacity: 0.5;
+  cursor: pointer;
+  transition:
+    opacity 0.15s,
+    background-color 0.15s,
+    scale 0.14s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.paper-more svg {
+  width: 1rem;
+  height: 1rem;
+  fill: currentColor;
+}
+.thread.kind-sticky:hover .paper-more,
+.paper-more[aria-expanded="true"],
+.paper-more:focus-visible {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.08);
+}
+.paper-more:active {
+  scale: 0.9;
+}
+.thread.kind-sticky.menu-open {
+  z-index: 6;
+  rotate: 0deg;
+}
+.paper-menu {
+  position: absolute;
+  z-index: 7;
+  /* Just below the note, so the note stays readable while the menu is open. */
+  top: calc(100% + 0.4rem);
+  right: 0;
+  width: min(17rem, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--raised);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  font-size: 0.82rem;
+  cursor: default;
+  transform-origin: top right;
+  animation: menu-in 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    scale: 0.94;
+  }
+}
+.paper-menu .paper-swatches {
+  margin-top: 0;
+}
+.paper-meta {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  margin-top: 0.65rem;
-  padding-right: 1.4rem;
-  font-size: 0.74rem;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+.paper-meta .ds-orb {
+  flex: none;
+}
+.paper-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.3rem;
+}
+.paper-act {
+  min-height: 2rem;
+  padding: 0 0.3rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    scale 0.14s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.paper-act:hover,
+.paper-act[aria-pressed="true"] {
+  background: var(--surface);
+}
+.paper-act:active {
+  scale: 0.95;
+}
+.paper-act.danger {
+  color: var(--danger);
+}
+.paper-menu .reply textarea {
+  width: 100%;
+}
+.paper-edit textarea {
+  width: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  padding: 0.45rem 0.55rem;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--paper-ink);
+  font-family: "Shantell Sans", var(--f-text);
   font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.35;
+  resize: vertical;
 }
-.paper-foot time {
-  font-weight: 500;
-  opacity: 0.7;
+.paper-edit .row {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
 }
-.thread.kind-sticky .comment .who,
-.thread.kind-sticky .comment .who time {
-  color: var(--paper-ink);
-  opacity: 0.75;
-}
-.thread.kind-sticky .th-replies {
-  border-left-color: rgba(0, 0, 0, 0.18);
-}
-.thread.kind-sticky .reply textarea {
-  background: rgba(255, 255, 255, 0.55);
+.paper-edit .chip-btn {
+  background: rgba(255, 255, 255, 0.6);
+  border-color: rgba(0, 0, 0, 0.15);
   color: var(--paper-ink);
 }
-.thread.kind-sticky .chip-btn {
-  background: rgba(255, 255, 255, 0.5);
-  border-color: rgba(0, 0, 0, 0.12);
-  color: var(--paper-ink);
+/* In the phone sheet's list the menu sits inside the note instead of floating over it. */
+.panel-list .paper-menu {
+  position: static;
+  width: auto;
+  margin-top: 0.6rem;
+  box-shadow: none;
 }
 @media (prefers-reduced-motion: reduce) {
   .thread.kind-sticky {
