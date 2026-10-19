@@ -2,8 +2,11 @@
 
 ## Reader polish: sticky notes, sidebar, speed — 2026-10-19
 
-- **Branch:** `claude/reader-polish`, from `main` (b3a030b), five commits. Assisting tool:
-  Claude Code. PR #43 (handoff note) also edits the top of this file.
+- **Branch:** `claude/reader-polish`, from `main` (b3a030b). Assisting tool: Claude Code.
+  **Merged** as PR #44 (be1b68b) and **deployed** to Hosting on 19 Oct (with the user's
+  go-ahead; no rule change); the preview channel was cloned from live. Checked signed in on
+  the live site: the new build loads, sticky notes use the marker hand, the progress bar and
+  sidebar button show, a diagram draws, and the kept copy for the instant start is saved.
 - **Sticky notes reopen on touch:** on phones and tablets a highlight opened its note once, and a
   second tap did nothing (BlockNote reacts only when the caret moves into a highlight). A tap on
   any highlight now opens its thread, and closing the panel lets go of it. New e2e test (iPad,
@@ -41,8 +44,10 @@
   skips (installed Chrome, internal-disk copy; new tests: tap a sticky twice, fold the sidebar,
   pick a paper colour, drag a sheet closed, the progress bar). The edge swipe needs the
   home-screen app, so it was not tested. Screenshots (fixture): `docs/design/reader-polish/`.
-- **Next:** the user reviews the PR. Deploying waits for their go-ahead. Grok Bot's key needs
-  fixing in Grok's connector settings (above).
+- **Next:** Grok Bot needs a new key in its connector (`atlas mcp-key add grok`, then revoke
+  `d99d2d20`) and the new routine prompt; the user is doing this. Hosting serves app routes
+  (`/`, `/notes/…`) with a one-hour cache, so a browser can show the old app for up to an hour
+  after a deploy; a `no-cache` header for those routes would fix it (not done).
 
 ## Heat map vs the 2025 and 2026 papers — 2026-10-18
 
