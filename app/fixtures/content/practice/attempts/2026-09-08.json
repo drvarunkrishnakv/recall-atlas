@@ -1,0 +1,46 @@
+{
+  "attempts": [
+    {
+      "id": "fx11-2026-09-08-gh-1",
+      "itemId": "gh-1",
+      "bank": "fixture-hills",
+      "kind": "mcq",
+      "at": "2026-09-08T09:00:00.000Z",
+      "ms": 80000,
+      "mode": "practice",
+      "correct": true,
+      "grade": "good",
+      "sure": true,
+      "chosen": 1,
+      "delta": 8
+    },
+    {
+      "id": "fx11-2026-09-08-gh-2",
+      "itemId": "gh-2",
+      "bank": "fixture-hills",
+      "kind": "mcq",
+      "at": "2026-09-08T09:02:00.000Z",
+      "ms": 95000,
+      "mode": "practice",
+      "correct": false,
+      "grade": "mixed",
+      "sure": false,
+      "chosen": 1,
+      "delta": -4
+    },
+    {
+      "id": "fx11-2026-09-08-fx-3",
+      "itemId": "fx-3",
+      "bank": "fixture-sample",
+      "kind": "mcq",
+      "at": "2026-09-08T09:04:00.000Z",
+      "ms": 70000,
+      "mode": "practice",
+      "correct": true,
+      "grade": "good",
+      "sure": true,
+      "chosen": 1,
+      "delta": 8
+    }
+  ]
+}

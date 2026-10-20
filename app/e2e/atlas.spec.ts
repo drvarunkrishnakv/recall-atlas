@@ -680,9 +680,10 @@ test("a Prelims session: statement marks pick the option, the answer shows, and 
 }) => {
   await page.goto("/prelims");
   await expect(page.getByRole("link", { name: /Practise now/ })).toBeVisible();
-  // The unverified PYQ in the fixture is never served.
-  await expect(page.getByText(/^3 questions ready/)).toBeVisible();
-  await expect(page.getByRole("link", { name: /Sample topic/ })).toBeVisible();
+  // The unverified PYQ in the fixture is never served (3 sample questions + M11's 10 in Sample geography).
+  await expect(page.getByText(/^13 questions ready/)).toBeVisible();
+  // M11's home shows subject tiles rather than every topic.
+  await expect(page.getByRole("link", { name: /Sample subject/ })).toBeVisible();
   await noSideScroll(page);
 
   await page.goto("/prelims/session?items=fx-1,fx-2&mode=practice");

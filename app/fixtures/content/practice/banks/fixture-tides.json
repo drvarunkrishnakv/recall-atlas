@@ -1,0 +1,70 @@
+{
+  "id": "fixture-tides",
+  "subject": "Sample geography",
+  "topic": "Sample tides",
+  "items": [
+    {
+      "id": "gt-1",
+      "bank": "fixture-tides",
+      "topic": "Sample tides",
+      "microtheme": "Sample currents",
+      "kind": "mcq",
+      "source": {
+        "type": "pyq",
+        "year": 2016,
+        "paper": "GS1",
+        "keyVerified": true
+      },
+      "stem": "Which sample current warms the sample coast?",
+      "options": [
+        "Warm Drift",
+        "Cold Drift",
+        "Mid Drift",
+        "No drift"
+      ],
+      "answer": 0
+    },
+    {
+      "id": "gt-2",
+      "bank": "fixture-tides",
+      "topic": "Sample tides",
+      "microtheme": "Sample currents",
+      "kind": "mcq",
+      "source": {
+        "type": "pyq",
+        "year": 2021,
+        "paper": "GS1",
+        "keyVerified": true
+      },
+      "stem": "Towards which sample pole does the made-up Cold Drift flow?",
+      "options": [
+        "North",
+        "South",
+        "East",
+        "West"
+      ],
+      "answer": 1
+    },
+    {
+      "id": "gt-3",
+      "bank": "fixture-tides",
+      "topic": "Sample tides",
+      "microtheme": "Sample tides",
+      "kind": "mcq",
+      "source": {
+        "type": "pyq",
+        "year": 2025,
+        "paper": "GS1",
+        "keyVerified": true
+      },
+      "stem": "How many sample tides reach the sample bay each day?",
+      "options": [
+        "One",
+        "Two",
+        "Three",
+        "Four"
+      ],
+      "answer": 1
+    }
+  ]
+}
