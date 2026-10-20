@@ -59,6 +59,9 @@ export function bookOrder(banks: Bank[]): Bank[] {
 export function subjectsOf(banks: Bank[]): SubjectInfo[] {
   const by = new Map<string, Bank[]>();
   for (const b of banks) {
+    // Topic rows are for MCQs and flashcards; puzzle-only banks (M10's "True or false") are played
+    // from Puzzles, not studied by topic.
+    if (!b.items.some((i) => i.kind !== "puzzle")) continue;
     const slug = subjectSlug(b.subject);
     by.set(slug, [...(by.get(slug) ?? []), b]);
   }

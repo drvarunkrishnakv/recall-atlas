@@ -219,7 +219,9 @@ export function weeksSince(attempts: Attempt[], now: Date): number {
 
 // ---------- Prelims PYQs and where the marks are ----------
 
-const isPyq = (i: Item) => i.source.type === "pyq" && i.source.paper === "GS1";
+// Only the questions themselves: M10's true-or-false puzzles are cut from PYQ statements and
+// carry a PYQ source, but they aren't extra questions Prelims asked.
+const isPyq = (i: Item) => i.kind === "mcq" && i.source.type === "pyq" && i.source.paper === "GS1";
 
 /** How often Prelims asked a set of items: GS paper PYQs (checked key or not) and the last year asked. */
 export function pyqStats(items: Item[]): { count: number; lastYear?: number } {

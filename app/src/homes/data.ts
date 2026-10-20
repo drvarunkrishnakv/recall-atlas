@@ -149,7 +149,10 @@ export function parseWeek(raw: unknown): WeekNote | null {
                 text: String(l.text ?? l.line),
                 evidence: typeof (l.evidence ?? l.section) === "string" ? String(l.evidence ?? l.section) : undefined,
                 ...(isObj(l.evidence) && typeof l.evidence.route === "string"
-                  ? { route: l.evidence.route, label: typeof l.evidence.label === "string" ? l.evidence.label : undefined }
+                  ? {
+                      route: l.evidence.route,
+                      label: typeof l.evidence.label === "string" ? l.evidence.label : undefined,
+                    }
                   : {}),
               }
             : null,

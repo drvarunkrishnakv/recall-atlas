@@ -85,14 +85,19 @@ describe("the nightly engine's lessons and weekly note (optional)", () => {
 
   it("reads the shapes M9 actually sends: {days, latest} and {weeks, latest}", () => {
     expect(
-      parseLessons({ days: [{ day: "2026-10-20", written: "x", cards: [{ id: "a" }, { id: "b" }], quiz: 5 }], latest: null }),
+      parseLessons({
+        days: [{ day: "2026-10-20", written: "x", cards: [{ id: "a" }, { id: "b" }], quiz: 5 }],
+        latest: null,
+      }),
     ).toEqual([{ day: "2026-10-20", concepts: 2, quiz: 5 }]);
     const week = parseWeek({
       weeks: ["2026-W43"],
       latest: {
         week: "2026-W43",
         written: "x",
-        lines: [{ text: "Calibration slipped.", evidence: { route: "/prelims/analytics#calibration", label: "Calibration" } }],
+        lines: [
+          { text: "Calibration slipped.", evidence: { route: "/prelims/analytics#calibration", label: "Calibration" } },
+        ],
       },
     });
     expect(week).toEqual({
