@@ -144,11 +144,27 @@ DECISIONS (2026-10-20).
   drawer), and both analytics screens (the week's story).
 - **Done when** every number on them comes from the attempt log or the notes.
 
-### M12 · The rest of Mains
+### M12 · The rest of Mains (built on `claude/m12-mains-rest`, 2026-10-21)
 
 - Essay, Ethics case studies and Medical Science (table + drawer each), and the Board versions
   of the Mains Notes table and the Claude inbox.
 - **Done when** each screen works at all three sizes in light and dark.
+- **Built:**
+  - Essay (`/mains/essay`): topic table and decode drawer behind a "try it yourself first" gate;
+    the 20-minute outline sprint (saved, checked for angles, the other side and a closing); the
+    full essay (1 h 30) and full paper (3 h, time plan) timers, ending with the Write flow's link.
+  - Ethics (`/mains/ethics`): case table and drawer, Claude's cases labelled; the six-step bench
+    with Do / Weak / Never and "Compare with mine" after your own attempt at each step.
+  - Medical Science (`/mains/medical`): 65 lines from the CSE 2026 notification under Paper I and
+    II, your rating, PYQs per line (2014–2026), key diagrams with a 3-minute drill, and Claude's
+    checked notes on dated syllabus wording.
+  - Mains Notes (`/mains/notes`): paper switch, subject tabs, every planned note with PYQs, your
+    answers, written or not, and a Claude column; a drawer per note.
+  - The Claude inbox in the Board look: "Needs you" and "For your information", a drawer per item,
+    and Verify, then add / Edit / Reject / Add it now, marked unverified on proposals.
+- **Not yet:** UPSC's Ethics case studies and the 2013–2023 essay papers aren't loaded; "source
+  waiting" for unwritten notes needs the feed to record matched sources (today it counts pending
+  proposals on written notes).
 
 ### Routes and data for M8–M12
 

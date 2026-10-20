@@ -20,8 +20,9 @@
 //   node cli/atlas.ts proposals [--all]             proposed changes waiting for the user (--all: every status)
 //   node cli/atlas.ts propose notes/P10 <edit|add|row|check> --block <id> --source "Label|url[|YYYY-MM-DD]"
 //        --reason "…" [--find "…" --replace "…"] [--text "…"] [--cells "a|b|c"] [--type paragraph]
-//        [--flag <thread>] [--feed <article-id>] [--secondary]
+//        [--flag <thread>] [--feed <article-id>] [--secondary] [--confidence high|medium|low]
 //   node cli/atlas.ts approve <proposal-id> | reject <proposal-id>   only when the user said so in chat
+//        (or pressed "Verify, then add" in the inbox and the primary source matches)
 //   node cli/atlas.ts history notes/P10             past versions;  restore notes/P10 <version-id>
 //   node cli/atlas.ts import <content-dir> [--force]  copy a content folder into Firestore (once, at the switch)
 //   node cli/atlas.ts export <content-dir>           write Firestore out as files: the notes repo's mirror
@@ -35,6 +36,10 @@
 //   node cli/atlas.ts practice-import <banks.json> [--replace]   load practice banks ({banks: Bank[]}),
 //                                                    each checked first; --replace drops banks not in the file
 //   node cli/atlas.ts attempts [--days 7]            recent attempts with grades, for the nightly lesson
+//   node cli/atlas.ts mains-extra                    Essay, Ethics and Medical Science: what's loaded and done
+//   node cli/atlas.ts mains-extra-import <file.json> [--replace]   load {essay, ethics, medical}, each
+//                                                    record checked first (cli/mains-extra.ts)
+//   node cli/atlas.ts mains-extra-work [essay|ethics|medical]   your outlines, bench attempts, ratings, drills
 //   node cli/atlas.ts owner [uid|email] [--remove]   list accounts, or mark the one that may open the app
 //   node cli/atlas.ts mcp-key add <grok|gemini|chatgpt> ["label"]   a key for one AI (shown once)
 //   node cli/atlas.ts mcp-key list | revoke <id>      the MCP server's keys
@@ -364,6 +369,12 @@ switch (cmd) {
         console.log(
           `${what}\n  Why: ${p.reason}\n  Source: ${p.source.label} ${p.source.url}${p.note ? `\n  Note: ${p.note}` : ""}`,
         );
+        // From the inbox (M12): the user asked for the primary-source check, then approval.
+        if (p.status === "pending" && p.verifyRequested)
+          console.log(
+            `  VERIFY, THEN ADD (asked ${p.verifyRequested.slice(0, 10)}${p.revised ? ", in the user's wording" : ""}): ` +
+              `check it against the primary source; if it matches, approve it; if not, reply why and leave it.`,
+          );
       }
     if (!n) console.log("No proposals waiting.");
     break;
@@ -396,6 +407,7 @@ switch (cmd) {
         reason: opt("reason") ?? "",
         origin: flag ? `flag:${flag}` : feed ? `feed:${feed}` : "claude",
         verification: args.includes("--secondary") ? "secondary" : "primary",
+        confidence: opt("confidence") as "high" | "medium" | "low" | undefined,
       },
     });
     // Check now that it would apply, so a bad proposal never reaches the user.
@@ -573,6 +585,14 @@ switch (cmd) {
         );
       }
     }
+    break;
+  }
+
+  case "mains-extra":
+  case "mains-extra-import":
+  case "mains-extra-work": {
+    const { mainsExtraCommand } = await import("./mains-extra.ts");
+    await mainsExtraCommand(db, cmd, args, fail);
     break;
   }
 

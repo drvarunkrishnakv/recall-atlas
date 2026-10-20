@@ -33,6 +33,7 @@ import { applyCaptureOp, applyProgressOp, type Capture, type Progress } from "..
 import type { Comparison, HeatMap } from "../src/lib/heatmap.ts";
 import { applyAttemptOp, attemptsDocId, validateBank, type Attempt, type Bank } from "../src/lib/practice.ts";
 import type { Backend } from "./backend.ts";
+import { mainsExtraFirestore } from "./mains-extra-firestore.ts";
 
 export const KEY_PATH = join(homedir(), ".config", "mains-atlas", "service-account.json");
 
@@ -212,6 +213,7 @@ export function firestoreBackend(db: Firestore = getFirestore(adminApp())): Back
           applyAttemptOp(v, op),
         )
       ).attempts,
+    mainsExtra: mainsExtraFirestore(db),
     async restoreAll(data) {
       // Small batches: a long page is close to a megabyte on its own.
       const writes: [DocumentReference, Record<string, unknown>][] = [];
