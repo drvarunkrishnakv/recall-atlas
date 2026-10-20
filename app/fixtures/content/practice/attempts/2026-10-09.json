@@ -1,0 +1,18 @@
+{
+  "attempts": [
+    {
+      "id": "fx11-2026-10-09-gr-3",
+      "itemId": "gr-3",
+      "bank": "fixture-rivers",
+      "kind": "mcq",
+      "at": "2026-10-09T09:00:00.000Z",
+      "ms": 55000,
+      "mode": "practice",
+      "correct": true,
+      "grade": "good",
+      "sure": true,
+      "chosen": 2,
+      "delta": 8
+    }
+  ]
+}

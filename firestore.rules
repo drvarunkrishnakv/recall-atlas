@@ -42,6 +42,10 @@ service cloud.firestore {
     match /srs/{id} {
       allow read, write: if isOwner();
     }
+    // The reading log (M11): one document per subject, changed by "Log reading" and its Undo.
+    match /reading/{id} {
+      allow read, create, update: if isOwner();
+    }
     // Anything else is closed.
   }
 }

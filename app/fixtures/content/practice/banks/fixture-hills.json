@@ -1,0 +1,148 @@
+{
+  "id": "fixture-hills",
+  "subject": "Sample geography",
+  "topic": "Sample hills",
+  "items": [
+    {
+      "id": "gh-1",
+      "bank": "fixture-hills",
+      "topic": "Sample hills",
+      "microtheme": "Sample peaks",
+      "kind": "mcq",
+      "source": {
+        "type": "pyq",
+        "year": 2023,
+        "paper": "GS1",
+        "keyVerified": true
+      },
+      "stem": "Which sample peak is the tallest in the sample range?",
+      "options": [
+        "Peak One",
+        "Peak Two",
+        "Peak Three",
+        "Peak Four"
+      ],
+      "answer": 1
+    },
+    {
+      "id": "gh-2",
+      "bank": "fixture-hills",
+      "topic": "Sample hills",
+      "microtheme": "Sample peaks",
+      "kind": "mcq",
+      "source": {
+        "type": "claude",
+        "checked": true,
+        "sources": [
+          {
+            "label": "Test fixture",
+            "url": "https://example.com"
+          }
+        ]
+      },
+      "stem": "Consider the following statements about the sample peaks:",
+      "statements": [
+        "Peak One is snow-capped all year.",
+        "Peak Two lies in the east range."
+      ],
+      "truth": [
+        true,
+        false
+      ],
+      "ask": "Which of the statements given above is/are correct?",
+      "options": [
+        "1 only",
+        "2 only",
+        "Both 1 and 2",
+        "Neither 1 nor 2"
+      ],
+      "answer": 0
+    },
+    {
+      "id": "gh-3",
+      "bank": "fixture-hills",
+      "topic": "Sample hills",
+      "microtheme": "Sample passes",
+      "kind": "mcq",
+      "source": {
+        "type": "pyq",
+        "year": 2014,
+        "paper": "GS1",
+        "keyVerified": true
+      },
+      "stem": "Which sample pass links the two sample valleys?",
+      "options": [
+        "North Pass",
+        "South Pass",
+        "Mid Pass",
+        "Low Pass"
+      ],
+      "answer": 2
+    },
+    {
+      "id": "gh-4",
+      "bank": "fixture-hills",
+      "topic": "Sample hills",
+      "microtheme": "Sample passes",
+      "kind": "mcq",
+      "source": {
+        "type": "claude",
+        "checked": true,
+        "sources": [
+          {
+            "label": "Test fixture",
+            "url": "https://example.com"
+          }
+        ]
+      },
+      "stem": "In which sample season is the made-up Mid Pass closed?",
+      "options": [
+        "Sample winter",
+        "Sample summer",
+        "Sample monsoon",
+        "Never"
+      ],
+      "answer": 0
+    },
+    {
+      "id": "gh-c1",
+      "bank": "fixture-hills",
+      "topic": "Sample hills",
+      "microtheme": "Sample peaks",
+      "kind": "flashcard",
+      "style": "qa",
+      "source": {
+        "type": "claude",
+        "checked": true,
+        "sources": [
+          {
+            "label": "Test fixture",
+            "url": "https://example.com"
+          }
+        ]
+      },
+      "front": "Which is the tallest sample peak?",
+      "back": "Peak Two"
+    },
+    {
+      "id": "gh-c2",
+      "bank": "fixture-hills",
+      "topic": "Sample hills",
+      "microtheme": "Sample passes",
+      "kind": "flashcard",
+      "style": "cloze",
+      "source": {
+        "type": "claude",
+        "checked": true,
+        "sources": [
+          {
+            "label": "Test fixture",
+            "url": "https://example.com"
+          }
+        ]
+      },
+      "front": "The Mid Pass links the ___ valleys.",
+      "back": "two sample"
+    }
+  ]
+}

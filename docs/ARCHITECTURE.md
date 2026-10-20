@@ -74,6 +74,23 @@ feature we don't use.
   card by replaying its attempts (no fuzz, retention 0.9), so the log is the only record.
 - **Screens plug in through `src/modes/registry.tsx`**: each milestone adds its routes and
   sidebar entries there.
+- **Homes and analytics (M11).** `src/lib/readiness.ts` works out readiness (five parts, DECISIONS
+  2026-10-21), "where the marks are", calibration and the guessing rule, the daily target, weak
+  spots and each topic's drawer, replaying FSRS once over the log for weekly trends. Screens:
+  `src/homes/` (Prelims Home at `/prelims`, the subject page at `/prelims/subject/:subject`, where
+  `:subject` is the bank's subject in lower case with other characters as hyphens; the drawer is
+  `?open=<bank>&kind=mcq|flashcard`) and `src/analytics/` (`/prelims/analytics`, `?range=4w|all`,
+  small inline-SVG charts). Book order is a bank's optional `order`, else the order banks load in.
+- **Reading log (M11).** "Log reading" adds today to a topic: Firestore `reading/{subject}` (owner
+  read, create, update) and dev files `practice/reading/<subject>.json`, both as
+  `{topics: {[bank]: ["YYYY-MM-DD"]}}` through `GET /api/reading` and `POST /api/reading/<subject>`
+  (`{op: "log" | "unlog", bank, day}`, `src/lib/reading.ts`).
+- **Engine notes are optional reads.** The homes fetch `GET /api/lessons` (and `GET /api/weeks`
+  when the lessons don't carry `weeks`) and treat a 404 or any failure as "nothing yet", so the
+  screens work before the nightly engine (M9) exists and light up once it does. Lessons are read
+  as `{lessons|days: {day: {cards|concepts, quiz}}}` or a list; the weekly note as
+  `{weeks: {week: {lines: [text | {text, evidence}]}}}`, where `evidence` names an Analytics section
+  (`readiness`, `misses`, `speed`, `calibration`, `marks`, `effort`, `mocks`) or a subject.
 
 ## Stack
 

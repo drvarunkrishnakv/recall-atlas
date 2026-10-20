@@ -37,6 +37,7 @@ import {
   type ProgressOp,
 } from "../lib/progress";
 import { applyAttemptOp, attemptsDocId, type Attempt, type AttemptOp, type Bank } from "../lib/practice";
+import { applyReadingOp, readingDocId, type ReadingLog, type ReadingOp } from "../lib/reading";
 
 const ID = /^[A-Za-z0-9][A-Za-z0-9-]{0,80}$/;
 
@@ -140,6 +141,17 @@ export function cloudApi(db: Firestore) {
       const ref = doc(db, "attempts", attemptsDocId(practiceDay[1]));
       const next = await change(db, ref, { attempts: [] as Attempt[] }, (v) => applyAttemptOp(v, body as AttemptOp));
       return { attempts: next.attempts };
+    }
+
+    // The reading log (M11): reading/{subject}.
+    if (path === "/api/reading" && method === "GET") {
+      const snap = await getDocs(col(db, "reading"));
+      return { subjects: Object.fromEntries(snap.docs.map((d) => [d.id, decodeJson(d.data(), { topics: {} })])) };
+    }
+    const reading = /^\/api\/reading\/([a-z0-9-]+)$/.exec(path);
+    if (reading && method === "POST") {
+      const ref = doc(db, "reading", readingDocId(reading[1]));
+      return change(db, ref, { topics: {} } as ReadingLog, (v) => applyReadingOp(v, body as ReadingOp));
     }
 
     if (path === "/api/progress") {

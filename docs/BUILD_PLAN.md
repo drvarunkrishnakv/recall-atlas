@@ -143,6 +143,13 @@ DECISIONS (2026-10-20).
 - Prelims Home and Mains Home (both Centre stage), the Prelims subject page (table + analytics
   drawer), and both analytics screens (the week's story).
 - **Done when** every number on them comes from the attempt log or the notes.
+- **Prelims half done** (branch `claude/m11-prelims-homes`): readiness and the other numbers in
+  `src/lib/readiness.ts`; Prelims Home (Board 1 · Centre stage), the subject page with its drawer
+  (Subject 2), Prelims Analytics (Analytics 3), "Log reading" with its own small store, and the
+  Analytics entry in the Prelims sidebar. Lessons, the morning quiz and the weekly note are read
+  when M9 provides them; flashcards and puzzles are counted when M10's items exist.
+- **Left for after M8:** Mains Home (Mains 1 · Centre stage) at `/` and Mains Analytics at
+  `/mains/analytics`.
 
 ### M12 · The rest of Mains
 
