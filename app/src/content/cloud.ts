@@ -57,6 +57,7 @@ import {
   type MainsAnswer,
   type QuestionSet,
 } from "../lib/mains";
+import { mainsExtraCloud } from "./mains-extra-cloud";
 
 const ID = /^[A-Za-z0-9][A-Za-z0-9-]{0,80}$/;
 
@@ -161,6 +162,9 @@ export function cloudApi(db: Firestore) {
       const next = await change(db, ref, { attempts: [] as Attempt[] }, (v) => applyAttemptOp(v, body as AttemptOp));
       return { attempts: next.attempts };
     }
+    // Essay, Ethics and Medical Science (M12).
+    if (path === "/api/mains-extra" || path.startsWith("/api/mains-extra/"))
+      return mainsExtraCloud(db, path, method, body);
 
     // Lessons (M9): Claude's run writes them through the CLI; the app reads them and rates cards.
     if (path === "/api/lessons" && method === "GET")

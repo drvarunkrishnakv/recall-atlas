@@ -185,6 +185,64 @@ describe("Firestore rules", () => {
   });
 });
 
+describe("Essay, Ethics and Medical Science (M12)", () => {
+  /** Writes a content record as Claude's CLI would (the emulator's owner token bypasses the rules). */
+  const seed = (path: string, value: unknown) =>
+    fetch(`http://${host}:${port}/v1/projects/${PROJECT}/databases/(default)/documents/${path}`, {
+      method: "PATCH",
+      headers: { Authorization: "Bearer owner", "Content-Type": "application/json" },
+      body: JSON.stringify({ fields: { json: { stringValue: JSON.stringify(value) } } }),
+    }).then((r) => expect(r.ok).toBe(true));
+  const line = {
+    id: "SX1",
+    paper: "I",
+    subject: "Sample subject",
+    order: 1,
+    label: "A sample line",
+    syllabus: "Sample wording.",
+    diagrams: [{ id: "sample-diagram", t: "A sample diagram" }],
+  };
+
+  it("let the owner read content and keep their own records, which are never deleted", async () => {
+    await seed("medical/SX1", line);
+    expect((await getDoc(doc(owner, "medical/SX1"))).exists()).toBe(true);
+    for (const kind of ["essay", "ethics", "medical"]) {
+      await denied(setDoc(doc(owner, `${kind}/S1`), { json: "{}" }));
+      await setDoc(doc(owner, `${kind}/mine-S1`), { json: "{}" });
+      await setDoc(doc(owner, `${kind}/mine-S1`), { json: '{"x":1}' });
+      await denied(deleteDoc(doc(owner, `${kind}/mine-S1`)));
+      for (const db of [stranger, nobody]) {
+        await denied(getDoc(doc(db, `${kind}/mine-S1`)));
+        await denied(setDoc(doc(db, `${kind}/mine-S2`), { json: "{}" }));
+      }
+    }
+    await denied(deleteDoc(doc(owner, "medical/SX1")));
+  });
+
+  it("answers the mains-extra routes: everything at once, and one change to your record", async () => {
+    await seed("medical/SX1", line);
+    const all = (await api("/api/mains-extra")) as {
+      medical: { id: string }[];
+      work: { medical: Record<string, unknown> };
+      answers: unknown[];
+    };
+    expect(all.medical.map((l) => l.id)).toEqual(["SX1"]);
+    expect(all.answers).toEqual([]); // the Write flow's collections are closed or empty here
+    const { work } = (await post("/api/mains-extra/medical/SX1", { op: "rate", rating: "rusty" })) as {
+      work: { rating: string };
+    };
+    expect(work.rating).toBe("rusty");
+    await post("/api/mains-extra/medical/SX1", {
+      op: "drill",
+      drill: { id: "d1", diagram: "sample-diagram", at: "2026-10-21T08:00:00.000Z", ms: 190000 },
+    });
+    const again = (await api("/api/mains-extra")) as { work: { medical: Record<string, { drills: unknown[] }> } };
+    expect(again.work.medical.SX1).toMatchObject({ rating: "rusty", drills: [{ id: "d1", ms: 190000 }] });
+    await expect(post("/api/mains-extra/medical/NOPE", { op: "rate", rating: "ok" })).rejects.toThrow(/No medical/);
+    await expect(post("/api/mains-extra/medical/SX1", { op: "try", text: "x" })).rejects.toThrow(/doesn't apply/);
+  });
+});
+
 describe("cloud API", () => {
   it("saves pages with a version check, and keeps nested table cells intact", async () => {
     expect(await put("/api/pages/notes/T1", { page: page("One"), baseVersion: 0 })).toMatchObject({ version: 1 });

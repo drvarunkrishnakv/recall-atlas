@@ -64,6 +64,20 @@ service cloud.firestore {
     match /answers/{id} {
       allow read, create, update: if isOwner();
     }
+    // Essay, Ethics and Medical Science (M12). Topics, cases and syllabus lines are written by
+    // Claude's CLI; the app writes only your own records (`mine-<id>`), and never deletes them.
+    match /essay/{id} {
+      allow read: if isOwner();
+      allow create, update: if isOwner() && id.matches('mine-.+');
+    }
+    match /ethics/{id} {
+      allow read: if isOwner();
+      allow create, update: if isOwner() && id.matches('mine-.+');
+    }
+    match /medical/{id} {
+      allow read: if isOwner();
+      allow create, update: if isOwner() && id.matches('mine-.+');
+    }
     // Anything else is closed.
   }
 }

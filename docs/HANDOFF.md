@@ -192,6 +192,53 @@
   at `localhost`, which a phone can't open; use the cloud build, or the LAN address with
   `ATLAS_ALLOW_LAN_WRITES=1`.
 
+## The rest of Mains (M12) — 2026-10-21
+
+- **Branch:** `claude/m12-mains-rest`, stacked on `claude/m7-mcq-loop`. Assisting tool: Claude Code.
+- **Why:** the build order's last Mains step (BUILD_PLAN M12): Essay, Ethics case studies and
+  Medical Science, plus the Board versions of the Mains Notes table and the Claude inbox, each as
+  the "table + drawer" the user chose (Essay-1, Ethics-1, Med-1, Notes-1, Inbox-1).
+- **App** (sidebar: Notes, Essay, Ethics case studies, Medical Science):
+  - Essay (`/mains/essay`): topic table and decode drawer. Claude's breakdown (what it asks,
+    keywords, six angles, evidence from your notes) opens only after you write your own angles.
+    Outline sprint (20 min: thesis, opening, seven tagged paragraphs, the other side, closing;
+    checked and saved), full essay (1 h 30) and full paper (3 h with a time plan and a ready
+    check); both end with the Write flow's photo link (`/mains/write?essay=<id>`).
+  - Ethics (`/mains/ethics`): Claude's practice cases, labelled; UPSC cases "not loaded". The
+    bench: stakeholders, issues and values, options (Do / Weak / Never), decision, a fix for the
+    system, then the 250-word answer in 11 minutes (typed, or `/mains/write?ethics=<id>`).
+    "Compare with mine" opens per step after your own attempt; no mark.
+  - Medical Science (`/mains/medical`): Paper I (7 subjects) and II (6), 65 lines, your rating
+    (Rusty / OK / Strong), PYQs per line, key diagrams with a 3-minute drill (time logged, then
+    `/mains/write?medical=<line>`), answers, and Claude's checked notes on dated syllabus wording.
+  - Mains Notes (`/mains/notes`): GS1–4, Essay, Medical Science; subject tabs; every planned
+    note under its syllabus topic with Mains PYQs (count, last asked, heat), your answers (M8),
+    written or not, and Claude's column (sources waiting, open checks, or "Draft next"); a drawer
+    per note. Note pages and `/gs2/polity` are unchanged.
+  - Claude inbox (`/inbox`): the same items in a table, "Needs you" and "For your information",
+    a drawer per item. A proposal shows its line, section, why, source, confidence and check, with
+    Verify, then add / Edit / Reject and "Add it now, marked unverified".
+- **Data:** `src/lib/mains-extra.ts` (shapes, checks, ops, helpers; 16 tests). Files under
+  `content/mains/`, Firestore `essay/`, `ethics/`, `medical/` with `mine-` records (rules: content
+  read-only, records create/update only). Routes `GET /api/mains-extra`, `POST
+  /api/mains-extra/<kind>/<id>`. Proposals gained `confidence`, `verifyRequested`, `revised`,
+  `unverified` and the ops `verify`, `revise`, `unverified` (3 tests). CLI: `mains-extra`,
+  `mains-extra-import <file> [--replace]`, `mains-extra-work [kind]`; `propose --confidence`;
+  `proposals` flags the ones waiting for a source check.
+- **Content (local content folder only, not Firestore):** built by `data/mains_extra/build.py`
+  (private) and imported with `mains-extra-import --replace`: 24 essay topics (2024, 2025, 2026)
+  with breakdowns, 6 practice cases in full, 65 syllabus lines with 721 PYQ sub-parts as main
+  line (2014–2026) and 34 key diagrams. Firestore import needs the user's go-ahead:
+  `node cli/atlas.ts mains-extra-import ../data/mains_extra/mains-extra.json --replace`.
+- **Checks** (internal-disk copy): Prettier, `tsc -b`, 115 unit tests (19 new), build and cloud
+  build; `npm run test:cloud` 26 passed (3 new: the M12 rules, the cloud routes, the CLI's
+  Firestore side); `npx playwright test` 89 passed + 31 skips (installed Chrome; `e2e/m12.spec.ts`
+  adds 20 runs over the three sizes). Screenshots (fixture): `docs/design/m12-mains-rest/`.
+- **Not done:** deploying (and `firestore:rules`); UPSC case studies and the 2013–2023 essay
+  papers; "source waiting" for unwritten notes (needs the feed to record matched sources); the
+  Write flow (M8) must keep `question.note` and add `essay|ethics|medical` on answers for the
+  answer columns to count them.
+
 ## Prelims MCQ loop (M7) — 2026-10-21
 
 - **Branch:** `claude/m7-mcq-loop`, stacked on `claude/practice-foundations` (PR #47). Assisting

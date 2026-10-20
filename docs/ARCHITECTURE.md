@@ -146,6 +146,32 @@ feature we don't use.
   each photo as a file path (downloaded from Storage first on Firestore), saves a checked marking,
   marks rewrites and resolves disputes. The scheduled run's prompt: `docs/routines/mark-answers.md`.
 
+### Mains extras (M12): Essay, Ethics case studies, Medical Science, Notes, inbox
+
+- **Routes:** `/mains/notes`, `/mains/essay` (with `/mains/essay/sprint/:id`, `/mains/essay/write/:id`,
+  `/mains/essay/paper`), `/mains/ethics` (and `/mains/ethics/bench/:id`), `/mains/medical` (and
+  `/mains/medical/draw/:line/:diagram`), and `/inbox` in the Board look. Code in
+  `src/mains-extra/`, styles in its own `mains-extra.css`. Every list is a table plus a drawer; the
+  open drawer is in the URL (`?topic=`, `?case=`, `?line=`, `?note=`, `?item=`), so back closes it.
+  Beside the table from 1280 px, a full-height sheet below that, a page of its own on phones.
+- **Data** (`src/lib/mains-extra.ts`, pure and tested): content written only by the CLI, and your
+  records written by the app one op at a time (`WorkOp`: `try`, `outline`, `sitting`, `attempt`,
+  `rate`, `drill`). Files: `content/mains/<essay|ethics|medical>/<id>.json` and `mine-<id>.json`.
+  Firestore: `essay/{id}`, `ethics/{id}`, `medical/{line}` and their `mine-{id}` siblings; the rules
+  let the app create and update only `mine-` documents and delete nothing. Both answer
+  `GET /api/mains-extra` and `POST /api/mains-extra/<kind>/<id>` (server/mains-extra-files.ts,
+  src/content/mains-extra-cloud.ts; the CLI's Firestore side is server/mains-extra-firestore.ts).
+- **The Write flow's data (M8)** is read loosely for counts and averages: `mains/answers/*.json`
+  (`answers/{id}`) and `mains/questions/*.json` (`mainsq/{paper}`), through `answerSummaries` and
+  `questionSummaries`. Writing an answer is M8's: the screens link to `/mains/write?essay=<id>`,
+  `?ethics=<id>` or `?medical=<line>`.
+- **CLI** (`cli/mains-extra.ts`): `mains-extra` (what's loaded and done), `mains-extra-import
+  <file> [--replace]` (checks every record; a law a case cites needs an official source; a checked
+  note needs one too), `mains-extra-work [kind]` (your records, for Claude's runs).
+- **Inbox actions** are proposal ops (`src/lib/proposals.ts`): `verify` (Verify, then add, when the
+  source isn't primary yet), `revise` (Edit), `unverified` (Add it now, marked unverified), plus the
+  existing `approve` and `reject`. `atlas proposals` shows the ones waiting for a source check.
+
 ## Stack
 
 | Part | Choice | Why |
@@ -205,6 +231,9 @@ undefined fields aren't valid Firestore values). Shapes are in `app/src/lib/clou
 | `srs/{bank}` | `json` = `{cards}`: each item's review state in that bank (from M7) |
 | `mainsq/{paper}` | `json` = `{paper, questions}`: one paper's Mains questions (`MainsQuestion` in `app/src/lib/mains.ts`). Written by the CLI; the app only reads |
 | `answers/{id}` | `json` = one Mains answer (`MainsAnswer`): question, times, pages, self-score, transcript, marking, disputes, rewrites. Photos are in Storage at `answers/{id}/page-{n}.<ext>` |
+
+| `essay/{id}`, `ethics/{id}`, `medical/{line}` | `json` = an essay topic with Claude's breakdown, a practice case with its key, or a Medical Science syllabus line with its PYQs, diagrams and Claude's note (`app/src/lib/mains-extra.ts`). Written by `atlas mains-extra-import`; the app only reads (M12) |
+| `essay/mine-{id}`, `ethics/mine-{id}`, `medical/mine-{line}` | `json` = your own record: decoding, outlines and timed sittings; bench attempts; rating and diagram drills. The app creates and updates, never deletes (M12) |
 | `proposals/{collection}-{id}` | `json` = `{proposals}`: kind (edit / add / row / check), blockId, find/replace, text or cells, source, reason, origin (flag / feed / claude), status (pending / applied / rejected / stale) |
 
 - The syllabus tree (papers, subjects, topics, planned notes) is not private, so it

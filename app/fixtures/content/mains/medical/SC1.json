@@ -1,0 +1,25 @@
+{
+ "id": "SC1",
+ "paper": "II",
+ "subject": "Sample Community Medicine",
+ "order": 4,
+ "label": "Sample programmes and goals",
+ "syllabus": "Sample wording: the status of a sample mission and sample goals.",
+ "pyqs": {
+  "count": 1,
+  "marks": 15,
+  "secondary": 0,
+  "last": 2025,
+  "items": [
+   { "id": "sample-2025-II-5b", "year": 2025, "paper": "II", "marks": 15, "text": "Sample question: assess a sample mission.", "primary": true }
+  ]
+ },
+ "diagrams": [{ "id": "sample-tiers", "t": "Sample three tiers" }],
+ "note": {
+  "kind": "dated",
+  "text": "Sample note: the syllabus names a sample mission that has since been folded into a larger one.",
+  "checked": false,
+  "sources": []
+ },
+ "gs": [{ "label": "GS2 Polity notes", "to": "/mains/notes?paper=gs2" }]
+}

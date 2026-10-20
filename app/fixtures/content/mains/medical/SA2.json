@@ -1,0 +1,10 @@
+{
+ "id": "SA2",
+ "paper": "I",
+ "subject": "Sample Anatomy",
+ "order": 2,
+ "label": "Sample development",
+ "syllabus": "Sample wording: the development of a sample organ.",
+ "pyqs": { "count": 0, "marks": 0, "secondary": 0, "items": [] },
+ "diagrams": []
+}

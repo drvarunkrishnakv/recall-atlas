@@ -42,6 +42,11 @@ const PATHS: Record<string, string> = {
   bolt: "M13 2L4 14h7l-1 8 9-12h-7z",
   sound: "M11 5L6 9H3v6h3l5 4zM15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13",
   mute: "M11 5L6 9H3v6h3l5 4zM16 9l6 6M22 9l-6 6",
+  // Mains Notes, Essay, Ethics case studies and Medical Science (M12).
+  notes: "M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6",
+  essay: "M4 20l4-1 11-11-3-3L5 16zM14 7l3 3M4 20h16",
+  ethics: "M12 3v18M8 21h8M4 7h16M6 7l-3 7h6zM18 7l-3 7h6z",
+  medical: "M12 7v10M7 12h10M12 21a9 9 0 110-18 9 9 0 010 18z",
 };
 
 export function Icon({ name }: { name: keyof typeof PATHS | string }) {

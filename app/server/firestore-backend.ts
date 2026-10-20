@@ -43,6 +43,7 @@ import {
   type WeeklyNote,
 } from "../src/lib/lessons.ts";
 import type { Backend } from "./backend.ts";
+import { mainsExtraFirestore } from "./mains-extra-firestore.ts";
 import { mkdirSync } from "node:fs";
 import {
   applyAnswerOp,
@@ -322,6 +323,7 @@ export function firestoreBackend(db: Firestore = getFirestore(adminApp())): Back
       await remote.download({ destination });
       return destination;
     },
+    mainsExtra: mainsExtraFirestore(db),
     async restoreAll(data) {
       // Small batches: a long page is close to a megabyte on its own.
       const writes: [DocumentReference, Record<string, unknown>][] = [];

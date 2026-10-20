@@ -15,6 +15,7 @@ import type { Attempt, AttemptOp, Bank } from "../src/lib/practice.ts";
 import type { Lesson, LessonOp, WeeklyNote } from "../src/lib/lessons.ts";
 import type { AnswerOp, MainsAnswer, QuestionSet } from "../src/lib/mains.ts";
 import { resolve } from "node:path";
+import { mainsExtraFiles, type MainsExtraBackend } from "./mains-extra-files.ts";
 import {
   changeCaptures,
   changeDiscussions,
@@ -113,6 +114,8 @@ export interface Backend {
   changeAnswer(id: string, op: AnswerOp): Promise<MainsAnswer>;
   /** An answer's photo as a file on this computer (downloaded from Storage first on Firestore), or null. */
   answerPhoto(id: string, file: string): Promise<string | null>;
+  /** Essay, Ethics and Medical Science (M12): content from the CLI, and your records. */
+  mainsExtra: MainsExtraBackend;
   /**
    * Writes everything as given, without version checks: for `atlas import` and `atlas export`.
    * `prune` (files only) also removes pages, comments and discussions that `data` no longer has,
@@ -197,6 +200,7 @@ export function fileBackend(dir: string): Backend {
       const path = resolve(photoFile(dir, id, file));
       return existsSync(path) ? path : null;
     },
+    mainsExtra: mainsExtraFiles(dir),
     async restoreAll(data, opts) {
       if (opts?.prune) {
         const keep = new Set(data.pages.map((p) => `${p.collection}/${p.id}`));

@@ -27,6 +27,8 @@
 //   GET  /api/mains                           Mains questions and answers, {sets, answers} (lib/mains.ts)
 //   GET|POST /api/mains/answers/:id           one answer; POST applies one of the app's AnswerOps
 //   GET|POST /api/mains/photos/:id/:file      a page photo (POST: the raw image, jpeg/png/webp, up to 8 MB)
+//   GET  /api/mains-extra                     Essay, Ethics and Medical Science: content and your records
+//   POST /api/mains-extra/:kind/:id           one WorkOp on your record (server/mains-extra-files.ts)
 //
 // Writes are accepted only from this machine (unless ATLAS_ALLOW_LAN_WRITES=1) and only
 // from the app's own origin.
@@ -99,6 +101,8 @@ import {
   type PhotoType,
   type QuestionSet,
 } from "../src/lib/mains.ts";
+import { MainsExtraError, type ExtraKind, type WorkOp } from "../src/lib/mains-extra.ts";
+import { changeMainsExtraWork, loadMainsExtra } from "./mains-extra-files.ts";
 
 const COLLECTIONS = ["notes", "cards"] as const;
 type Collection = (typeof COLLECTIONS)[number];
@@ -710,6 +714,15 @@ export function contentApi(appRoot: string): Connect.NextHandleFunction {
           .trim();
         return send(res, 200, savePhoto(dir, answerId, file, type, await readRaw(req, MAX_PHOTO_BYTES)));
       }
+      // Essay, Ethics and Medical Science (M12): everything at once, and one change to your record.
+      if (url.pathname === "/api/mains-extra" && req.method === "GET") return send(res, 200, loadMainsExtra(dir));
+      if (parts[1] === "mains-extra" && parts.length === 4) {
+        if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+        const refused = writeAllowed(req);
+        if (refused) return send(res, 403, { error: refused });
+        const op = (await readBody(req)) as WorkOp;
+        return send(res, 200, { work: changeMainsExtraWork(dir, parts[2] as ExtraKind, parts[3], op) });
+      }
 
       const [, kind, collection, id, extra] = parts;
       if (
@@ -783,7 +796,8 @@ export function contentApi(appRoot: string): Connect.NextHandleFunction {
         e instanceof PracticeError ||
         e instanceof LessonError ||
         e instanceof ReadingError ||
-        e instanceof MainsError
+        e instanceof MainsError ||
+        e instanceof MainsExtraError
       )
         return send(res, 400, { error: e.message });
       return send(res, 500, { error: e instanceof Error ? e.message : String(e) });

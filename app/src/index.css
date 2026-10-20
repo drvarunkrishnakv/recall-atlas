@@ -5458,6 +5458,42 @@ a.mode-btn:active {
   color: var(--bd-muted);
   font-weight: 600;
 }
+/* Board chips and small text, everywhere (the Board shell is the app's look). They used to live in
+   prelims.css, which made older Mains pages change look after a practice page had loaded. */
+.muted {
+  color: var(--bd-muted);
+}
+.small {
+  font-size: 0.85rem;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.78rem;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  background: var(--bd-raised);
+  color: var(--bd-ink);
+}
+.chip-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--bd-line);
+  background: var(--bd-panel);
+  color: var(--bd-ink);
+  font: 800 0.85rem var(--f-board);
+  text-decoration: none;
+  cursor: pointer;
+}
+.chip-btn.on {
+  border-color: var(--mode);
+  background: var(--bd-raised);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mode-btn {
     transition: none;

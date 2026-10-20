@@ -10,21 +10,6 @@
   font-family: var(--f-board);
   font-weight: 900;
 }
-.muted {
-  color: var(--bd-muted);
-}
-.small {
-  font-size: 0.85rem;
-}
-.chip {
-  display: inline-block;
-  font-size: 0.78rem;
-  font-weight: 800;
-  border-radius: 999px;
-  padding: 0.1rem 0.6rem;
-  background: var(--bd-raised);
-  color: var(--bd-ink);
-}
 
 /* Buttons */
 .board-btn {
@@ -79,23 +64,6 @@
   font-size: 0.7rem;
   border-color: currentColor;
   opacity: 0.7;
-}
-.chip-btn {
-  display: inline-flex;
-  align-items: center;
-  min-height: 36px;
-  padding: 0 0.8rem;
-  border-radius: 999px;
-  border: 1px solid var(--bd-line);
-  background: var(--bd-panel);
-  color: var(--bd-ink);
-  font: 800 0.85rem var(--f-board);
-  text-decoration: none;
-  cursor: pointer;
-}
-.chip-btn.on {
-  border-color: var(--mode);
-  background: var(--bd-raised);
 }
 .seg {
   display: inline-flex;
