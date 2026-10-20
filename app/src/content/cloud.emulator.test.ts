@@ -46,6 +46,52 @@ const denied = async (p: Promise<unknown>) => {
   expect(e?.code).toBe("permission-denied");
 };
 
+/** Writes a `{json}` document as Claude's CLI would: the emulator lets "Bearer owner" past the rules. */
+async function cliWrite(path: string, value: unknown) {
+  const r = await fetch(`http://${host}:${port}/v1/projects/${PROJECT}/databases/(default)/documents/${path}`, {
+    method: "PATCH",
+    headers: { Authorization: "Bearer owner", "Content-Type": "application/json" },
+    body: JSON.stringify({ fields: { json: { stringValue: JSON.stringify(value) } } }),
+  });
+  expect(r.ok).toBe(true);
+}
+
+// A made-up lesson and weekly note: the shapes only.
+const LESSON = {
+  day: "2026-10-20",
+  written: "2026-10-20T13:30:00Z",
+  cards: [
+    {
+      id: "c-one",
+      concept: "Sample concept",
+      subject: "Sample subject",
+      itemIds: ["fx-1"],
+      mistakes: [
+        {
+          itemId: "fx-1",
+          attemptId: "fx-1-a",
+          at: "2026-10-20T10:00:00Z",
+          stem: "A sample question?",
+          slipped: [],
+          answer: { n: 0, text: "One" },
+          correct: false,
+        },
+      ],
+      teach: ["A sample paragraph."],
+      remember: "A sample hook.",
+      sources: [{ label: "Sample", url: "https://example.org" }],
+      checked: false,
+    },
+  ],
+  quiz: ["fx-1"],
+  ratings: [],
+};
+const WEEK = {
+  week: "2026-W43",
+  written: "2026-10-25T13:00:00Z",
+  lines: [{ text: "A sample line.", evidence: { route: "/prelims/notebook", label: "Notebook" } }],
+};
+
 beforeAll(async () => {
   await fetch(`http://${host}:${port}/emulator/v1/projects/${PROJECT}/databases/(default)/documents`, {
     method: "DELETE",
@@ -100,6 +146,23 @@ describe("Firestore rules", () => {
       await denied(getDoc(doc(db, "attempts/2026-10-20")));
       await denied(setDoc(doc(db, "attempts/2026-10-21"), { json: "{}" }));
       await denied(getDoc(doc(db, "srs/polity-parliament")));
+    }
+  });
+
+  it("let the owner read lessons and rate their cards, but leave writing lessons and weekly notes to the CLI", async () => {
+    await denied(setDoc(doc(owner, "lessons/2026-10-20"), { json: JSON.stringify(LESSON) }));
+    await cliWrite("lessons/2026-10-20", LESSON);
+    expect((await getDoc(doc(owner, "lessons/2026-10-20"))).exists()).toBe(true);
+    await setDoc(doc(owner, "lessons/2026-10-20"), { json: JSON.stringify(LESSON), updatedAt: 1 });
+    await denied(deleteDoc(doc(owner, "lessons/2026-10-20")));
+    await denied(setDoc(doc(owner, "notes-week/2026-W43"), { json: JSON.stringify(WEEK) }));
+    await cliWrite("notes-week/2026-W43", WEEK);
+    expect((await getDoc(doc(owner, "notes-week/2026-W43"))).exists()).toBe(true);
+    await denied(setDoc(doc(owner, "notes-week/2026-W43"), { json: "{}" }));
+    for (const db of [stranger, nobody]) {
+      await denied(getDoc(doc(db, "lessons/2026-10-20")));
+      await denied(setDoc(doc(db, "lessons/2026-10-20"), { json: "{}" }));
+      await denied(getDoc(doc(db, "notes-week/2026-W43")));
     }
   });
 
@@ -191,6 +254,33 @@ describe("cloud API", () => {
     };
     expect(restored.version).toBe(before.version + 2);
     expect(restored.page.blocks.map((b) => b.type)).not.toContain("checkListItem");
+  });
+
+  it("lists lessons, rates a card and takes it back, and reads the weekly note", async () => {
+    await cliWrite("lessons/2026-10-20", LESSON);
+    await cliWrite("notes-week/2026-W43", WEEK);
+    const idx = (await api("/api/lessons")) as { days: { day: string }[]; latest: { day: string } };
+    expect(idx.days.map((d) => d.day)).toEqual(["2026-10-20"]);
+    expect(idx.latest.day).toBe("2026-10-20");
+    const at = "2026-10-20T15:00:00Z";
+    const rated = (await post("/api/lessons/2026-10-20", { op: "rate", cardId: "c-one", rating: "shaky", at })) as {
+      ratings: unknown[];
+    };
+    expect(rated.ratings).toEqual([{ cardId: "c-one", rating: "shaky", at }]);
+    expect(await api("/api/lessons")).toMatchObject({ days: [{ cards: [{ id: "c-one", rating: "shaky" }] }] });
+    const undone = (await post("/api/lessons/2026-10-20", { op: "unrate", cardId: "c-one", at })) as {
+      ratings: unknown[];
+    };
+    expect(undone.ratings).toEqual([]);
+    await expect(api("/api/lessons/2026-10-21")).rejects.toThrow("No lesson");
+    // Rating can't create a lesson.
+    await expect(post("/api/lessons/2026-10-21", { op: "rate", cardId: "c-one", rating: "got", at })).rejects.toThrow(
+      /No lesson/,
+    );
+    expect((await getDoc(doc(owner, "lessons/2026-10-21"))).exists()).toBe(false);
+    expect(await api("/api/weeks")).toEqual({ weeks: ["2026-W43"], latest: WEEK });
+    expect(await api("/api/weeks/2026-W43")).toEqual(WEEK);
+    await expect(api("/api/weeks/2026-W44")).rejects.toThrow("No note");
   });
 
   it("applies comment, progress, capture and discussion operations", async () => {

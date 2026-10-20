@@ -130,6 +130,15 @@ DECISIONS (2026-10-20).
   morning's quiz from the day's misses, and the weekly note.
 - **Done when** a day's misses produce a fact-checked lesson by evening and a quiz the next
   morning.
+- **Built (branch `claude/m9-nightly`, 21 Oct 2026):** the data and its checks
+  (`src/lib/lessons.ts`: lessons, cards, "your mistake" from an attempt, the shaky queue, the
+  weekly note, the week's facts), storage in files and Firestore with owner-only rules, the
+  lesson screen (`/prelims/lesson`, Lesson 3 · Stack in the night look), the morning quiz
+  (`/prelims/quiz`), the notebook's "Tonight's lesson on this", the CLI (`misses`,
+  `lesson-write`, `lessons`, `week-note`, `week-data`) and the two routine prompts in
+  `docs/routines/`. Not yet: a real lesson (it needs the user's own misses and the fact-check
+  pipeline on a scheduled run, which the user turns on), the weekly note's place on the
+  Analytics screen (M11), and the Mains lesson inside `/mains/answers/:id` (after M8).
 
 ### M10 · More practice
 

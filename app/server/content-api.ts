@@ -20,6 +20,10 @@
 //   POST /api/history/:collection/:id         {historyId}: restore that version as a new one
 //   GET  /api/heatmap                         the news heat map and its comparison with past papers,
 //                                             {map, comparison} (each null until imported)
+//   GET  /api/lessons                         every lesson day (newest first) and the latest lesson
+//   GET  /api/lessons/:day                    one day's lesson
+//   POST /api/lessons/:day                    a LessonOp: "Got it" / "Still shaky" on a card, or its undo
+//   GET  /api/weeks[/:week]                   the weekly notes ({weeks, latest}), or one of them
 //
 // Writes are accepted only from this machine (unless ATLAS_ALLOW_LAN_WRITES=1) and only
 // from the app's own origin.
@@ -63,6 +67,19 @@ import {
   type AttemptOp,
   type Bank,
 } from "../src/lib/practice.ts";
+import {
+  applyLessonOp,
+  lessonDocId,
+  LessonError,
+  lessonIndex,
+  validateLesson,
+  validateWeeklyNote,
+  weekDocId,
+  weekIndex,
+  type Lesson,
+  type LessonOp,
+  type WeeklyNote,
+} from "../src/lib/lessons.ts";
 
 const COLLECTIONS = ["notes", "cards"] as const;
 type Collection = (typeof COLLECTIONS)[number];
@@ -384,6 +401,59 @@ export function changeAttempts(dir: string, day: string, op: AttemptOp): Attempt
   return next.attempts;
 }
 
+// Lessons (M9): practice/lessons/<YYYY-MM-DD>.json, written by Claude's run through the CLI, and
+// the weekly notes in practice/weeks/<YYYY-Www>.json, written only by the CLI (lib/lessons.ts).
+const WEEK_FILE = /^(\d{4}-W\d{2})\.json$/;
+const lessonPath = (dir: string, day: string) => join(dir, "practice", "lessons", `${lessonDocId(day)}.json`);
+
+export function loadLessons(dir: string): Lesson[] {
+  const folder = join(dir, "practice", "lessons");
+  if (!existsSync(folder)) return [];
+  return readdirSync(folder)
+    .filter((f) => DAY_FILE.test(f))
+    .sort()
+    .map((f) => readJson<Lesson | null>(join(folder, f), null))
+    .filter((l): l is Lesson => !!l);
+}
+
+export function loadLesson(dir: string, day: string): Lesson | null {
+  return readJson<Lesson | null>(lessonPath(dir, day), null);
+}
+
+/** Writes a day's lesson from what is there now (null if none), after checking it. */
+export function writeLesson(dir: string, day: string, build: (current: Lesson | null) => Lesson): Lesson {
+  const path = lessonPath(dir, day);
+  const next = validateLesson(build(readJson<Lesson | null>(path, null)));
+  if (next.day !== day) throw new LessonError(`The lesson says ${next.day}, not ${day}`);
+  mkdirSync(join(dir, "practice", "lessons"), { recursive: true });
+  writeAtomic(path, JSON.stringify(next, null, 1) + "\n");
+  return next;
+}
+
+/** Applies a "Got it" / "Still shaky" press (or its undo) from the app. */
+export function changeLesson(dir: string, day: string, op: LessonOp): Lesson {
+  const path = lessonPath(dir, day);
+  const next = applyLessonOp(readJson<Lesson | null>(path, null), op);
+  writeAtomic(path, JSON.stringify(next, null, 1) + "\n");
+  return next;
+}
+
+export function loadWeeks(dir: string): WeeklyNote[] {
+  const folder = join(dir, "practice", "weeks");
+  if (!existsSync(folder)) return [];
+  return readdirSync(folder)
+    .filter((f) => WEEK_FILE.test(f))
+    .sort()
+    .map((f) => readJson<WeeklyNote | null>(join(folder, f), null))
+    .filter((n): n is WeeklyNote => !!n);
+}
+
+export function saveWeek(dir: string, note: WeeklyNote) {
+  validateWeeklyNote(note);
+  mkdirSync(join(dir, "practice", "weeks"), { recursive: true });
+  writeAtomic(join(dir, "practice", "weeks", `${weekDocId(note.week)}.json`), JSON.stringify(note, null, 1) + "\n");
+}
+
 // ---------- HTTP ----------
 
 const LOOPBACK = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
@@ -449,6 +519,24 @@ export function contentApi(appRoot: string): Connect.NextHandleFunction {
         const refused = writeAllowed(req);
         if (refused) return send(res, 403, { error: refused });
         return send(res, 200, { attempts: changeAttempts(dir, parts[3], (await readBody(req)) as AttemptOp) });
+      }
+
+      // Lessons (M9). The app reads lessons and weekly notes and rates cards; the CLI writes the rest.
+      if (url.pathname === "/api/lessons" && req.method === "GET") return send(res, 200, lessonIndex(loadLessons(dir)));
+      if (parts[1] === "lessons" && parts.length === 3) {
+        if (req.method === "GET") {
+          const lesson = loadLesson(dir, parts[2]);
+          return lesson ? send(res, 200, lesson) : send(res, 404, { error: "No lesson for that day" });
+        }
+        if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+        const refused = writeAllowed(req);
+        if (refused) return send(res, 403, { error: refused });
+        return send(res, 200, changeLesson(dir, parts[2], (await readBody(req)) as LessonOp));
+      }
+      if (url.pathname === "/api/weeks" && req.method === "GET") return send(res, 200, weekIndex(loadWeeks(dir)));
+      if (parts[1] === "weeks" && parts.length === 3 && req.method === "GET") {
+        const note = loadWeeks(dir).find((n) => n.week === weekDocId(parts[2]));
+        return note ? send(res, 200, note) : send(res, 404, { error: "No note for that week" });
       }
 
       const [, kind, collection, id, extra] = parts;
@@ -520,7 +608,8 @@ export function contentApi(appRoot: string): Connect.NextHandleFunction {
         e instanceof ProgressOpError ||
         e instanceof DiscussionOpError ||
         e instanceof ProposalError ||
-        e instanceof PracticeError
+        e instanceof PracticeError ||
+        e instanceof LessonError
       )
         return send(res, 400, { error: e.message });
       return send(res, 500, { error: e instanceof Error ? e.message : String(e) });

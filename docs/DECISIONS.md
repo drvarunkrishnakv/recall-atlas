@@ -1,5 +1,23 @@
 # Decisions
 
+## 2026-10-21 — The nightly engine (M9)
+
+- **The lesson keeps its night look in light mode too.** The user chose a warm, dim night version
+  of Board for the lesson (Chang et al. 2015) because it is read before sleep. A bright version
+  would undo that, so the lesson is a dark warm panel inside the shell in both themes. The
+  sidebar, the top bar and every other screen follow the theme as before.
+- **Shaky concepts come back until they hold.** A card called "Still shaky" is added to every
+  later lesson until it is called "Got it" on two different days after the last "shaky" (the
+  day of that "shaky" doesn't count). The same successive-relearning rule the Mistake notebook
+  uses for "fixed". `lesson-write` adds the due cards itself, so a run can't forget them.
+- **Ratings live in the lesson.** `lessons/{day}` holds the cards, the quiz and the user's
+  presses. The CLI writes a lesson and keeps the presses already made; the app may only add or
+  take back a press (Firestore: read and update, never create or delete). Weekly notes in
+  `notes-week/{week}` are written by the CLI only.
+- **The morning quiz is the practice session in short form**, on the lesson's quiz items, with
+  answers saved in the attempt log as mode "quiz". FSRS and the notebook count them like any
+  other answer.
+
 ## 2026-10-20 — Prelims and Mains practice inside the app
 
 - **What the user asked for:** one study system for CSE 2027 inside Mains Atlas, with a Prelims

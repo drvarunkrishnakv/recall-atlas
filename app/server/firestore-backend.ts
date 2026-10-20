@@ -32,6 +32,16 @@ import { applyDiscussionOp, type Discussion } from "../src/lib/discussions.ts";
 import { applyCaptureOp, applyProgressOp, type Capture, type Progress } from "../src/lib/progress.ts";
 import type { Comparison, HeatMap } from "../src/lib/heatmap.ts";
 import { applyAttemptOp, attemptsDocId, validateBank, type Attempt, type Bank } from "../src/lib/practice.ts";
+import {
+  applyLessonOp,
+  lessonDocId,
+  LessonError,
+  validateLesson,
+  validateWeeklyNote,
+  weekDocId,
+  type Lesson,
+  type WeeklyNote,
+} from "../src/lib/lessons.ts";
 import type { Backend } from "./backend.ts";
 
 export const KEY_PATH = join(homedir(), ".config", "mains-atlas", "service-account.json");
@@ -212,6 +222,35 @@ export function firestoreBackend(db: Firestore = getFirestore(adminApp())): Back
           applyAttemptOp(v, op),
         )
       ).attempts,
+    lessons: async () =>
+      (await db.collection("lessons").get()).docs
+        .map((d) => decodeJson<Lesson | null>(d.data(), null))
+        .filter((l): l is Lesson => !!l)
+        .sort((a, b) => a.day.localeCompare(b.day)),
+    writeLesson: (day, build) =>
+      db.runTransaction(async (tx) => {
+        const ref = db.doc(`lessons/${lessonDocId(day)}`);
+        const next = validateLesson(build(decodeJson<Lesson | null>((await tx.get(ref)).data(), null)));
+        if (next.day !== day) throw new LessonError(`The lesson says ${next.day}, not ${day}`);
+        tx.set(ref, { json: JSON.stringify(next), updatedAt: Date.now() });
+        return next;
+      }),
+    changeLesson: (day, op) =>
+      db.runTransaction(async (tx) => {
+        const ref = db.doc(`lessons/${lessonDocId(day)}`);
+        const next = applyLessonOp(decodeJson<Lesson | null>((await tx.get(ref)).data(), null), op);
+        tx.set(ref, { json: JSON.stringify(next), updatedAt: Date.now() });
+        return next;
+      }),
+    weeks: async () =>
+      (await db.collection("notes-week").get()).docs
+        .map((d) => decodeJson<WeeklyNote | null>(d.data(), null))
+        .filter((n): n is WeeklyNote => !!n)
+        .sort((a, b) => a.week.localeCompare(b.week)),
+    async setWeek(note) {
+      validateWeeklyNote(note);
+      await db.doc(`notes-week/${weekDocId(note.week)}`).set({ json: JSON.stringify(note), updatedAt: Date.now() });
+    },
     async restoreAll(data) {
       // Small batches: a long page is close to a megabyte on its own.
       const writes: [DocumentReference, Record<string, unknown>][] = [];

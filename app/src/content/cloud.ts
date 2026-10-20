@@ -37,6 +37,16 @@ import {
   type ProgressOp,
 } from "../lib/progress";
 import { applyAttemptOp, attemptsDocId, type Attempt, type AttemptOp, type Bank } from "../lib/practice";
+import {
+  applyLessonOp,
+  lessonDocId,
+  lessonIndex,
+  weekDocId,
+  weekIndex,
+  type Lesson,
+  type LessonOp,
+  type WeeklyNote,
+} from "../lib/lessons";
 
 const ID = /^[A-Za-z0-9][A-Za-z0-9-]{0,80}$/;
 
@@ -140,6 +150,39 @@ export function cloudApi(db: Firestore) {
       const ref = doc(db, "attempts", attemptsDocId(practiceDay[1]));
       const next = await change(db, ref, { attempts: [] as Attempt[] }, (v) => applyAttemptOp(v, body as AttemptOp));
       return { attempts: next.attempts };
+    }
+
+    // Lessons (M9): Claude's run writes them through the CLI; the app reads them and rates cards.
+    if (path === "/api/lessons" && method === "GET")
+      return lessonIndex(
+        (await getDocs(col(db, "lessons"))).docs
+          .map((d) => decodeJson<Lesson | null>(d.data(), null))
+          .filter((l): l is Lesson => !!l),
+      );
+    const lessonDay = /^\/api\/lessons\/([^/]+)$/.exec(path);
+    if (lessonDay) {
+      const ref = doc(db, "lessons", lessonDocId(lessonDay[1]));
+      if (method === "GET") {
+        const lesson = decodeJson<Lesson | null>((await getDoc(ref)).data(), null);
+        if (!lesson) throw new NotFoundError("No lesson for that day");
+        return lesson;
+      }
+      return change<Lesson | null>(db, ref, null, (l) => applyLessonOp(l, body as LessonOp));
+    }
+    if (path === "/api/weeks" && method === "GET")
+      return weekIndex(
+        (await getDocs(col(db, "notes-week"))).docs
+          .map((d) => decodeJson<WeeklyNote | null>(d.data(), null))
+          .filter((n): n is WeeklyNote => !!n),
+      );
+    const week = /^\/api\/weeks\/([^/]+)$/.exec(path);
+    if (week && method === "GET") {
+      const note = decodeJson<WeeklyNote | null>(
+        (await getDoc(doc(db, "notes-week", weekDocId(week[1])))).data(),
+        null,
+      );
+      if (!note) throw new NotFoundError("No note for that week");
+      return note;
     }
 
     if (path === "/api/progress") {

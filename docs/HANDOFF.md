@@ -1,5 +1,56 @@
 # Handoff
 
+## Nightly engine (M9) — 2026-10-21
+
+- **Branch:** `claude/m9-nightly`, stacked on `claude/m7-mcq-loop`. Assisting tool: Claude Code.
+- **Why:** the user asked for the whole app to be built from the chosen screens; M9 is the
+  nightly lesson, the morning quiz and the weekly note (BUILD_PLAN).
+- **App:**
+  - Tonight's lesson, `/prelims/lesson?day=` (Lesson 3 · Stack). One card per concept,
+    stacked, with a progress line. Each card opens with "your mistake" (the slipped statement
+    and your mark against the truth, your option against the answer, sure or unsure), then the
+    teaching paragraphs, a comparison table when facts are easily confused, a "Remember" line
+    and the sources. A card not yet fact-checked says "Not fact-checked".
+  - "Got it" flings a card right and "Still shaky" flings it left, by drag, by the buttons or
+    by → / ←. Undo brings the last card back and takes its rating away. The motion takes about
+    0.35 s, and with reduced motion the card just changes. Ratings are saved at once and
+    survive a reload, which reopens on the first card not yet rated.
+  - The lesson is a warm, dim night panel (a night variant of the Board tokens, scoped to the
+    lesson) in light and dark alike (DECISIONS 2026-10-21). The end summary gives the quiz
+    size and the shaky count, and links to the morning quiz.
+  - The morning quiz, `/prelims/quiz?day=`: M7's session (`Run`, now exported, with mode
+    "quiz") on the latest lesson's quiz items. Answers are saved with mode "quiz".
+  - The Mistake notebook's question pane links to "Tonight's lesson on this" when a lesson
+    card teaches that question. The sidebar has "Tonight's lesson" and "Morning quiz".
+- **Engine:** `src/lib/lessons.ts`: lessons, cards, ratings and weekly notes with their checks,
+  "your mistake" from an attempt and its item (using `statementTruth`), the shaky queue (back
+  until "got" on two different later days), the misses feed and the week's facts.
+- **Storage:** files `practice/lessons/<day>.json` and `practice/weeks/<week>.json`; Firestore
+  `lessons/{day}` (owner read and update, never create or delete) and `notes-week/{week}`
+  (owner read only). Routes: `GET /api/lessons`, `GET|POST /api/lessons/<day>`,
+  `GET /api/weeks[/<week>]`.
+- **CLI** (`cli/lessons.ts`): `misses [--day]`, `lesson-write <day> <lesson.json>`, `lessons`,
+  `week-note <week> <note.json>`, `week-data [--weeks 1]`. `lesson-write` checks the cards,
+  the item ids and that every quiz item may be served, keeps ratings already given, and adds
+  the shaky cards due back.
+- **Routines (docs only, nothing scheduled):** `docs/routines/nightly-lesson.md` and
+  `docs/routines/weekly-note.md`. Both forbid CA Tracker Pro content and showing an unchecked
+  fact as checked.
+- **Content:** none. No real lesson or weekly note was written: a real lesson needs the user's
+  own misses and the blind fact-check pipeline on a scheduled run, which the user turns on.
+  The fixture has one made-up lesson (20 Oct 2026, items fx-1 to fx-3) and one weekly note.
+- **Checks** (internal-disk copy): Prettier, `tsc -b`, 111 unit tests (15 new), build;
+  `npm run test:cloud` 26 passed (3 new: lesson and weekly-note rules, the cloud API, the CLI's
+  Firestore backend); `npx playwright test e2e/m9.spec.ts` 12 passed (4 tests × desktop, iPad,
+  Android); full `npx playwright test` 81 passed + 24 skips. Screenshots (fixture):
+  `docs/design/m9-nightly/`.
+- **For M10:** the stack's motion (drag, fling, slide forward, return on undo) is in
+  `src/lessons/Lesson.tsx` and the `ls-*` keyframes in `src/lessons/lessons.css`, ready to
+  carry over to the flashcard screen as the user asked.
+- **Not done:** the weekly note on the Analytics screen (M11 reads it with `useWeeklyNotes`),
+  the Mains lesson inside `/mains/answers/:id` (after M8), scheduling the two routines, and
+  deploying (needs the user's go-ahead, plus `firestore:rules`).
+
 ## Prelims MCQ loop (M7) — 2026-10-21
 
 - **Branch:** `claude/m7-mcq-loop`, stacked on `claude/practice-foundations` (PR #47). Assisting

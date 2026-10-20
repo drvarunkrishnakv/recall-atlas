@@ -42,6 +42,15 @@ service cloud.firestore {
     match /srs/{id} {
       allow read, write: if isOwner();
     }
+    // Lessons (M9). Claude's scheduled run writes each day's lesson with the CLI; the app reads it
+    // and adds your ratings to it, but never creates or deletes one.
+    match /lessons/{id} {
+      allow read, update: if isOwner();
+    }
+    // The engine's weekly notes: written by the CLI only.
+    match /notes-week/{id} {
+      allow read: if isOwner();
+    }
     // Anything else is closed.
   }
 }

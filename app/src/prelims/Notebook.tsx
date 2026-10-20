@@ -6,9 +6,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Link } from "../components/nav";
 import { usePractice } from "../content/practice";
+import { useLessons } from "../content/lessons";
+import { Icon } from "../components/Icon";
 import { statementTruth } from "../lib/statements";
 import { GRADE_LABEL, servable, type Attempt, type McqItem } from "../lib/practice";
 import "./prelims.css";
+import "../lessons/lessons.css";
 
 const LETTERS = ["A", "B", "C", "D", "E"];
 type Filter = "all" | "shaky" | "confident" | "twice" | "week";
@@ -61,8 +64,18 @@ export function mistakes(items: Map<string, McqItem>, subjects: Map<string, stri
   return out.sort((a, b) => Date.parse(b.lastMiss.at) - Date.parse(a.lastMiss.at));
 }
 
+/** The newest lesson card that teaches an item, for "Tonight's lesson on this". */
+function lessonOn(lessons: ReturnType<typeof useLessons>, itemId: string) {
+  for (const d of lessons.days) {
+    const card = d.cards.find((c) => c.itemIds.includes(itemId));
+    if (card) return { day: d.day, card: card.id, latest: d.day === lessons.latest };
+  }
+  return undefined;
+}
+
 export default function Notebook() {
   const practice = usePractice();
+  const lessons = useLessons();
   const [params, setParams] = useSearchParams();
   const filter = (params.get("filter") as Filter) || "all";
   const view = params.get("view") === "book" ? "book" : "panes";
@@ -198,14 +211,14 @@ export default function Notebook() {
               </div>
             ))}
           </nav>
-          {current && <Detail m={current} />}
+          {current && <Detail m={current} lesson={lessonOn(lessons, current.item.id)} />}
         </div>
       )}
     </article>
   );
 }
 
-function Detail({ m }: { m: Mistake }) {
+function Detail({ m, lesson }: { m: Mistake; lesson?: { day: string; card: string; latest: boolean } }) {
   const it = m.item;
   const truth = it.statements ? statementTruth(it.options, it.answer, it.statements.length) : null;
   const chosen = m.lastMiss.chosen;
@@ -214,6 +227,14 @@ function Detail({ m }: { m: Mistake }) {
       <span className="chip">
         {it.source.type === "pyq" ? `PYQ ${it.source.year}` : "Practice"} · {it.topic}
       </span>
+      {lesson && (
+        <Link className="nb-lesson" to={`/prelims/lesson?day=${lesson.day}&card=${lesson.card}`}>
+          <Icon name="moon" />
+          {lesson.latest
+            ? "Tonight's lesson on this"
+            : `The lesson on this, ${new Date(`${lesson.day}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`}
+        </Link>
+      )}
       <p className="q-stem">{it.stem}</p>
       {it.statements && (
         <ol className="q-statements">

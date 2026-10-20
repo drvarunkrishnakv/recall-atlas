@@ -1,0 +1,96 @@
+{
+ "day": "2026-10-20",
+ "written": "2026-10-20T13:30:00.000Z",
+ "cards": [
+  {
+   "id": "sample-river-tributaries",
+   "concept": "Sample rivers and their tributaries",
+   "subject": "Sample subject · Sample topic",
+   "itemIds": ["fx-1"],
+   "mistakes": [
+    {
+     "itemId": "fx-1",
+     "attemptId": "fx-1-sample",
+     "at": "2026-10-20T10:00:00.000Z",
+     "stem": "Consider the following statements about the sample river:",
+     "slipped": [{ "n": 3, "text": "It has no tributaries.", "said": true, "truth": false, "from": "marked" }],
+     "chosen": { "n": 3, "text": "1, 2 and 3" },
+     "answer": { "n": 0, "text": "1 and 2 only" },
+     "sure": true,
+     "correct": false,
+     "grade": "forgot"
+    }
+   ],
+   "teach": [
+    "Every river in the sample land collects water from smaller streams on its way to the sea. These streams are its tributaries, so a sample river without one does not exist.",
+    "The north river rises in the north hills and drains into the west sea. The south river rises on the south plain and drains into the east sea. Both gather tributaries along the way."
+   ],
+   "table": {
+    "head": ["", "North river", "South river"],
+    "rows": [
+     ["Rises in", "North hills", "South plain"],
+     ["Drains into", "West sea", "East sea"],
+     ["Tributaries", "Many", "A few"]
+    ]
+   },
+   "remember": "Every sample river has tributaries.",
+   "sources": [{ "label": "Sample atlas (made up for tests)", "url": "https://example.com/sample-atlas" }],
+   "checked": true
+  },
+  {
+   "id": "sample-capitals",
+   "concept": "Capitals of the sample states",
+   "subject": "Sample subject · Sample topic",
+   "itemIds": ["fx-2"],
+   "mistakes": [
+    {
+     "itemId": "fx-2",
+     "attemptId": "fx-2-sample",
+     "at": "2026-10-20T10:05:00.000Z",
+     "stem": "Which sample city is the capital of the sample state?",
+     "slipped": [],
+     "chosen": { "n": 1, "text": "Beta" },
+     "answer": { "n": 2, "text": "Gamma" },
+     "sure": false,
+     "correct": false,
+     "grade": "mixed"
+    }
+   ],
+   "teach": [
+    "Gamma is the capital of the sample state. Beta is its largest port, which is why the two are easy to mix up.",
+    "The sample state moved its government to Gamma long ago, because Gamma sits in the middle of the state."
+   ],
+   "remember": "Gamma governs, Beta trades.",
+   "sources": [{ "label": "Sample gazetteer (made up for tests)", "url": "https://example.com/sample-gazetteer" }],
+   "checked": true
+  },
+  {
+   "id": "sample-pressure",
+   "concept": "Measuring sample pressure",
+   "subject": "Sample subject · Sample topic",
+   "itemIds": ["fx-3"],
+   "mistakes": [
+    {
+     "itemId": "fx-3",
+     "attemptId": "fx-3-sample",
+     "at": "2026-10-20T10:10:00.000Z",
+     "stem": "Which sample instrument measures sample pressure?",
+     "slipped": [],
+     "chosen": { "n": 0, "text": "Sampleometer" },
+     "answer": { "n": 1, "text": "Barosample" },
+     "sure": false,
+     "correct": false,
+     "grade": "unknown"
+    }
+   ],
+   "teach": [
+    "The barosample measures sample pressure. The sampleometer only counts samples, so its name is a trap."
+   ],
+   "remember": "Baro- means pressure.",
+   "sources": [{ "label": "Sample handbook (made up for tests)", "url": "https://example.com/sample-handbook" }],
+   "checked": false
+  }
+ ],
+ "quiz": ["fx-1", "fx-2", "fx-3"],
+ "ratings": []
+}

@@ -25,12 +25,16 @@ const lazyPage = (load: () => Promise<{ default: React.ComponentType }>, label: 
 export const PRELIMS_NAV: NavEntry[] = [
   { to: "/prelims", label: "Home", icon: "home", end: true },
   { to: "/prelims/notebook", label: "Mistake notebook", icon: "list" },
+  { to: "/prelims/lesson", label: "Tonight's lesson", icon: "moon" },
+  { to: "/prelims/quiz", label: "Morning quiz", icon: "sun" },
 ];
 
 /** Prelims mode's pages (below /prelims). */
 export const prelimsRoutes: RouteObject[] = [
   { path: "/prelims/session", element: lazyPage(() => import("../prelims/Session"), "Loading the session") },
   { path: "/prelims/notebook", element: lazyPage(() => import("../prelims/Notebook"), "Loading the notebook") },
+  { path: "/prelims/lesson", element: lazyPage(() => import("../lessons/Lesson"), "Loading tonight's lesson") },
+  { path: "/prelims/quiz", element: lazyPage(() => import("../lessons/Quiz"), "Loading the morning quiz") },
 ];
 
 /** Mains-mode entries added after Home in the sidebar (the reader's own entries follow). */
