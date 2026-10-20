@@ -134,3 +134,69 @@ describe("the attempt log", () => {
     expect(() => attemptsDocId("20/10/2026")).toThrow(PracticeError);
   });
 });
+
+describe("puzzle styles (M10)", () => {
+  const styled = { ...puzzle, options: undefined, answer: undefined };
+  const tf = { ...styled, style: "tf", statement: "A sample statement.", truth: false };
+  const match = {
+    ...styled,
+    style: "match",
+    pairs: [
+      { left: "One", right: "Alpha" },
+      { left: "Two", right: "Beta" },
+    ],
+  };
+  const order = { ...styled, style: "order", order: ["First", "Second", "Third"] };
+  const map = {
+    ...styled,
+    style: "map",
+    map: "svg:sample-coast",
+    alt: "A sample coast with two bays",
+    regions: [
+      { id: "A", x: 10, y: 20 },
+      { id: "B", x: 70, y: 55, label: "Sample bay" },
+    ],
+    region: "B",
+  };
+  it("accept true or false, match, order and map puzzles, and plain ones without a style", () => {
+    for (const p of [tf, match, order, map, puzzle]) expect(validateItem(p).kind).toBe("puzzle");
+    expect(validateItem({ ...map, map: "https://example.org/sample.png" }).kind).toBe("puzzle");
+  });
+  it("need each style's own fields", () => {
+    expect(() => validateItem({ ...tf, truth: undefined })).toThrow(/true/);
+    expect(() => validateItem({ ...tf, statement: " " })).toThrow(/statement/);
+    expect(() => validateItem({ ...match, pairs: match.pairs.slice(0, 1) })).toThrow(/2–6 pairs/);
+    expect(() =>
+      validateItem({
+        ...match,
+        pairs: [
+          { left: "One", right: "Alpha" },
+          { left: "Two", right: "Alpha" },
+        ],
+      }),
+    ).toThrow(/differ/);
+    expect(() => validateItem({ ...order, order: ["First", "Second"] })).toThrow(/3–7/);
+    expect(() => validateItem({ ...map, region: "C" })).toThrow(/right place/);
+    expect(() => validateItem({ ...map, map: "javascript:alert(1)" })).toThrow(/picture/);
+    expect(() => validateItem({ ...map, alt: undefined })).toThrow(/alt/);
+    expect(() => validateItem({ ...map, regions: [{ id: "A", x: 120, y: 0 }, map.regions[1]] })).toThrow(/0–100/);
+    expect(() => validateItem({ ...styled, style: "riddle" })).toThrow(/style/);
+    expect(() => validateItem(styled)).toThrow(/options/);
+  });
+  it("need a list on list cards and a picture with alt text on image cards", () => {
+    expect(() => validateItem({ ...card, style: "list" })).toThrow(/list card/);
+    expect(validateItem({ ...card, style: "list", list: ["One", "Two"] }).kind).toBe("flashcard");
+    expect(() => validateItem({ ...card, style: "image" })).toThrow(/picture/);
+    expect(() => validateItem({ ...card, style: "image", image: "/sample.svg" })).toThrow(/alt/);
+    expect(validateItem({ ...card, style: "image", image: "/sample.svg", alt: "A sample map" }).kind).toBe("flashcard");
+  });
+});
+
+describe("attempts for flashcards, puzzles and Rush (M10)", () => {
+  it("keep a Rush run together and out of the rating", () => {
+    const rush = attempt({ kind: "puzzle", mode: "rush", sure: undefined, chosen: undefined, marks: undefined });
+    expect(validateAttempt({ ...rush, session: "rush-k3x9" }).session).toBe("rush-k3x9");
+    expect(() => validateAttempt({ ...rush, session: "no spaces" })).toThrow(/session/);
+    expect(() => validateAttempt({ ...rush, delta: 5 })).toThrow(/Rush/);
+  });
+});

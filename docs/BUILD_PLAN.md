@@ -137,6 +137,12 @@ DECISIONS (2026-10-20).
   the 0–1000 rating, and Rush.
 - MCQs and flashcards that Claude writes per microtheme, fact-checked blind before import.
 - **Done when** all three item types run on the same attempt log.
+- **Built on `claude/m10-cards-puzzles` (2026-10-21):** `/prelims/cards`, `/prelims/puzzles` and
+  `/prelims/rush`; puzzle styles (true or false, match, order, map) and image cards in
+  `lib/practice.ts`; Elo, the next-puzzle pick and Rush's best in `lib/puzzles.ts`; the typed-answer
+  check in `lib/flashcards.ts`. Real content: 1,161 true-or-false puzzles derived from verified PYQ
+  statements (local content folder only). Not done: real flashcards and generated MCQs, which need
+  the blind fact-check pipeline, so cards run on the fixture only for now.
 
 ### M11 · Homes and analytics
 

@@ -79,6 +79,15 @@ export function PrelimsHome() {
               <Link className="chip-btn" to="/prelims/notebook">
                 Mistake notebook
               </Link>
+              <Link className="chip-btn" to="/prelims/cards">
+                Flashcards
+              </Link>
+              <Link className="chip-btn" to="/prelims/puzzles">
+                Puzzles
+              </Link>
+              <Link className="chip-btn" to="/prelims/rush">
+                Rush
+              </Link>
             </div>
             <p className="muted small">
               {all.length} questions ready · {total.due} due now · {total.fresh} not seen yet · {total.review} settled
@@ -92,6 +101,7 @@ export function PrelimsHome() {
                 <div className="topic-rows">
                   {banks.map((b) => {
                     const items = b.items.filter((i) => i.kind === "mcq" && servable(i));
+                    if (!items.length) return null; // banks of flashcards or puzzles only (M10)
                     const c = bankCounts(items, practice.states);
                     return (
                       <Link key={b.id} className="topic-row" to={q(b.id)}>

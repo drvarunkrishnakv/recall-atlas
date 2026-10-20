@@ -73,16 +73,41 @@ export interface FlashcardItem extends ItemBase {
   back: string;
   /** A list card's items, ticked off one by one. */
   list?: string[];
+  /** An image card's picture (an https or app-relative URL, or "svg:<id>" for one the app draws) and its alt text. */
+  image?: string;
+  alt?: string;
+  /** One line shown with the answer: why it is so. */
+  why?: string;
 }
+
+/** The four puzzle styles (Puzzles 1 · Arena). A puzzle without a style is a plain pick-one from `options`. */
+export type PuzzleStyle = "tf" | "match" | "order" | "map";
+export const PUZZLE_STYLES: readonly PuzzleStyle[] = ["tf", "match", "order", "map"];
 
 export interface PuzzleItem extends ItemBase {
   kind: "puzzle";
+  /** True or false, match the pairs, put in order, or pin it on the map. None: pick one of `options`. */
+  style?: PuzzleStyle;
   prompt: string;
-  options: string[];
-  answer: number;
+  /** A plain puzzle (no style): the choices and the index of the right one. */
+  options?: string[];
+  answer?: number;
   /** 0–1000, on the same scale as your rating. */
   difficulty: number;
   why?: string;
+  /** True or false: the statement to judge, and whether it is true. */
+  statement?: string;
+  truth?: boolean;
+  /** Match the pairs: each left item with its partner (the app shuffles the right column). */
+  pairs?: { left: string; right: string }[];
+  /** Put in order: the items in the right order (the app shuffles them). */
+  order?: string[];
+  /** Pin it on the map: the picture (as for an image card), its alt text, the places you can tap
+   *  (x and y in % of the picture) and the id of the right one. */
+  map?: string;
+  alt?: string;
+  regions?: { id: string; x: number; y: number; label?: string }[];
+  region?: string;
 }
 
 export type Item = McqItem | FlashcardItem | PuzzleItem;
@@ -152,6 +177,8 @@ export interface Attempt {
   typed?: string;
   /** MCQ or puzzle: how much your rating moved. */
   delta?: number;
+  /** The run it belongs to, for answers that count together (a Puzzle Rush). */
+  session?: string;
 }
 
 export interface AttemptDay {
@@ -194,6 +221,58 @@ function checkSource(s: unknown): ItemSource {
       if (!isText(x?.label, 200) || typeof x?.url !== "string" || !/^https?:\/\//.test(x.url)) fail("Bad source");
   } else fail("Unknown item source");
   return s as ItemSource;
+}
+
+// A picture: an https or app-relative URL, a small data: image, or "svg:<id>" for one the app draws.
+const PICTURE = /^(https:\/\/\S+|\/(?!\/)\S*|svg:[a-z0-9-]{1,40}|data:image\/(png|jpeg|webp|svg\+xml)[;,]\S+)$/;
+
+function checkPicture(src: unknown, alt: unknown, id: unknown) {
+  if (typeof src !== "string" || src.length > 100_000 || !PICTURE.test(src)) fail(`Bad picture on ${id}`);
+  if (!isText(alt, 300)) fail(`A picture needs its alt text (${id})`);
+}
+
+const distinct = (xs: string[]) => new Set(xs).size === xs.length;
+
+/** The fields each puzzle style needs (lib/puzzles.ts checks the answers). */
+function checkPuzzleStyle(it: Partial<Record<string, unknown>>) {
+  const id = it.id;
+  switch (it.style) {
+    case "tf":
+      if (!isText(it.statement, 1000)) fail(`A true-or-false puzzle needs its statement (${id})`);
+      if (typeof it.truth !== "boolean") fail(`Say whether the statement is true (${id})`);
+      break;
+    case "match": {
+      const pairs = it.pairs as { left?: unknown; right?: unknown }[] | undefined;
+      if (!Array.isArray(pairs) || pairs.length < 2 || pairs.length > 6) fail(`A match needs 2–6 pairs (${id})`);
+      if (!pairs.every((p) => isText(p?.left, 200) && isText(p?.right, 200))) fail(`Bad pair on ${id}`);
+      if (!distinct(pairs.map((p) => p.left as string)) || !distinct(pairs.map((p) => p.right as string)))
+        fail(`Each side of a match must differ (${id})`);
+      break;
+    }
+    case "order": {
+      const order = it.order as unknown;
+      if (!Array.isArray(order) || order.length < 3 || order.length > 7 || !order.every((o) => isText(o, 200)))
+        fail(`Put-in-order needs 3–7 items (${id})`);
+      if (!distinct(order as string[])) fail(`The items to order must differ (${id})`);
+      break;
+    }
+    case "map": {
+      checkPicture(it.map, it.alt, id);
+      const regions = it.regions as { id?: unknown; x?: unknown; y?: unknown; label?: unknown }[] | undefined;
+      if (!Array.isArray(regions) || regions.length < 2 || regions.length > 8) fail(`A map needs 2–8 places (${id})`);
+      for (const r of regions) {
+        if (typeof r?.id !== "string" || !/^[A-Za-z0-9-]{1,20}$/.test(r.id)) fail(`Bad place id on ${id}`);
+        const inside = (v: unknown) => typeof v === "number" && v >= 0 && v <= 100;
+        if (!inside(r.x) || !inside(r.y)) fail(`Place ${r.id} on ${id} must be within the picture (0–100%)`);
+        if (r.label !== undefined && !isText(r.label, 80)) fail(`Bad place label on ${id}`);
+      }
+      if (!distinct(regions.map((r) => r.id as string))) fail(`Place ids on ${id} must differ`);
+      if (!regions.some((r) => r.id === it.region)) fail(`The right place on ${id} isn't one of its places`);
+      break;
+    }
+    default:
+      fail(`Unknown puzzle style on ${id}`);
+  }
 }
 
 /** Checks an item read from a bank (or about to be imported) and returns it typed. */
@@ -239,15 +318,27 @@ export function validateItem(x: unknown): Item {
       if (!isText(it.front) || !isText(it.back)) fail(`A card needs a front and a back (${it.id})`);
       if (it.list !== undefined && (!Array.isArray(it.list) || !(it.list as unknown[]).every((s) => isText(s, 500))))
         fail(`Bad list on ${it.id}`);
+      if (it.style === "list" && (!Array.isArray(it.list) || it.list.length < 2))
+        fail(`A list card needs at least two items (${it.id})`);
+      if (it.style === "image" || it.image !== undefined) checkPicture(it.image, it.alt, it.id);
+      if (it.why !== undefined && !isText(it.why, 2000)) fail(`Bad "why" on ${it.id}`);
       break;
     case "puzzle": {
       if (!isText(it.prompt)) fail(`No prompt on ${it.id}`);
-      const options = it.options as unknown;
-      if (!Array.isArray(options) || options.length < 2 || options.length > 5 || !options.every((o) => isText(o, 1000)))
-        fail(`Bad options on ${it.id}`);
-      if (!isIndex(it.answer, options.length)) fail(`Bad answer on ${it.id}`);
+      if (it.style === undefined) {
+        const options = it.options as unknown;
+        if (
+          !Array.isArray(options) ||
+          options.length < 2 ||
+          options.length > 5 ||
+          !options.every((o) => isText(o, 1000))
+        )
+          fail(`Bad options on ${it.id}`);
+        if (!isIndex(it.answer, options.length)) fail(`Bad answer on ${it.id}`);
+      } else checkPuzzleStyle(it);
       if (!Number.isInteger(it.difficulty) || (it.difficulty as number) < 0 || (it.difficulty as number) > 1000)
         fail(`Difficulty on ${it.id} must be 0–1000`);
+      if (it.why !== undefined && !isText(it.why, 2000)) fail(`Bad "why" on ${it.id}`);
       break;
     }
     default:
@@ -287,6 +378,8 @@ export function validateAttempt(x: unknown): Attempt {
   if (a.typed !== undefined && (typeof a.typed !== "string" || a.typed.length > 2000)) fail("Typed answer too long");
   if (a.delta !== undefined && (a.kind === "flashcard" || !Number.isFinite(a.delta)))
     fail("Only MCQs and puzzles move the rating");
+  if (a.delta !== undefined && a.mode === "rush") fail("Rush doesn't move the rating");
+  if (a.session !== undefined && (typeof a.session !== "string" || !ID.test(a.session))) fail("Bad session");
   return a as unknown as Attempt;
 }
 

@@ -74,6 +74,24 @@ feature we don't use.
   card by replaying its attempts (no fuzz, retention 0.9), so the log is the only record.
 - **Screens plug in through `src/modes/registry.tsx`**: each milestone adds its routes and
   sidebar entries there.
+- **Flashcards, puzzles and Rush (M10).** Screens in `src/practice/` (`/prelims/cards`,
+  `/prelims/puzzles`, `/prelims/rush`). They are items in the same banks and answers in the same
+  log, so nothing new is stored:
+  - A flashcard is `qa`, `cloze` (`___` marks the blank), `list` (`list` holds the items) or
+    `image` (`image` + `alt`; `svg:<id>` is a small map the app draws). FSRS plans the deck
+    (`planSession(…, "flashcard")`, due first). Each card is one attempt with `typed` and a grade:
+    Forgot → `forgot`, Hard → `hard`, Knew it → `good`, Easy → `easy`. `lib/flashcards.ts`
+    compares the typed answer with the card to suggest a grade.
+  - A puzzle has a `style`: `tf` (`statement`, `truth`), `match` (`pairs`), `order` (`order`, the
+    right order) or `map` (`map`, `alt`, `regions` in % of the picture, the right `region`). A puzzle
+    without a style is the older pick-one shape (`options`, `answer`). Puzzles stay out of FSRS.
+    Each answer moves the one 0–1000 rating by Elo (K 32, `lib/puzzles.ts`); the next puzzle is
+    drawn near your rating from the chosen subjects, avoiding the last 40 you met.
+  - Rush answers are attempts with mode `rush`, no `delta`, and a `session` id per run; the best
+    score is the most right answers in any run, read from the log.
+  - True-or-false banks (`<subject>-tf`, topic "True or false") are derived from verified PYQ
+    statements by a private script (`data/practice_build/derive_puzzles.py`) and loaded with
+    `atlas practice-import` (without `--replace`).
 
 ## Stack
 
