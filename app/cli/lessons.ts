@@ -26,6 +26,8 @@ import {
   type Lesson,
   type WeeklyNote,
 } from "../src/lib/lessons.ts";
+import { weekRange } from "../src/lib/lessons.ts";
+import { mainsWeekFacts } from "../src/lib/mains-analytics.ts";
 
 function fail(msg: string): never {
   console.error(msg);
@@ -162,6 +164,8 @@ export async function lessonsCli(cmd: string, args: string[], db: Backend) {
       const n = Math.min(12, Math.max(1, Number(flag(args, "--weeks") ?? 1) || 1));
       const [days, items, lessons] = await Promise.all([db.attempts(), itemMap(db), db.lessons()]);
       const attempts = Object.values(days).flat();
+      // M11: each week also carries the Mains answers' facts (mainsWeekFacts), for the note's Mains lines.
+      const answers = await db.answers();
       const now = new Date();
       const thisWeek = isoWeek(localDay(now.toISOString()));
       const weeks = Array.from({ length: n }, (_, i) => shiftWeek(thisWeek, -i));
@@ -170,7 +174,10 @@ export async function lessonsCli(cmd: string, args: string[], db: Backend) {
           {
             asOf: now.toISOString(),
             backend: db.kind,
-            weeks: weeks.map((w) => weekFacts(w, attempts, items, lessons)),
+            weeks: weeks.map((w) => ({
+              ...weekFacts(w, attempts, items, lessons),
+              mains: mainsWeekFacts(answers, weekRange(w).from, weekRange(w).to),
+            })),
             due: dueLoad(attempts, items, now),
             shakyDue: shakyQueue(lessons).map((s) => ({ id: s.card.id, concept: s.card.concept, since: s.since })),
           },

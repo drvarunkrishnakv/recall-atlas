@@ -88,7 +88,7 @@ describe("the fixture", () => {
   it("holds valid questions and answers, each with the status its contents give", () => {
     expect(Object.keys(sets)).toHaveLength(2);
     expect(Object.values(sets).flatMap((s) => validateQuestionSet(s).questions)).toHaveLength(3);
-    expect(Object.keys(answers)).toHaveLength(3);
+    expect(Object.keys(answers)).toHaveLength(6);
     for (const x of Object.values(answers)) {
       const a = validateAnswer(x);
       expect(a.status).toBe(statusOf(a));

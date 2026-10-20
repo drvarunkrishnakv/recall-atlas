@@ -17,10 +17,11 @@ import { applySavedTheme } from "./components/ThemeToggle";
 import { loadContent } from "./content/store";
 import { refreshStudy } from "./content/study";
 import { PaperPage, TopicPage, NotePage, CardPage, CardsPage, NotFound } from "./pages";
-import { HomePage, InboxPage, RevisePage, SubjectPage } from "./dashboard";
+import { InboxPage, RevisePage, SubjectPage } from "./dashboard";
 import { SettingsPage } from "./settings";
 import { PageSkeleton } from "./components/Skeleton";
 import { PrelimsHome } from "./prelims/PrelimsHome";
+import { MainsHome } from "./homes/MainsHome";
 import { mainsRoutes, prelimsRoutes } from "./modes/registry";
 
 applySavedTheme();
@@ -58,7 +59,7 @@ const router = createBrowserRouter([
   {
     element: <Layout />,
     children: [
-      { path: "/", element: <HomePage /> },
+      { path: "/", element: <MainsHome /> },
       { path: "/notes/:noteId", element: <NotePage /> },
       { path: "/inbox", element: <InboxPage /> },
       { path: "/revise", element: <RevisePage /> },

@@ -1,5 +1,34 @@
 # Decisions
 
+## 2026-10-21 — Mains Home and Mains Analytics (M11, Mains half)
+
+- **The daily answer target rises with the calendar.** Agreed on 2026-10-20 as "1–2 now, 5–6 in
+  the Mains season"; `answerTarget` in `app/src/lib/mains-analytics.ts` makes it exact:
+  - until Prelims (23 May 2027): 1–2 answers a day, 7–14 a week. Prelims comes first; a daily
+    answer or two keeps the habit and gives the marking something to learn from;
+  - after Prelims it rises by one answer a day each week: 2–3, 3–4, 4–5, then 5–6 from the fourth
+    week (14 June 2027). A step a week, so the habit grows instead of breaking on a sudden jump;
+  - 5–6 a day holds until Mains (20 Aug 2027): roughly a 250-mark paper's worth of questions every
+    three to four days, about 1½ hours of writing a day at 7–11 minutes an answer;
+  - from the first day of Mains there is no target.
+  It doesn't yet adapt to what you actually write; Analytics compares the two week by week.
+- **A full paper is 250 marks of questions in one sitting.** Answers on one paper, sent on one day,
+  whose questions carry 250 marks between them (a GS paper's twenty questions, or the Essay's two).
+  No predicted score until two such papers are marked (the Mains version of Prelims' "three
+  mocks"); after that, a rough total out of 1,750: the share scored on those papers applied to every
+  written paper, labelled a rough guide.
+- **Marks still open** per paper = paper marks × (1 − average score ÷ 10). A paper with no marked
+  answer counts in full, so Medical Science (both optional papers, 500 marks) leads until it starts.
+- **The weekly note is shared by both modes, split by its evidence.** A line whose evidence route
+  starts with `/prelims` shows on Prelims Analytics; any other (`/mains/…`, `/notes/…`) on Mains
+  Analytics. Until Claude's weekly run writes Mains lines, Mains Analytics pins the story worked out
+  on the device and says so. `atlas week-data` now gives each week's Mains facts and their routes.
+- **The Mains Home replaced the old home at "/".** What moved: "notes to revise" and "Due for
+  revision" became the Notes due card; the "from Claude" count and the Claude inbox panel became
+  the From Claude strip; the subject cards became the paper tiles, whose subject links (Polity) still
+  open the subject table. Continue reading and the scratch pad stay, below the papers. The old
+  `HomePage` is left in `dashboard.tsx`, unused, until M12 has merged.
+
 ## 2026-10-21 — The nightly engine (M9)
 
 - **The lesson keeps its night look in light mode too.** The user chose a warm, dim night version

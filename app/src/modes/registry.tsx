@@ -61,6 +61,8 @@ export const MAINS_NAV: NavEntry[] = [
   // M8: the Mains answer loop.
   { to: "/mains/write", label: "Write", icon: "pen" },
   { to: "/mains/feedback", label: "Feedback", icon: "feedback" },
+  // M11: Mains Analytics (the week's story).
+  { to: "/mains/analytics", label: "Analytics", icon: "chart" },
 ];
 
 /** Mains mode's added pages. */
@@ -69,4 +71,9 @@ export const mainsRoutes: RouteObject[] = [
   { path: "/mains/write", element: lazyPage(() => import("../mains/Write"), "Loading the desk") },
   { path: "/mains/answers/:id", element: lazyPage(() => import("../mains/AnswerPage"), "Loading the answer") },
   { path: "/mains/feedback", element: lazyPage(() => import("../mains/FeedbackTab"), "Loading your feedback") },
+  // M11: Mains Analytics (the week's story).
+  {
+    path: "/mains/analytics",
+    element: lazyPage(() => import("../analytics/MainsAnalytics"), "Loading your analytics"),
+  },
 ];

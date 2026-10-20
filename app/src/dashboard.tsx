@@ -195,6 +195,7 @@ function greeting() {
   return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
 
+// The home at "/" until M11; the Mains Home (homes/MainsHome.tsx) replaced it and keeps its scratch pad.
 export function HomePage() {
   useTitle("");
   const { pages } = useContent();
@@ -378,7 +379,7 @@ function ConfChip({ value }: { value?: Confidence }) {
   return <span className={`chip conf-${value}`}>{CONF_LABEL[value]}</span>;
 }
 
-function ScratchPad() {
+export function ScratchPad() {
   const { captures } = useStudy();
   const [text, setText] = useState("");
   const [error, setError] = useState("");

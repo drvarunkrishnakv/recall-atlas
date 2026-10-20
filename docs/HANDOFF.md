@@ -1,5 +1,51 @@
 # Handoff
 
+## Mains Home and Mains Analytics (M11, Mains half) — 2026-10-21
+
+- **Branch:** `claude/m11-mains-homes`, from `claude/atlas-integration` (826c609: M7, M8, M9, M10
+  and the Prelims half of M11). Assisting tool: Claude Code. Built alongside M12, which works from M7.
+- **App:**
+  - Mains Home at `/` (Mains 1 · Centre stage), replacing the old home. In the centre, "Today's
+    answer": a big amber button (glowing, still under reduced motion, first on phones) with the
+    question M8's `suggestQuestions` picks first (a retry due, else a new question with a written
+    note), its paper, year, words and minutes, linking to `/mains/write?q=<id>`. Left: notes due
+    (soonest first, with "Revise P06" and Revise today). Right: the last feedback (score, written
+    when, keep, the biggest fix, Open feedback) and "N answers waiting for marking", or the waiting
+    answer alone before any is marked. Above: a "From Claude" strip (note updates to approve,
+    replies, flags, filed captures, answers marked and disputes answered this week, the weekly
+    note's Mains lines; Open inbox). Header: today's answers against the target and the days to
+    Mains. Then six paper tiles (GS1–4, Essay, Medical Science at 500): average answer score, notes
+    written with the subject linked (Polity → `/gs2/polity`), a coverage bar; a tile leads to
+    `/mains/notes?paper=gs2`, `/mains/essay` or `/mains/medical` (M12's routes). Then "This week in
+    your notes" (approved changes with their source dates, and edits; "Latest changes" when the
+    week is quiet), Continue reading and the scratch pad.
+  - Mains Analytics at `/mains/analytics` (MAna-1 · The week's story): Claude's Mains lines from the
+    weekly note pinned on top, each linked to its evidence; until there are any, the story worked
+    out on the device, each line jumping to its section. Six headings over their charts: scores by
+    week (coloured columns out of 10), marks kept per checklist item (with a link to the costliest
+    fix tag), self-score gap and time per 10-marker by month (7:00 marked), answers a week against
+    the target band (7–14 now), and marks still open per paper. 8 weeks by default, 4 weeks or all
+    time (`?range=`). No predicted score until two full papers are marked.
+  - "Analytics" in the Mains sidebar. Prelims Analytics now leaves the note's Mains lines out.
+- **Engine:** `src/lib/mains-analytics.ts` (DECISIONS 2026-10-21: the daily answer target's ramp,
+  full papers and the prediction gate, marks still open, the note split by route, what moved
+  from the old home). `atlas week-data` gives each week a `mains` block for the weekly note, and
+  `docs/routines/weekly-note.md` says how to write Mains lines. Nothing new is stored.
+- **Fixture:** three made-up marked answers (GS1 on 29 Sep and 14 Oct, GS2 on 8 Oct) with photos;
+  none carries the tags or scores M8's tests count. M8's fixture test now expects 6 answers.
+- **Checks** (internal-disk copy, installed Chrome): Prettier, `tsc -b`, 199 unit tests (18 new),
+  build (local and cloud); `npx playwright test e2e/m11-mains.spec.ts` 13 passed + 2 skips (5 tests
+  × desktop, iPad, Android; the weekly-note test runs on desktop only); full `npx playwright test`
+  127 passed, 29 skipped and 6 failed. The 6 failures already happened on `claude/atlas-integration`
+  before this branch (baseline: 114 passed, 6 failed, 27 skipped). They are M10's "Prelims Home and
+  the sidebar lead to flashcards…" (it looks for `.start-opts`, which the M11 Prelims Home dropped)
+  and M11-Prelims' Analytics test (it expects "No weekly note yet." while M9's fixture has a note),
+  each × 3 sizes. `test:cloud` was not rerun: no Firestore code or rules changed. Screenshots
+  (fixture): `docs/design/m11-mains-homes/`.
+- **Not done:** the target doesn't yet adapt to what you actually write; Medical Science and Essay
+  tiles show answer averages only (their own screens are M12's); the old `HomePage` is left
+  unused in `dashboard.tsx` until M12 has merged; deploying.
+
 ## Nightly engine (M9) — 2026-10-21
 
 - **Branch:** `claude/m9-nightly`, stacked on `claude/m7-mcq-loop`. Assisting tool: Claude Code.

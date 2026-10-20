@@ -138,6 +138,68 @@ export function Bars({
   );
 }
 
+/**
+ * Columns on a fixed scale (Mains Analytics), one per period, each coloured by `tone`; an optional
+ * shaded band marks a target range. Empty periods leave a gap; every column has a hover title.
+ */
+export function Columns({
+  values,
+  labels,
+  sublabels,
+  label,
+  format,
+  max,
+  band,
+  bandLabel,
+  tone,
+}: {
+  values: (number | null)[];
+  labels: string[];
+  sublabels?: string[];
+  label: string;
+  format: (v: number) => string;
+  max: number;
+  band?: [number, number];
+  bandLabel?: string;
+  tone?: (v: number) => string;
+}) {
+  const pct = (v: number) => `${Math.min(100, Math.max(0, (v / (max || 1)) * 100))}%`;
+  const dense = values.length > 10;
+  return (
+    <div className={`cols${dense ? " dense" : ""}`} role="img" aria-label={label}>
+      <div className="cols-plot">
+        {band && (
+          <span className="cols-band" style={{ bottom: pct(band[0]), height: pct(band[1] - band[0]) }}>
+            {bandLabel && <em>{bandLabel}</em>}
+          </span>
+        )}
+        {values.map((v, i) => (
+          <div
+            key={i}
+            className="col"
+            title={`${labels[i]}${sublabels ? ` (${sublabels[i]})` : ""}: ${v === null ? "none" : format(v)}`}
+          >
+            {v !== null && <span className={`col-bar ${tone?.(v) ?? ""}`} style={{ height: pct(v) }} />}
+            {v !== null && (
+              <span className={`col-v ${tone?.(v) ?? ""}`} style={{ bottom: pct(v) }}>
+                {format(v)}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="cols-x" aria-hidden="true">
+        {labels.map((l, i) => (
+          <span key={i}>
+            {l}
+            {sublabels && <small>{sublabels[i]}</small>}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** A calendar of days (columns are weeks, Monday on top), each square shaded by `level`. */
 export function Calendar({
   days,
