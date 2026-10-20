@@ -1,5 +1,32 @@
 # Decisions
 
+## 2026-10-21 — Mains answers: photos, marking and disputes (M8)
+
+- **Photos live in Firebase Storage** at `answers/{id}/page-{n}.jpg`, under owner-only rules
+  (`storage.rules`: the `atlasOwner` claim, JPEG/PNG/WebP only, under 8 MB, no deletes). Locally
+  the dev API keeps them in `content/mains/photos/<id>/`. The app shrinks a photo to 2,000 px on
+  its long side (JPEG) before sending it, so an upload is well under a megabyte. The app shows a
+  Storage photo through its download URL, which is fetched only by the signed-in owner.
+- **An answer is created when the timer starts**, as a draft, so the desk can show a QR code to
+  `/mains/write?answer=<id>` and the phone can add pages to the same answer. Its status then runs
+  draft → waiting (sent) → marked, or disputed while an "I disagree" is open. Answers are never
+  deleted, like the attempt log.
+- **The reading check moved to the marked page.** The Write mocks showed the transcript before the
+  self-score, but marking (and so transcribing) happens on the next run. The user checks Claude's
+  reading on the answer's page instead; a correction after marking opens a dispute so the next run
+  checks whether a misread word cost marks.
+- **"Straighten" is a quarter turn for now.** A page can be turned on the device that took it (it
+  keeps the original until the page is reloaded), then sent again under the same name. Automatic
+  deskewing and cropping can come later.
+- **Disputes** are one per checklist item. The next run resolves each as changed (the item's marks
+  and the score move) or kept, always with a reason; the app shows both and counts them.
+- **The QR code is made on the device** with `qrcode-generator` (no dependencies, no network).
+- **Real questions:** the register's 974 Mains PYQs (GS1–GS4, 2013–2025). The register gives a word
+  limit for 86 of them in the question's own note (37 with the marks too; for the other 49 the marks
+  follow the usual split, 150 words = 10 marks and 250 = 15). The other 888 are set as 10-markers of
+  150 words and flagged, so the Write screen offers a 10/15 switch. "It asks for" is built from
+  the question's sentences and directive words by the private build script.
+
 ## 2026-10-20 — Prelims and Mains practice inside the app
 
 - **What the user asked for:** one study system for CSE 2027 inside Mains Atlas, with a Prelims

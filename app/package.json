@@ -21,7 +21,7 @@
     "discuss:serve": "bash mcp/serve.sh",
     "dev:cloud": "vite --mode cloud --host 0.0.0.0 --port 5173",
     "build:cloud": "tsc -b && vite build --mode cloud",
-    "test:cloud": "npx --yes firebase-tools@15 emulators:exec --project demo-atlas --only firestore,auth \"vitest run --config vitest.cloud.config.ts\"",
+    "test:cloud": "npx --yes firebase-tools@15 emulators:exec --project demo-atlas --only firestore,auth,storage \"vitest run --config vitest.cloud.config.ts\"",
     "mcp:function": "rolldown mcp/function.ts -o ../functions/index.js -p node -f esm --no-code-splitting --external firebase-admin/app --external firebase-admin/firestore --external firebase-admin/auth --external firebase-functions/v2/https"
   },
   "dependencies": {
@@ -37,6 +37,7 @@
     "@modelcontextprotocol/sdk": "^1.32.1",
     "firebase": "^12.19.0",
     "mermaid": "^12.2.0",
+    "qrcode-generator": "^2.0.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router": "^8.4.0",
