@@ -12,6 +12,8 @@ import type { HistoryEntry } from "../src/lib/cloud-docs.ts";
 import { approveProposal, restoreVersion } from "../src/lib/approve.ts";
 import type { Comparison, HeatMap } from "../src/lib/heatmap.ts";
 import type { Attempt, AttemptOp, Bank } from "../src/lib/practice.ts";
+import type { AnswerOp, MainsAnswer, QuestionSet } from "../src/lib/mains.ts";
+import { resolve } from "node:path";
 import {
   changeCaptures,
   changeDiscussions,
@@ -38,6 +40,12 @@ import {
   saveHeatmap,
   savePage,
   writePageFiles,
+  changeAnswer,
+  loadAnswer,
+  loadAnswers,
+  loadQuestionSets,
+  photoFile,
+  saveQuestionSets,
 } from "./content-api.ts";
 
 export type SaveOutcome = { conflict: true; version: number } | { conflict: false; version: number; updated: string };
@@ -81,6 +89,16 @@ export interface Backend {
   /** Every day's practice attempts, `YYYY-MM-DD` → attempts. */
   attempts(): Promise<Record<string, Attempt[]>>;
   changeAttempts(day: string, op: AttemptOp): Promise<Attempt[]>;
+  /** Mains questions, one set per paper (lib/mains.ts). `setMainsQuestions` checks each set; `replace` drops papers not given. */
+  mainsQuestions(): Promise<QuestionSet[]>;
+  setMainsQuestions(sets: QuestionSet[], replace?: boolean): Promise<void>;
+  /** Every Mains answer, and one by id. */
+  answers(): Promise<MainsAnswer[]>;
+  answer(id: string): Promise<MainsAnswer | null>;
+  /** Applies one change (the app's, or marking, resolving a dispute, marking a rewrite) in a transaction. */
+  changeAnswer(id: string, op: AnswerOp): Promise<MainsAnswer>;
+  /** An answer's photo as a file on this computer (downloaded from Storage first on Firestore), or null. */
+  answerPhoto(id: string, file: string): Promise<string | null>;
   /**
    * Writes everything as given, without version checks: for `atlas import` and `atlas export`.
    * `prune` (files only) also removes pages, comments and discussions that `data` no longer has,
@@ -151,6 +169,15 @@ export function fileBackend(dir: string): Backend {
     setBanks: async (banks, replace) => saveBanks(dir, banks, replace),
     attempts: async () => loadAttempts(dir),
     changeAttempts: async (day, op) => changeAttempts(dir, day, op),
+    mainsQuestions: async () => loadQuestionSets(dir),
+    setMainsQuestions: async (sets, replace) => saveQuestionSets(dir, sets, replace),
+    answers: async () => loadAnswers(dir),
+    answer: async (id) => loadAnswer(dir, id),
+    changeAnswer: async (id, op) => changeAnswer(dir, id, op),
+    answerPhoto: async (id, file) => {
+      const path = resolve(photoFile(dir, id, file));
+      return existsSync(path) ? path : null;
+    },
     async restoreAll(data, opts) {
       if (opts?.prune) {
         const keep = new Set(data.pages.map((p) => `${p.collection}/${p.id}`));

@@ -74,6 +74,23 @@ feature we don't use.
   card by replaying its attempts (no fuzz, retention 0.9), so the log is the only record.
 - **Screens plug in through `src/modes/registry.tsx`**: each milestone adds its routes and
   sidebar entries there.
+- **Mains answers (M8).** `/mains/write` picks a question (retries due first, then new ones), runs
+  the optional 1-minute plan and the countdown (7 min for 10 marks, 11 for 15) in a dimmed
+  full-screen "exam hall", then takes 1–3 page photos, a self-score and sends the answer. Phones get
+  the stepper, wider screens the desk, which shows a QR code to `/mains/write?answer=<id>` so the
+  phone adds photos to the same answer. `/mains/answers/:id` is the marked page (or "waiting for
+  marking"); `/mains/feedback` is the table of answers with the fix-tag pattern drawer. Shapes,
+  checks and the Feedback numbers are in `app/src/lib/mains.ts`; screens in `app/src/mains/`.
+- **Where it lives (M8).** Files: `content/mains/questions/<paper>.json`,
+  `content/mains/answers/<id>.json` and `content/mains/photos/<id>/page-<n>.<ext>`. Firestore:
+  `mainsq/{paper}` (read-only to the app) and `answers/{id}` (owner create and update, no delete);
+  photos in Firebase Storage at `answers/{id}/page-{n}.<ext>` (`storage.rules`). Both answer
+  `GET /api/mains` (`{sets, answers}`) and `GET|POST /api/mains/answers/<id>` (one of the app's
+  `AnswerOp`s; marking, resolving and rewrite marks are CLI-only). Photos go to
+  `POST /api/mains/photos/<id>/<file>` on the dev server, or straight to Storage in the cloud build.
+  The CLI (`cli/mains.ts`, dispatched from `atlas.ts`) loads questions, lists answers waiting with
+  each photo as a file path (downloaded from Storage first on Firestore), saves a checked marking,
+  marks rewrites and resolves disputes. The scheduled run's prompt: `docs/routines/mark-answers.md`.
 
 ## Stack
 
@@ -132,6 +149,8 @@ undefined fields aren't valid Firestore values). Shapes are in `app/src/lib/clou
 | `items/{bank}` | `json` = `{items}`: MCQs, flashcards and puzzles for one bank (`Item` in `app/src/lib/practice.ts`). Written by the CLI; the app only reads |
 | `attempts/{YYYY-MM-DD}` | `json` = `{attempts}`: that day's answers, in order (`Attempt`) |
 | `srs/{bank}` | `json` = `{cards}`: each item's review state in that bank (from M7) |
+| `mainsq/{paper}` | `json` = `{paper, questions}`: one paper's Mains questions (`MainsQuestion` in `app/src/lib/mains.ts`). Written by the CLI; the app only reads |
+| `answers/{id}` | `json` = one Mains answer (`MainsAnswer`): question, times, pages, self-score, transcript, marking, disputes, rewrites. Photos are in Storage at `answers/{id}/page-{n}.<ext>` |
 | `proposals/{collection}-{id}` | `json` = `{proposals}`: kind (edit / add / row / check), blockId, find/replace, text or cells, source, reason, origin (flag / feed / claude), status (pending / applied / rejected / stale) |
 
 - The syllabus tree (papers, subjects, topics, planned notes) is not private, so it
@@ -192,5 +211,6 @@ app/src/content/     Syllabus tree (public structure only), the content store, F
 firebase.json        Hosting (with the /mcp rewrite), the MCP function, Firestore rules, emulators
 functions/           The hosted MCP server, bundled from app/mcp/function.ts (npm run mcp:function)
 firestore.rules      Owner-only rules (tested in the emulator: npm run test:cloud)
+storage.rules        Owner-only rules for Mains answer photos in Firebase Storage (same tests)
 docs/                Architecture, build plan, decisions, handoff
 ```

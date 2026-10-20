@@ -1,0 +1,18 @@
+{
+ "paper": "GS3",
+ "questions": [
+  {
+   "id": "gs3-2022-sample-budget",
+   "paper": "GS3",
+   "marks": 10,
+   "words": 150,
+   "marksAssumed": true,
+   "text": "Sample question: distinguish between a sample capital plan and a sample running plan, and explain the parts of each.",
+   "asksFor": ["Distinguish: how the two sample plans differ", "Explain: the parts of each plan"],
+   "subject": "Economy",
+   "topic": "Sample budgeting",
+   "year": 2022,
+   "source": "pyq"
+  }
+ ]
+}

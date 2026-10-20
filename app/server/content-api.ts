@@ -20,6 +20,9 @@
 //   POST /api/history/:collection/:id         {historyId}: restore that version as a new one
 //   GET  /api/heatmap                         the news heat map and its comparison with past papers,
 //                                             {map, comparison} (each null until imported)
+//   GET  /api/mains                           Mains questions and answers, {sets, answers} (lib/mains.ts)
+//   GET|POST /api/mains/answers/:id           one answer; POST applies one of the app's AnswerOps
+//   GET|POST /api/mains/photos/:id/:file      a page photo (POST: the raw image, jpeg/png/webp, up to 8 MB)
 //
 // Writes are accepted only from this machine (unless ATLAS_ALLOW_LAN_WRITES=1) and only
 // from the app's own origin.
@@ -63,6 +66,21 @@ import {
   type AttemptOp,
   type Bank,
 } from "../src/lib/practice.ts";
+import {
+  APP_OPS,
+  applyAnswerOp,
+  isAnswerId,
+  MainsError,
+  MAX_PHOTO_BYTES,
+  PHOTO_FILE,
+  PHOTO_TYPES,
+  validateAnswer,
+  validateQuestionSet,
+  type AnswerOp,
+  type MainsAnswer,
+  type PhotoType,
+  type QuestionSet,
+} from "../src/lib/mains.ts";
 
 const COLLECTIONS = ["notes", "cards"] as const;
 type Collection = (typeof COLLECTIONS)[number];
@@ -384,6 +402,82 @@ export function changeAttempts(dir: string, day: string, op: AttemptOp): Attempt
   return next.attempts;
 }
 
+// Mains answers (M8): each paper's questions in mains/questions/<paper>.json, each answer in
+// mains/answers/<id>.json, and its page photos in mains/photos/<id>/page-<n>.<ext> (lib/mains.ts).
+const PAPER_FILE = /^(GS[1-4]|Essay|Med[12])\.json$/;
+const ANSWER_FILE = /^([A-Za-z0-9][A-Za-z0-9._-]{0,80})\.json$/;
+
+export function loadQuestionSets(dir: string): QuestionSet[] {
+  const folder = join(dir, "mains", "questions");
+  if (!existsSync(folder)) return [];
+  return readdirSync(folder)
+    .filter((f) => PAPER_FILE.test(f))
+    .sort()
+    .map((f) => readJson<QuestionSet | null>(join(folder, f), null))
+    .filter((s): s is QuestionSet => !!s);
+}
+
+/** Writes each paper's set after checking it; `replace` also removes papers not in the list. */
+export function saveQuestionSets(dir: string, sets: QuestionSet[], replace = false) {
+  const folder = join(dir, "mains", "questions");
+  mkdirSync(folder, { recursive: true });
+  const keep = new Set<string>();
+  for (const set of sets) {
+    validateQuestionSet(set);
+    keep.add(`${set.paper}.json`);
+    writeAtomic(join(folder, `${set.paper}.json`), JSON.stringify(set, null, 1) + "\n");
+  }
+  if (replace) for (const f of readdirSync(folder)) if (PAPER_FILE.test(f) && !keep.has(f)) rmSync(join(folder, f));
+}
+
+export function loadAnswers(dir: string): MainsAnswer[] {
+  const folder = join(dir, "mains", "answers");
+  if (!existsSync(folder)) return [];
+  return readdirSync(folder)
+    .filter((f) => ANSWER_FILE.test(f))
+    .sort()
+    .map((f) => readJson<MainsAnswer | null>(join(folder, f), null))
+    .filter((a): a is MainsAnswer => !!a);
+}
+
+export function loadAnswer(dir: string, id: string): MainsAnswer | null {
+  if (!isAnswerId(id)) return null;
+  return readJson<MainsAnswer | null>(join(dir, "mains", "answers", `${id}.json`), null);
+}
+
+export function changeAnswer(dir: string, id: string, op: AnswerOp): MainsAnswer {
+  if (!isAnswerId(id)) throw new MainsError("Bad answer id");
+  const folder = join(dir, "mains", "answers");
+  mkdirSync(folder, { recursive: true });
+  const next = applyAnswerOp(loadAnswer(dir, id), op);
+  if (next.id !== id) throw new MainsError("The answer's id doesn't match its address");
+  validateAnswer(next);
+  writeAtomic(join(folder, `${id}.json`), JSON.stringify(next, null, 1) + "\n");
+  return next;
+}
+
+/** The file a photo lives in, after checking the answer id and file name. */
+export function photoFile(dir: string, id: string, file: string): string {
+  if (!isAnswerId(id) || !PHOTO_FILE.test(file)) throw new MainsError("Bad photo path");
+  return join(dir, "mains", "photos", id, file);
+}
+
+/** Saves a page (or rewrite) photo: pages only while the answer is a draft, rewrites once it's marked. */
+export function savePhoto(dir: string, id: string, file: string, type: string, bytes: Buffer) {
+  const path = photoFile(dir, id, file);
+  if (!Object.hasOwn(PHOTO_TYPES, type) || !file.endsWith("." + PHOTO_TYPES[type as PhotoType]))
+    throw new MainsError("Photos are JPEG, PNG or WebP, named for their type");
+  if (!bytes.length || bytes.length > MAX_PHOTO_BYTES) throw new MainsError("A photo must be under 8 MB");
+  const answer = loadAnswer(dir, id);
+  if (!answer) throw new MainsError("No such answer");
+  if (file.startsWith("page-") && answer.status !== "draft") throw new MainsError("This answer has been sent");
+  if (file.startsWith("rewrite-") && !answer.marking) throw new MainsError("Rewrites come after the marking");
+  mkdirSync(join(dir, "mains", "photos", id), { recursive: true });
+  writeFileSync(path + ".tmp", bytes);
+  renameSync(path + ".tmp", path);
+  return { file, bytes: bytes.length };
+}
+
 // ---------- HTTP ----------
 
 const LOOPBACK = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
@@ -404,6 +498,17 @@ async function readBody(req: IncomingMessage): Promise<unknown> {
     chunks.push(chunk as Buffer);
   }
   return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
+}
+
+async function readRaw(req: IncomingMessage, limit: number): Promise<Buffer> {
+  let size = 0;
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) {
+    size += (chunk as Buffer).length;
+    if (size > limit) throw new MainsError("A photo must be under 8 MB");
+    chunks.push(chunk as Buffer);
+  }
+  return Buffer.concat(chunks);
 }
 
 function writeAllowed(req: IncomingMessage): string | null {
@@ -449,6 +554,42 @@ export function contentApi(appRoot: string): Connect.NextHandleFunction {
         const refused = writeAllowed(req);
         if (refused) return send(res, 403, { error: refused });
         return send(res, 200, { attempts: changeAttempts(dir, parts[3], (await readBody(req)) as AttemptOp) });
+      }
+
+      if (url.pathname === "/api/mains" && req.method === "GET")
+        return send(res, 200, { sets: loadQuestionSets(dir), answers: loadAnswers(dir) });
+      if (parts[1] === "mains" && parts[2] === "answers" && parts.length === 4) {
+        if (!isAnswerId(parts[3])) return send(res, 404, { error: "Not found" });
+        if (req.method === "GET") {
+          const answer = loadAnswer(dir, parts[3]);
+          return answer ? send(res, 200, answer) : send(res, 404, { error: "Not found" });
+        }
+        if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+        const refused = writeAllowed(req);
+        if (refused) return send(res, 403, { error: refused });
+        const op = (await readBody(req)) as AnswerOp;
+        if (!APP_OPS.includes(op?.op as never)) return send(res, 400, { error: "Only Claude's CLI marks answers" });
+        return send(res, 200, { answer: changeAnswer(dir, parts[3], op) });
+      }
+      if (parts[1] === "mains" && parts[2] === "photos" && parts.length === 5) {
+        const [, , , answerId, file] = parts;
+        if (!isAnswerId(answerId) || !PHOTO_FILE.test(file)) return send(res, 404, { error: "Not found" });
+        const path = photoFile(dir, answerId, file);
+        if (req.method === "GET") {
+          if (!existsSync(path)) return send(res, 404, { error: "Not found" });
+          res.statusCode = 200;
+          res.setHeader("Content-Type", Object.entries(PHOTO_TYPES).find(([, ext]) => file.endsWith("." + ext))![0]);
+          res.setHeader("Cache-Control", "no-store");
+          res.setHeader("X-Content-Type-Options", "nosniff");
+          return res.end(readFileSync(path));
+        }
+        if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+        const refused = writeAllowed(req);
+        if (refused) return send(res, 403, { error: refused });
+        const type = String(req.headers["content-type"] ?? "")
+          .split(";")[0]
+          .trim();
+        return send(res, 200, savePhoto(dir, answerId, file, type, await readRaw(req, MAX_PHOTO_BYTES)));
       }
 
       const [, kind, collection, id, extra] = parts;
@@ -520,7 +661,8 @@ export function contentApi(appRoot: string): Connect.NextHandleFunction {
         e instanceof ProgressOpError ||
         e instanceof DiscussionOpError ||
         e instanceof ProposalError ||
-        e instanceof PracticeError
+        e instanceof PracticeError ||
+        e instanceof MainsError
       )
         return send(res, 400, { error: e.message });
       return send(res, 500, { error: e instanceof Error ? e.message : String(e) });
