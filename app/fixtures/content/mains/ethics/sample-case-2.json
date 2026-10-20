@@ -1,0 +1,11 @@
+{
+ "id": "sample-case-2",
+ "n": 2,
+ "by": "claude",
+ "title": "The sample report",
+ "setting": "Sample department",
+ "you": "Sample analyst",
+ "clash": "Sample truth vs sample loyalty",
+ "values": ["Honesty", "Objectivity"],
+ "laws": []
+}

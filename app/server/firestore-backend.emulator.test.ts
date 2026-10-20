@@ -95,4 +95,27 @@ describe("Firestore backend", () => {
     await cloud.setHeatmap(map);
     expect(await cloud.heatmap()).toEqual(map);
   });
+
+  it("loads Essay, Ethics and Medical Science content like the files, and keeps your records on --replace", async () => {
+    const fromFiles = await files.mainsExtra.load();
+    const content = { essay: fromFiles.essay, ethics: fromFiles.ethics, medical: fromFiles.medical };
+    expect(content.medical.length).toBeGreaterThan(0);
+    await cloud.mainsExtra.setContent(content);
+    const loaded = await cloud.mainsExtra.load();
+    expect(sorted({ essay: loaded.essay, ethics: loaded.ethics, medical: loaded.medical })).toEqual(sorted(content));
+
+    const [line] = content.medical;
+    expect(await cloud.mainsExtra.changeWork("medical", line.id, { op: "rate", rating: "strong" })).toMatchObject({
+      rating: "strong",
+    });
+    await expect(cloud.mainsExtra.changeWork("medical", "NOPE", { op: "rate", rating: "ok" })).rejects.toThrow(
+      /No medical/,
+    );
+    // Replacing the content with only the first line drops the others but never your records.
+    await cloud.mainsExtra.setContent({ essay: [], ethics: [], medical: [line] }, true);
+    const after = await cloud.mainsExtra.load();
+    expect(after.medical.map((l) => l.id)).toEqual([line.id]);
+    expect(after.essay).toEqual([]);
+    expect(after.work.medical[line.id]).toMatchObject({ rating: "strong" });
+  });
 });

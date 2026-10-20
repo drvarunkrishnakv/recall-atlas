@@ -26,6 +26,11 @@ const PATHS: Record<string, string> = {
   list: "M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01",
   // A flame, for the news heat map.
   heat: "M12 3c.6 3.2 4.5 5.2 4.5 10a4.5 4.5 0 0 1-9 0c0-2 .9-3.4 2.2-4.4 0 1.7.9 2.8 2.1 2.8-.4-3 0-5.6.2-8.4z",
+  // Mains Notes, Essay, Ethics case studies and Medical Science (M12).
+  notes: "M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6",
+  essay: "M4 20l4-1 11-11-3-3L5 16zM14 7l3 3M4 20h16",
+  ethics: "M12 3v18M8 21h8M4 7h16M6 7l-3 7h6zM18 7l-3 7h6z",
+  medical: "M12 7v10M7 12h10M12 21a9 9 0 110-18 9 9 0 010 18z",
 };
 
 export function Icon({ name }: { name: keyof typeof PATHS | string }) {

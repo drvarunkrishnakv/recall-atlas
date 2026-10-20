@@ -1,0 +1,22 @@
+{
+ "id": "sample-4",
+ "year": 2024,
+ "section": "B",
+ "n": 6,
+ "text": "Sample topic: small steps make long roads.",
+ "theme": "Sample: progress",
+ "sources": [{ "label": "Sample question paper", "url": "https://example.org/sample-paper" }],
+ "decode": {
+  "asks": "A sample question about progress built from many small changes.",
+  "keywords": ["small steps", "long roads"],
+  "angles": [
+   { "k": "Individual", "v": "Sample: daily practice" },
+   { "k": "Governance", "v": "Sample: pilots before scale" },
+   { "k": "Economy", "v": "Sample: incremental growth" },
+   { "k": "Technology", "v": "Sample: iteration" },
+   { "k": "Society", "v": "Sample: slow shifts in norms" },
+   { "k": "Caution", "v": "Sample: when a leap is needed" }
+  ],
+  "notes": []
+ }
+}

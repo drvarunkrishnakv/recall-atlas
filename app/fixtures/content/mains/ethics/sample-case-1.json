@@ -1,0 +1,38 @@
+{
+ "id": "sample-case-1",
+ "n": 1,
+ "by": "claude",
+ "title": "The sample list",
+ "setting": "Sample office",
+ "you": "Sample officer",
+ "clash": "Sample duty vs sample pressure",
+ "values": ["Integrity", "Impartiality", "Compassion"],
+ "text": [
+  "You are a sample officer in a sample office. A sample benefit must reach sample families within a week.",
+  "A sample visitor brings a list and asks that it be paid first. Your sample check shows some names on it are not eligible.",
+  "The visitor hints at trouble for you if there is any delay."
+ ],
+ "asks": ["What are the sample issues?", "What options do you have? Weigh each.", "What will you do, and why?"],
+ "laws": [],
+ "key": {
+  "stakeholders": [
+   { "t": "Sample families checked", "key": true },
+   { "t": "Sample families not yet checked", "key": true },
+   { "t": "The sample visitor", "key": true },
+   { "t": "You", "key": true },
+   { "t": "A sample bystander", "key": false }
+  ],
+  "issues": [
+   { "k": "Integrity", "v": "paying names that aren't eligible", "central": true },
+   { "k": "Impartiality", "v": "need, not who sent the list", "central": true },
+   { "k": "Courage", "v": "the sample threat", "central": false }
+  ],
+  "options": [
+   { "t": "Sample option: pay the list now", "pro": "Fast", "con": "Pays people who aren't eligible", "verdict": "never" },
+   { "t": "Sample option: pay checked families now, check the rest fast", "pro": "Fair and quick", "con": "Some friction", "verdict": "do" },
+   { "t": "Sample option: stop everything", "pro": "No wrong payment", "con": "Families wait", "verdict": "weak" }
+  ],
+  "decision": "Sample decision: pay the checked families today and check the list within two days.",
+  "system": "Sample fix: publish the checked list where everyone can see it."
+ }
+}

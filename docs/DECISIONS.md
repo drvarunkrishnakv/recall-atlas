@@ -1,5 +1,31 @@
 # Decisions
 
+## 2026-10-21 — The rest of Mains (M12): Essay, Ethics, Medical Science, Notes, inbox
+
+- **Content and your records share a collection.** `essay/{id}`, `ethics/{id}` and
+  `medical/{line}` hold what Claude's CLI writes; your outlines, bench attempts, ratings and
+  drills sit beside them as `essay/mine-{id}` and so on. One read gets both, and the rules stay
+  simple: the app may create and update only `mine-` documents, never delete them, and never
+  write content. Files follow the same names under `content/mains/`.
+- **Claude's breakdowns and comparisons come after your own try.** An essay topic's breakdown
+  opens only once you have written your own keywords and angles (stored), and the sprint starts
+  only then. On the Ethics bench, "Compare with mine" opens per step once that step has your
+  answer. It shows Claude's view beside yours with no mark, since a case often has more than one
+  defensible answer.
+- **The inbox's new actions are proposal operations, not new logic.** "Verify, then add" applies
+  a proposal at once when its source was already checked against a primary source; otherwise it
+  marks it `verifyRequested`, and Claude's next run checks the primary source and approves it
+  only if it matches. "Edit" saves your wording (`revise`) and waits for the same check. "Add it
+  now, marked unverified" appends "(unverified)" to the source label, so the note's citation says
+  so, then approves. Proposals may carry Claude's `confidence` (high, medium, low).
+- **Medical Science PYQs count from 2014 to 2026.** The register in `data/medical_pyqs/` keeps
+  2026 outside its own scope, but the app counts it: it is the latest paper. Key diagrams are those
+  UPSC asked for (with the year), plus a few standard ones with no year.
+- **The Mains Notes table reads what exists.** PYQ counts from the syllabus, "last asked" from the
+  Write flow's question bank, answers from its marked answers, open checks from each note's "Open
+  checks" section, and "sources waiting" from pending proposals. "Draft next" and "Ask Claude to
+  look again" leave a request in the scratch pad for Claude's next run.
+
 ## 2026-10-20 — Prelims and Mains practice inside the app
 
 - **What the user asked for:** one study system for CSE 2027 inside Mains Atlas, with a Prelims

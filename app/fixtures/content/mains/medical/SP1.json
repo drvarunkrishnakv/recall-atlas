@@ -1,0 +1,18 @@
+{
+ "id": "SP1",
+ "paper": "I",
+ "subject": "Sample Physiology",
+ "order": 3,
+ "label": "Sample circulation",
+ "syllabus": "Sample wording: sample output and its regulation.",
+ "pyqs": {
+  "count": 1,
+  "marks": 10,
+  "secondary": 0,
+  "last": 2024,
+  "items": [
+   { "id": "sample-2024-I-4a", "year": 2024, "paper": "I", "marks": 10, "text": "Sample question: explain a sample feedback loop.", "primary": true }
+  ]
+ },
+ "diagrams": [{ "id": "sample-loop", "t": "Sample feedback loop" }]
+}

@@ -1,5 +1,5 @@
 // Home, the subject database (table / board / due), Revise today and the Claude inbox.
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { Link, MorphTitle } from "./components/nav";
 import {
@@ -11,7 +11,7 @@ import {
   type Subject,
   type Topic,
 } from "./content/syllabus";
-import { createPage, getPage, savePage, STATUS_LABEL, useContent, type Page } from "./content/store";
+import { createPage, savePage, STATUS_LABEL, useContent, type Page } from "./content/store";
 import {
   addCapture,
   claudeState,
@@ -24,9 +24,9 @@ import {
 } from "./content/study";
 import { dueLabel, isDue, nextDue, today, type Confidence, type NoteProgress } from "./lib/progress";
 import type { Block } from "./lib/blocks";
-import { AIS, bot, isAi } from "./lib/personas";
 import type { StoredThread } from "./lib/threads";
 import { Icon } from "./components/Icon";
+import { PageSkeleton } from "./components/Skeleton";
 
 function useTitle(title: string) {
   useEffect(() => {
@@ -759,129 +759,14 @@ export function RevisePage() {
 }
 
 // ---------- Claude inbox ----------
-
+// In the Board look since M12 (table + drawer, the same items): src/mains-extra/Inbox.tsx, loaded
+// when first opened.
+const InboxBoard = lazy(() => import("./mains-extra/Inbox"));
 export function InboxPage() {
-  useTitle("Claude inbox");
-  const { threads, captures, proposals } = useStudy();
-  const changes = Object.entries(proposals).flatMap(([key, list]) =>
-    list.filter((p) => p.status === "pending").map((p) => ({ key, p })),
-  );
-  const items = Object.entries(threads).flatMap(([key, ts]) => ts.map((t) => ({ key, t })));
-  const replied = items.filter(({ t }) => t.kind === "claude" && !t.resolved && t.comments.at(-1)?.userId === "claude");
-  const waiting = items.filter(({ t }) => t.kind === "claude" && !t.resolved && t.comments.at(-1)?.userId !== "claude");
-  const flags = items.filter(({ t }) => t.kind === "flag" && !t.resolved);
-  const openCaptures = captures.filter((c) => c.status === "open");
-  const filed = captures.filter((c) => c.status === "done");
-  const title = (key: string) => {
-    const [c, id] = key.split(":");
-    return getPage(c === "notes" ? "notes" : "cards", id)?.title ?? id;
-  };
-  const href = (key: string) => {
-    const [c, id] = key.split(":");
-    return `/${c}/${id}`;
-  };
   return (
-    <article className="dash">
-      <header className="dash-head">
-        <div>
-          <div className="eyebrow">Replies, questions waiting, and what Claude filed</div>
-          <h1>Claude inbox</h1>
-        </div>
-      </header>
-      {changes.length > 0 && (
-        <section className="inbox-sec">
-          <h2 className="sec-h">Changes to approve</h2>
-          {changes.map(({ key, p }) => (
-            <Link key={p.id} className="inbox-card" to={`${href(key)}?review=1`}>
-              <span className="kicker">
-                ✎ {title(key)} · {p.source.label}
-              </span>
-              {p.kind === "edit" ? (
-                <>
-                  <del className="q">{p.find}</del>
-                  <span className="a">{p.replace}</span>
-                </>
-              ) : (
-                <span className="a">{p.kind === "row" ? p.cells?.filter(Boolean).join(" · ") : p.text}</span>
-              )}
-              <span className="q">{p.reason}</span>
-            </Link>
-          ))}
-        </section>
-      )}
-      <section className="inbox-sec">
-        <h2 className="sec-h">Replies from Claude</h2>
-        {replied.length === 0 && <p className="muted">No new replies.</p>}
-        {replied.map(({ key, t }) => (
-          <Link key={t.id} className="inbox-card" to={href(key)}>
-            <span className="kicker">{title(key)}</span>
-            <blockquote>{t.anchor.quote}</blockquote>
-            <span className="q">You: {t.comments[0]?.body}</span>
-            <span className="a">Claude: {t.comments.at(-1)?.body}</span>
-          </Link>
-        ))}
-      </section>
-      {flags.length > 0 && (
-        <section className="inbox-sec">
-          <h2 className="sec-h">Flags from AI reviewers</h2>
-          {flags.map(({ key, t }) => {
-            const verdict = t.comments.filter((c) => c.userId === "claude").at(-1)?.body;
-            const author = t.comments[0]?.userId;
-            const ai = isAi(author) ? AIS[author].name : "AI";
-            return (
-              <Link key={t.id} className={`inbox-card${verdict ? "" : " quiet"}`} to={href(key)}>
-                <span className="kicker">
-                  ⚑ {ai} · {bot(t.flag?.by ?? "")?.name ?? "Reviewer"} · {t.flag?.level} · {title(key)}
-                </span>
-                <blockquote>{t.anchor.quote}</blockquote>
-                <span className="q">
-                  {ai}: {t.comments[0]?.body}
-                </span>
-                <span className={verdict ? "a" : "q"}>{verdict ? `Claude: ${verdict}` : "Claude will check this"}</span>
-              </Link>
-            );
-          })}
-        </section>
-      )}
-      <section className="inbox-sec">
-        <h2 className="sec-h">Waiting for Claude</h2>
-        {waiting.length + openCaptures.length === 0 && <p className="muted">Nothing waiting.</p>}
-        {waiting.map(({ key, t }) => (
-          <Link key={t.id} className="inbox-card quiet" to={href(key)}>
-            <span className="kicker">Ask Claude · {title(key)}</span>
-            <span className="q">{t.comments[0]?.body}</span>
-          </Link>
-        ))}
-        {openCaptures.map((c) => (
-          <div key={c.id} className="inbox-card quiet">
-            <span className="kicker">Scratch pad</span>
-            <span className="q">{c.text}</span>
-          </div>
-        ))}
-      </section>
-      {filed.length > 0 && (
-        <section className="inbox-sec">
-          <h2 className="sec-h">Filed from your scratch pad</h2>
-          {filed.map((c) => (
-            <div key={c.id} className="inbox-card">
-              <span className="kicker">{c.note ? `Filed into ${c.note}` : "Done"}</span>
-              <span className="q">You: {c.text}</span>
-              <span className="a">Claude: {c.reply}</span>
-              <span className="row">
-                {c.note && (
-                  <Link className="pill-btn small" to={`/notes/${c.note}`}>
-                    Open {c.note}
-                  </Link>
-                )}
-                <button type="button" className="pill-btn small" onClick={() => void deleteCapture(c.id)}>
-                  Clear
-                </button>
-              </span>
-            </div>
-          ))}
-        </section>
-      )}
-    </article>
+    <Suspense fallback={<PageSkeleton label="Loading the inbox" />}>
+      <InboxBoard />
+    </Suspense>
   );
 }
 

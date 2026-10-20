@@ -49,6 +49,14 @@ export interface Proposal {
   appliedVersion?: number;
   /** Why it couldn't be applied (stale). */
   note?: string;
+  /** How sure Claude is that the change is right and worth adding (M12 inbox). */
+  confidence?: "high" | "medium" | "low";
+  /** You pressed "Verify, then add": Claude applies it once the primary source matches (M12 inbox). */
+  verifyRequested?: string;
+  /** You changed its wording in the inbox (M12). */
+  revised?: string;
+  /** You added it without the primary-source check; its source label says so (M12 inbox). */
+  unverified?: boolean;
 }
 
 export type ProposalOp =
@@ -59,7 +67,12 @@ export type ProposalOp =
   | { op: "reject"; proposalId: string }
   | { op: "applied"; proposalId: string; version: number }
   | { op: "stale"; proposalId: string; note: string }
-  | { op: "delete"; proposalId: string };
+  | { op: "delete"; proposalId: string }
+  // The inbox (M12): ask Claude to check the primary source first, change the wording, or add it
+  // now with its source marked unverified (then approve as usual).
+  | { op: "verify"; proposalId: string }
+  | { op: "revise"; proposalId: string; text?: string; replace?: string; cells?: string[] }
+  | { op: "unverified"; proposalId: string };
 
 export class ProposalError extends Error {}
 /** The proposal no longer fits the page (its text or block changed). */
@@ -113,6 +126,7 @@ export function applyProposalOp(list: Proposal[], op: ProposalOp, now = new Date
         reason: text(p.reason, "reason", 600),
         origin: String(p.origin ?? "claude").slice(0, 120),
         ...(p.verification === "primary" || p.verification === "secondary" ? { verification: p.verification } : {}),
+        ...(p.confidence && ["high", "medium", "low"].includes(p.confidence) ? { confidence: p.confidence } : {}),
         status: "pending",
         createdAt: now,
       };
@@ -142,6 +156,31 @@ export function applyProposalOp(list: Proposal[], op: ProposalOp, now = new Date
     case "delete":
       find(op.proposalId);
       return list.filter((p) => p.id !== op.proposalId);
+    case "verify":
+      if (find(op.proposalId).status !== "pending") throw new ProposalError("Only a pending proposal can be verified");
+      return update(op.proposalId, (p) => ({ ...p, verifyRequested: now }));
+    case "revise": {
+      const cur = find(op.proposalId);
+      if (cur.status !== "pending") throw new ProposalError("Only a pending proposal can be changed");
+      const next: Proposal = { ...cur, revised: now, verifyRequested: now };
+      if (cur.kind === "edit") {
+        next.replace = String(op.replace ?? "").trim();
+        if (next.replace === cur.find) throw new ProposalError("The replacement is the same as the original");
+      } else if (cur.kind === "row") {
+        const cells = Array.isArray(op.cells) ? op.cells.map((c) => String(c ?? "").trim()) : [];
+        if (!cells.length || cells.every((c) => !c)) throw new ProposalError("Give the new row's cells");
+        next.cells = cells;
+      } else next.text = text(op.text, "new text");
+      return update(op.proposalId, () => next);
+    }
+    case "unverified": {
+      const cur = find(op.proposalId);
+      if (cur.status !== "pending") throw new ProposalError("Only a pending proposal can be added");
+      const label = cur.source.label.endsWith("(unverified)")
+        ? cur.source.label
+        : `${cur.source.label.slice(0, 66)} (unverified)`;
+      return update(op.proposalId, (p) => ({ ...p, unverified: true, source: { ...p.source, label } }));
+    }
   }
 }
 

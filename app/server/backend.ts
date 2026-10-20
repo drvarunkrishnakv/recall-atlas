@@ -12,6 +12,7 @@ import type { HistoryEntry } from "../src/lib/cloud-docs.ts";
 import { approveProposal, restoreVersion } from "../src/lib/approve.ts";
 import type { Comparison, HeatMap } from "../src/lib/heatmap.ts";
 import type { Attempt, AttemptOp, Bank } from "../src/lib/practice.ts";
+import { mainsExtraFiles, type MainsExtraBackend } from "./mains-extra-files.ts";
 import {
   changeCaptures,
   changeDiscussions,
@@ -81,6 +82,8 @@ export interface Backend {
   /** Every day's practice attempts, `YYYY-MM-DD` → attempts. */
   attempts(): Promise<Record<string, Attempt[]>>;
   changeAttempts(day: string, op: AttemptOp): Promise<Attempt[]>;
+  /** Essay, Ethics and Medical Science (M12): content from the CLI, and your records. */
+  mainsExtra: MainsExtraBackend;
   /**
    * Writes everything as given, without version checks: for `atlas import` and `atlas export`.
    * `prune` (files only) also removes pages, comments and discussions that `data` no longer has,
@@ -151,6 +154,7 @@ export function fileBackend(dir: string): Backend {
     setBanks: async (banks, replace) => saveBanks(dir, banks, replace),
     attempts: async () => loadAttempts(dir),
     changeAttempts: async (day, op) => changeAttempts(dir, day, op),
+    mainsExtra: mainsExtraFiles(dir),
     async restoreAll(data, opts) {
       if (opts?.prune) {
         const keep = new Set(data.pages.map((p) => `${p.collection}/${p.id}`));
