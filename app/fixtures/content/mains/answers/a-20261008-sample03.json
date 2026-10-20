@@ -1,0 +1,141 @@
+{
+ "id": "a-20261008-sample03",
+ "question": {
+  "id": "gs2-2021-sample-tribunal",
+  "paper": "GS2",
+  "text": "Sample question: discuss the role of a sample tribunal in settling sample disputes, with examples.",
+  "topic": "Sample tribunals",
+  "year": 2021,
+  "marks": 15,
+  "words": 250
+ },
+ "status": "marked",
+ "createdAt": "2026-10-08T04:10:00.000Z",
+ "submittedAt": "2026-10-08T04:25:00.000Z",
+ "plan": [
+  "Sample opening",
+  "Sample body",
+  "Sample way forward"
+ ],
+ "times": {
+  "planMs": 60000,
+  "writeMs": 640000,
+  "overtimeMs": 0,
+  "limitMs": 660000
+ },
+ "pages": [
+  {
+   "file": "page-1.png",
+   "type": "image/png",
+   "at": "2026-10-08T04:25:00.000Z"
+  }
+ ],
+ "selfScore": 7,
+ "selfMissed": [
+  "Current link"
+ ],
+ "transcript": {
+  "text": "Sample transcript: an opening line, three sample points with one sample example, and a short way forward.",
+  "unsure": []
+ },
+ "marking": {
+  "score": 6.5,
+  "checklist": [
+   {
+    "key": "demand",
+    "got": 2,
+    "why": "Sample: both the role and the examples answered."
+   },
+   {
+    "key": "structure",
+    "got": 1.5,
+    "why": "Sample: opening, role, examples, limits, way forward."
+   },
+   {
+    "key": "dimensions",
+    "got": 1,
+    "why": "Sample: the role from one side only."
+   },
+   {
+    "key": "evidence",
+    "got": 1,
+    "why": "Sample: two sample disputes named."
+   },
+   {
+    "key": "current",
+    "got": 0,
+    "why": "Sample: nothing from the last two years."
+   },
+   {
+    "key": "presentation",
+    "got": 0.5,
+    "why": "Sample: headings, but not underlined."
+   },
+   {
+    "key": "length",
+    "got": 0.5,
+    "why": "Sample: about 250 words."
+   }
+  ],
+  "comments": [
+   {
+    "page": 1,
+    "y": 0.1,
+    "kind": "good",
+    "text": "Sample comment: a clear opening."
+   },
+   {
+    "page": 1,
+    "y": 0.45,
+    "kind": "fix",
+    "text": "Sample comment: this point needs an example."
+   },
+   {
+    "page": 1,
+    "y": 0.8,
+    "kind": "strong",
+    "text": "Sample comment: a way forward that follows from the body."
+   }
+  ],
+  "keep": [
+   "Sample: every part of the question answered, in order."
+  ],
+  "fix": [
+   {
+    "item": "current",
+    "gain": 1,
+    "text": "Sample fix: add one sample dispute from the last two years."
+   },
+   {
+    "item": "dimensions",
+    "gain": 1,
+    "text": "Sample fix: add the critics' side of the tribunal's role."
+   }
+  ],
+  "outline": [
+   {
+    "h": "Intro",
+    "p": "Sample outline: set up the question in one line."
+   },
+   {
+    "h": "Body",
+    "p": "Sample outline: three angles, each with an example."
+   },
+   {
+    "h": "Way forward",
+    "p": "Sample outline: two steps that follow from the body."
+   }
+  ],
+  "fromNotes": [],
+  "tags": [
+   {
+    "tag": "no-current-link",
+    "note": "Sample: no recent sample dispute"
+   }
+  ],
+  "run": "2026-10-08 evening",
+  "markedAt": "2026-10-08T13:30:00.000Z"
+ },
+ "disputes": [],
+ "rewrites": []
+}

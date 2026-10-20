@@ -1,0 +1,556 @@
+/* Mains Home (Mains 1 · Centre stage), M11. Board tokens from index.css (--bd-*, --mode*) and
+   homes.css (--hm-*); amber is Mains' mode colour. */
+.mh {
+  container-type: inline-size;
+  max-width: 78rem;
+  margin: 0.6rem auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  font-family: var(--f-board);
+  color: var(--bd-ink);
+}
+.mh .up {
+  color: var(--hm-up);
+}
+.mh .down {
+  color: var(--hm-down);
+}
+.mh ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.mh-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  text-align: center;
+}
+.mh-head h1 {
+  margin: 0;
+  font: 900 2rem/1.15 var(--f-board);
+}
+.mh-head p {
+  margin: 0;
+  font-weight: 700;
+  color: var(--bd-muted);
+}
+.mh-head b {
+  color: var(--mode-ink);
+}
+
+/* From Claude: a lavender strip of what's new, each item a link. */
+.mh-claude {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  background: var(--claude-soft);
+  border-radius: 14px;
+  padding: 10px 16px;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+.mh-claude a {
+  color: var(--bd-ink);
+  text-decoration: none;
+}
+.mh-claude a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.mh-claude > a:not(.mh-claude-open) + a:not(.mh-claude-open)::before {
+  content: "·";
+  margin-right: 14px;
+  color: var(--bd-muted);
+  display: inline-block;
+}
+.mh-claude-label {
+  color: var(--claude-ink);
+  font-weight: 900;
+}
+.mh-claude-none {
+  color: var(--bd-muted);
+  font-weight: 700;
+}
+.mh .mh-claude-open {
+  margin-left: auto;
+  color: var(--claude-ink);
+}
+
+/* The stage: notes due · today's answer · last feedback. */
+.mh-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+}
+.mh-card {
+  background: var(--bd-panel);
+  border: 1px solid var(--bd-line);
+  border-radius: 18px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.mh-card .board-btn {
+  margin-top: 4px;
+}
+.mh-eyebrow {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 900 0.75rem var(--f-board);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--bd-muted);
+}
+.mh-count {
+  min-width: 1.4rem;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--mode);
+  color: var(--on-mode);
+  font-size: 0.72rem;
+  letter-spacing: 0;
+  text-align: center;
+}
+.mh-sub {
+  margin: 0;
+  color: var(--bd-muted);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.mh-title {
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1.35;
+}
+.mh .clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.mh-due {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mh-note {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: baseline;
+  padding: 5px 6px;
+  margin: 0 -6px;
+  border-radius: 10px;
+  color: var(--bd-ink);
+  text-decoration: none;
+  font-weight: 800;
+}
+.mh-note:hover {
+  background: var(--bd-raised);
+}
+.mh-note > b {
+  color: var(--mode-ink);
+}
+.mh-note .morph-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mh-when {
+  color: var(--bd-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.mh-when.late {
+  color: var(--hm-down);
+}
+.mh-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+.mh-more {
+  font-weight: 800;
+  font-size: 0.88rem;
+  color: var(--mode-ink);
+  text-decoration: none;
+}
+.mh-score {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--bd-muted);
+  font-weight: 700;
+}
+.mh-score b {
+  font-size: 1.9rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--mode-ink);
+}
+.mh-line {
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.mh-waiting {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--bd-muted);
+  text-decoration: none;
+}
+.mh-waiting:hover {
+  color: var(--bd-ink);
+}
+.mh-dot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--mode);
+}
+
+/* Today's answer: an amber square that glows (still under reduced motion). */
+.mh-centre {
+  display: flex;
+  justify-content: center;
+}
+.mh-today {
+  width: 100%;
+  max-width: 340px;
+  aspect-ratio: 1 / 1;
+  box-sizing: border-box;
+  border-radius: 30px;
+  background: var(--bd-mains);
+  color: var(--bd-on-mains);
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 24px;
+  animation: mh-glow 2.8s ease-in-out infinite;
+  transition: transform 0.12s ease;
+}
+.mh-today:hover {
+  transform: translateY(-3px);
+}
+.mh-today:active {
+  transform: translateY(6px);
+}
+.mh-today:focus-visible {
+  outline: 3px solid var(--bd-ink);
+  outline-offset: 4px;
+}
+.mh-today-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.mh-today-q {
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.mh-today-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mh-today-meta {
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+.mh-today-go {
+  align-self: flex-start;
+  background: var(--bd-on-mains);
+  color: var(--bd-mains);
+  border-radius: 999px;
+  padding: 7px 22px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+@keyframes mh-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 0 rgb(240 166 58 / 0.45),
+      0 8px 0 var(--bd-mains-shade);
+  }
+  50% {
+    box-shadow:
+      0 0 0 16px rgb(240 166 58 / 0),
+      0 8px 0 var(--bd-mains-shade);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mh-today {
+    animation: none;
+    transition: none;
+    box-shadow: 0 8px 0 var(--bd-mains-shade);
+  }
+}
+
+/* Papers: six tiles, each one link (the paper's name stretched over it) with a subject link inside. */
+.mh-papers {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.mh-papers-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 14px;
+  font-weight: 700;
+}
+.mh-papers-head h2 {
+  margin: 0;
+  flex-grow: 1;
+  font: 900 1.4rem var(--f-board);
+}
+.mh-papers-head .muted {
+  color: var(--bd-muted);
+}
+.mh-papers-head .chip-btn {
+  align-self: center;
+}
+.mh-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--bd-line);
+}
+.mh-tile {
+  position: relative;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  background: var(--bd-panel);
+  transition:
+    transform 0.12s ease,
+    background 0.12s ease;
+}
+.mh-tile:nth-child(even) {
+  background: var(--hm-alt);
+}
+.mh-tile:hover {
+  transform: translateY(-2px);
+  background: var(--bd-raised);
+}
+.mh-tile-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.mh-tile-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+.mh-tile-link {
+  color: var(--bd-ink);
+  text-decoration: none;
+  font-weight: 900;
+  font-size: 1rem;
+}
+.mh-tile-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.mh-tile-link:focus-visible {
+  outline: none;
+}
+.mh-tile-link:focus-visible::after {
+  outline: 3px solid var(--mode);
+  outline-offset: -3px;
+}
+.mh-covers {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--bd-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mh-marks {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--bd-muted);
+}
+.mh-tile-score {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--bd-muted);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.mh-tile-score b {
+  font-size: 1.75rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--bd-ink);
+}
+.mh-tile-notes {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--bd-muted);
+}
+.mh-sub-link {
+  position: relative;
+  z-index: 1;
+  color: var(--bd-ink);
+  text-decoration-color: var(--subj);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+.mh-tile .ph-bar {
+  height: 6px;
+}
+
+/* Below the papers: the latest changes and Continue reading, then the scratch pad. */
+.mh-lower {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+.mh-changes li + li {
+  border-top: 1px solid var(--bd-line);
+}
+.mh-changes a {
+  display: grid;
+  grid-template-columns: minmax(2.6rem, auto) minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 7px 0;
+  color: var(--bd-ink);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.mh-changes a:hover .mh-change-text {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.mh-changes b {
+  color: var(--mode-ink);
+}
+.mh-scratch .scratch {
+  background: var(--bd-panel);
+  border: 1px solid var(--bd-line);
+  border-radius: 18px;
+  color: var(--bd-ink);
+}
+.mh-scratch .scratch h2 {
+  font: 900 0.75rem var(--f-board);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--bd-muted);
+}
+.mh-scratch .scratch .hint {
+  color: var(--bd-muted);
+}
+.mh-scratch .scratch textarea {
+  color: var(--bd-ink);
+  font-family: var(--f-board);
+  font-weight: 600;
+}
+.mh-scratch .scratch textarea::placeholder {
+  color: var(--bd-muted);
+}
+.mh-scratch .captures li {
+  background: var(--bd-raised);
+  color: var(--bd-ink);
+  font-weight: 600;
+}
+
+@container (max-width: 880px) {
+  .mh-stage {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+  .mh-centre {
+    grid-column: 1 / -1;
+    order: -1;
+  }
+  .mh-today {
+    max-width: 460px;
+    aspect-ratio: auto;
+    min-height: 220px;
+  }
+  .mh-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mh-tile:nth-child(even) {
+    background: var(--bd-panel);
+  }
+  .mh-tile:nth-child(4n + 2),
+  .mh-tile:nth-child(4n + 3) {
+    background: var(--hm-alt);
+  }
+}
+@container (max-width: 640px) {
+  .mh-stage,
+  .mh-lower {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mh-today {
+    max-width: none;
+  }
+  .mh-tiles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mh-tile:nth-child(n) {
+    background: var(--bd-panel);
+  }
+  .mh-tile:nth-child(even) {
+    background: var(--hm-alt);
+  }
+  .mh-head h1 {
+    font-size: 1.7rem;
+  }
+  .mh-papers-head h2 {
+    flex-basis: 100%;
+  }
+  .mh .mh-claude-open {
+    margin-left: 0;
+  }
+  .mh-note {
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 0;
+  }
+  .mh-note .mh-when {
+    grid-column: 2;
+  }
+}

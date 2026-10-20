@@ -1,0 +1,255 @@
+/* Mains Analytics (MAna-1 · The week's story), M11. Builds on analytics.css (.an, .an-story,
+   .an-panel…) and charts.css (Columns); tokens from index.css (--bd-*) and homes.css (--hm-*). */
+.ma {
+  max-width: 62rem;
+}
+.ma .up {
+  color: var(--hm-up);
+}
+.ma .mid {
+  color: var(--hm-gold);
+}
+.ma .down {
+  color: var(--hm-down);
+}
+.ma-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 14px;
+}
+.ma-head > div {
+  flex: 1 1 18rem;
+  display: flex;
+  flex-direction: column;
+}
+.ma h1 {
+  font-size: 1.9rem;
+}
+.ma-sub {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--bd-muted);
+}
+
+/* The note pinned on top: amber-framed, each line a link to its evidence. */
+.ma-note {
+  background: var(--bd-panel);
+  border: 2px solid var(--mode);
+  border-radius: 20px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ma-note ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ma-ln {
+  display: grid;
+  grid-template-columns: 1.4rem minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 8px;
+  margin: 0 -8px;
+  border-radius: 10px;
+  color: var(--bd-ink);
+  text-decoration: none;
+  font-weight: 700;
+}
+.ma-ln > span:first-child {
+  grid-column: 1 / 3;
+}
+.ma-ln > b + span {
+  grid-column: auto;
+}
+a.ma-ln:hover {
+  background: var(--hm-alt);
+}
+.ma-ln em {
+  font-style: normal;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--bd-muted);
+  white-space: nowrap;
+}
+.ma-quiet {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--bd-muted);
+}
+
+/* Story headings: "1 ·" in the line's colour. */
+.ma .an-story h2 {
+  font-size: 1.3rem;
+}
+.ma .an-story.small h2 {
+  font-size: 1.12rem;
+}
+.ma-n.up {
+  color: var(--hm-up);
+}
+.ma-n.down {
+  color: var(--hm-down);
+}
+.ma-n.flat {
+  color: var(--hm-gold);
+}
+.ma-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+/* Horizontal bars: one row per checklist item, month or paper. */
+.ma-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ma-row {
+  --c: var(--hm-gold);
+  display: grid;
+  grid-template-columns: 8.5rem minmax(0, 1fr) 3.4rem;
+  gap: 10px;
+  align-items: center;
+}
+.ma-row.up {
+  --c: var(--hm-up);
+}
+.ma-row.mid {
+  --c: var(--hm-gold);
+}
+.ma-row.down {
+  --c: var(--hm-down);
+}
+.ma-row.month {
+  grid-template-columns: 2.6rem minmax(0, 1fr) 6.5rem;
+}
+.ma-row.paper {
+  grid-template-columns: 9.5rem minmax(0, 1fr) 11.5rem;
+}
+.ma-row-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-weight: 800;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ma-row-name small {
+  font-weight: 700;
+  color: var(--bd-muted);
+}
+.ma-row > b {
+  text-align: right;
+  color: var(--c);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ma-track {
+  position: relative;
+  display: block;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--bd-raised);
+  overflow: hidden;
+}
+.ma-track.tall {
+  height: 20px;
+  border-radius: 6px;
+}
+.ma-track i {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: inherit;
+  background: var(--c);
+  transform-origin: left;
+  animation: ma-grow 0.5s ease-out both;
+}
+.ma-row.paper .ma-track i {
+  opacity: 0.85;
+}
+.ma-target {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 2px dashed var(--bd-ink);
+}
+.ma-open {
+  text-align: right;
+  font-size: 0.85rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.ma-open span {
+  color: var(--bd-muted);
+}
+.ma-predict {
+  border: 1px solid var(--bd-line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ma-predict p {
+  margin: 0;
+  color: var(--bd-muted);
+  font-weight: 600;
+}
+.ma-predict b {
+  color: var(--bd-ink);
+}
+@keyframes ma-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ma-track i {
+    animation: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .ma h1 {
+    font-size: 1.6rem;
+  }
+  .ma-ln {
+    grid-template-columns: 1.1rem minmax(0, 1fr);
+  }
+  .ma-ln em {
+    grid-column: 2;
+  }
+  .ma-row {
+    grid-template-columns: 6.4rem minmax(0, 1fr) 2.8rem;
+  }
+  .ma-row.paper {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  a.ma-ln[href^="#"] em {
+    display: none;
+  }
+  .ma-row.paper .ma-track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .ma-row.month {
+    grid-template-columns: 2.4rem minmax(0, 1fr) 5.6rem;
+  }
+}

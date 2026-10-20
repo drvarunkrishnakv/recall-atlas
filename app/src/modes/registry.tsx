@@ -65,6 +65,8 @@ export const MAINS_NAV: NavEntry[] = [
   { to: "/mains/essay", label: "Essay", icon: "essay" },
   { to: "/mains/ethics", label: "Ethics case studies", icon: "ethics" },
   { to: "/mains/medical", label: "Medical Science", icon: "medical" },
+  // M11: Mains Analytics (the week's story).
+  { to: "/mains/analytics", label: "Analytics", icon: "chart" },
 ];
 
 /** A named (not default) export of a lazily loaded module, as a page. */
@@ -104,5 +106,10 @@ export const mainsRoutes: RouteObject[] = [
   {
     path: "/mains/medical/draw/:line/:diagram",
     element: lazyNamed(() => import("../mains-extra/Medical"), "MedicalDraw", "Loading the drill"),
+  },
+  // M11: Mains Analytics (the week's story).
+  {
+    path: "/mains/analytics",
+    element: lazyPage(() => import("../analytics/MainsAnalytics"), "Loading your analytics"),
   },
 ];

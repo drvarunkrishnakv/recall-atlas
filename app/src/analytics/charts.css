@@ -127,3 +127,138 @@
 .cal .cal-pad {
   background: transparent;
 }
+
+/* Columns on a fixed scale with an optional target band (Mains Analytics). */
+.cols {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cols-plot {
+  position: relative;
+  height: 170px;
+  margin-top: 20px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 10px;
+  border-bottom: 1px solid var(--bd-line);
+}
+.col {
+  position: relative;
+  min-width: 0;
+}
+.col-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: min(70%, 48px);
+  min-height: 2px;
+  border-radius: 6px 6px 0 0;
+  background: var(--bd-muted);
+  transform-origin: bottom;
+  animation: col-grow 0.5s ease-out both;
+}
+.col-v {
+  position: absolute;
+  left: 0;
+  right: 0;
+  padding-bottom: 3px;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+.col-bar.up {
+  background: var(--hm-up);
+}
+.col-bar.mid {
+  background: var(--hm-gold);
+}
+.col-bar.down {
+  background: var(--hm-down);
+}
+.col-v.up {
+  color: var(--hm-up);
+}
+.col-v.mid {
+  color: var(--hm-gold);
+}
+.col-v.down {
+  color: var(--hm-down);
+}
+.cols-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: rgb(159 211 107 / 0.12);
+  border-top: 1px dashed var(--hm-up);
+  border-bottom: 1px dashed var(--hm-up);
+  pointer-events: none;
+}
+.cols-band em {
+  position: absolute;
+  right: 6px;
+  bottom: 100%;
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: var(--hm-up);
+}
+.cols-x {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+.cols-x span {
+  min-width: 0;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--bd-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cols-x small {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+.cols.dense .col-v,
+.cols.dense .cols-x small,
+.cols.dense .cols-x span:nth-child(even) {
+  visibility: hidden;
+}
+@keyframes col-grow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .col-bar {
+    animation: none;
+  }
+}
+@media (max-width: 600px) {
+  .cols-plot,
+  .cols-x {
+    gap: 4px;
+  }
+  .col-v {
+    font-size: 0.7rem;
+  }
+  .cols-x span {
+    font-size: 0.62rem;
+    text-overflow: clip;
+  }
+  .cols-x small {
+    font-size: 0.58rem;
+  }
+}

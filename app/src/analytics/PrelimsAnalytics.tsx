@@ -207,6 +207,8 @@ export default function PrelimsAnalytics() {
     ? { arrow: "next", text: `Next week: more ${top.join(" and ")}.` }
     : { arrow: "next", text: "Where the marks are shows once questions are loaded." };
   const maxOpen = Math.max(1, ...m.marks.map((r) => r.open));
+  // Lines about Mains answers live on Mains Analytics.
+  const noteLines = engine.week?.lines.filter((l) => !l.route?.startsWith("/mains")) ?? [];
   const c = m.calRange;
   const level = (n: number) => {
     const t = Math.max(1, m.target);
@@ -229,9 +231,9 @@ export default function PrelimsAnalytics() {
 
         <section className="an-note" aria-label="Claude's note on your week">
           <span className="an-eyebrow">Claude's note on your week</span>
-          {engine.week ? (
+          {noteLines.length ? (
             <ul>
-              {engine.week.lines.map((l, i) => (
+              {noteLines.map((l, i) => (
                 <li key={i}>
                   <NoteLine line={l} subject={l.evidence ? subjectLink(l.evidence) : undefined} />
                 </li>

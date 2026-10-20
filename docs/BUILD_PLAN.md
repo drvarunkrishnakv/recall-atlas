@@ -169,8 +169,13 @@ DECISIONS (2026-10-20).
   (Subject 2), Prelims Analytics (Analytics 3), "Log reading" with its own small store, and the
   Analytics entry in the Prelims sidebar. Lessons, the morning quiz and the weekly note are read
   when M9 provides them; flashcards and puzzles are counted when M10's items exist.
-- **Left for after M8:** Mains Home (Mains 1 · Centre stage) at `/` and Mains Analytics at
-  `/mains/analytics`.
+- **Mains half done** (branch `claude/m11-mains-homes`, on `claude/atlas-integration`): the
+  numbers in `src/lib/mains-analytics.ts` (paper averages, marks still open, scores by week,
+  marks kept per checklist item, self-score gap and time per 10-marker by month, answers a week,
+  full papers and the predicted-score gate, the adaptive daily answer target, the latest changes
+  in your notes, the From Claude items, and each week's Mains facts for `atlas week-data`); the
+  Mains Home (Mains 1 · Centre stage) at `/`; Mains Analytics (MAna-1 · The week's story) at
+  `/mains/analytics` with Claude's Mains lines pinned on top; Analytics in the Mains sidebar.
 
 ### M12 · The rest of Mains (built on `claude/m12-mains-rest`, 2026-10-21)
 

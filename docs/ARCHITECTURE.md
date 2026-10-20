@@ -16,7 +16,8 @@ It replaced Mock A · Paper on 2026-10-16.
 
 - **Navigate:** a short sidebar (Search, Capture, Home, Claude inbox, Revise today, Concept
   cards, News heat map, subjects), breadcrumbs, and working back/forward. Everything is one click.
-- **Home:** subject cards, Continue reading, Due for revision, Claude inbox, Scratch pad.
+- **Home (Mains Home from M11):** today's answer, notes due, the last feedback, a "From Claude"
+  strip, the six paper tiles, the latest changes in your notes, Continue reading and the scratch pad.
 - **Subject database:** every planned note grouped by syllabus topic, with PYQs, status,
   revision (dots + next due), confidence, Claude (questions waiting / replies) and comments;
   Table, Board (by status) and Due views; filters; "Start this note" for planned notes.
@@ -145,6 +146,25 @@ feature we don't use.
   The CLI (`cli/mains.ts`, dispatched from `atlas.ts`) loads questions, lists answers waiting with
   each photo as a file path (downloaded from Storage first on Firestore), saves a checked marking,
   marks rewrites and resolves disputes. The scheduled run's prompt: `docs/routines/mark-answers.md`.
+- **Mains Home and Mains Analytics (M11).** `src/lib/mains-analytics.ts` works out, on the device and
+  from the stores the app already loads (Mains answers, notes, progress, proposals, threads,
+  captures, the weekly note), each paper's average and marks still open (paper marks × (1 − average
+  ÷ 10), unstarted papers in full; Medical Science is its two papers as one 500-mark tile), scores
+  and answers by week, marks kept per checklist item, self-score gap and time per 10-marker by
+  month, full papers (250 marks of questions in one sitting) and the predicted-score gate, the
+  adaptive daily answer target (DECISIONS 2026-10-21), the latest changes in your notes (approved
+  proposals and edits) and the From Claude items. Nothing new is stored.
+  - Mains Home at `/` (`src/homes/MainsHome.tsx`): "Today's answer" links to
+    `/mains/write?q=<id>`, the first of M8's `suggestQuestions` (the Write screen's own first pick);
+    paper tiles lead to `/mains/notes?paper=gs1…gs4`, `/mains/essay` and `/mains/medical` (M12), and
+    a tile's subject link to the subject table (`/gs2/polity`).
+  - Mains Analytics at `/mains/analytics` (`src/analytics/MainsAnalytics.tsx`, `?range=4w|all`,
+    8 weeks by default). Sections have anchors `#scores`, `#checklist`, `#self-score`, `#time`,
+    `#volume`, `#open`. The weekly note's lines whose evidence route doesn't start with `/prelims`
+    are pinned on top; Prelims Analytics shows only the others.
+  - `atlas week-data` gives each week a `mains` block (`mainsWeekFacts`): answers sent and marked,
+    the average, the self-score gap, the 10-marker time, answers that ran over, the costliest
+    checklist item, the target, marks still open and the evidence routes above.
 
 ### Mains extras (M12): Essay, Ethics case studies, Medical Science, Notes, inbox
 
