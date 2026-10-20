@@ -26,7 +26,7 @@
   `POST /api/practice/attempts/<day>`. CLI: `practice`, `practice-import <banks.json>
   [--replace]`, `attempts [--days 7]`.
 - **Content:** the register's PYQs were built into 129 banks by a private script
-  (`data/practice_build/`) and imported into the local content folder: 1,890 questions, 1,840
+  (`data/practice_build/`) and imported into the local content folder: 1,890 questions, 1,856
   served. Not imported into Firestore yet; that needs the user's go-ahead:
   `node cli/atlas.ts practice-import ../data/practice_build/banks.json --replace`.
 - **Checks** (internal-disk copy): Prettier, `tsc -b`, 96 unit tests, build; `npm run

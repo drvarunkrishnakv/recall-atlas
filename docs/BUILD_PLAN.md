@@ -110,7 +110,7 @@ DECISIONS (2026-10-20).
   `attempts/{day}`.
 - The Mistake notebook (Notebook 2 · Two panes, with the revision-book view).
 - Content: every register PYQ (2009–2026) whose key is verified, imported by the CLI into
-  `items/` — 1,840 of 1,890 on 21 Oct 2026; the other 50 are kept but not served.
+  `items/` — 1,856 of 1,890 on 21 Oct 2026; the other 34 are kept but not served.
 - **Done when** a session's answers are saved, due dates follow FSRS, misses appear in the
   notebook, and an unverified key never reaches a session.
 

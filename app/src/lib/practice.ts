@@ -13,7 +13,8 @@ export type KeyFrom = "upsc" | "upsc-provisional" | "consensus";
 export const KEY_FROM_LABEL: Record<KeyFrom, string> = {
   upsc: "Answer from UPSC's official key",
   "upsc-provisional": "Answer from UPSC's provisional key",
-  consensus: "No official key for this year: the register, Grok and Gemini agree on this answer",
+  consensus:
+    "No official key exists for this year: Grok and Gemini, checked against the register, agree on this answer",
 };
 export const ITEM_KINDS: readonly ItemKind[] = ["mcq", "flashcard", "puzzle"];
 
