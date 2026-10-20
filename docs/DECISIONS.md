@@ -1,5 +1,39 @@
 # Decisions
 
+## 2026-10-20 — Prelims and Mains practice inside the app
+
+- **What the user asked for:** one study system for CSE 2027 inside Mains Atlas, with a Prelims
+  mode and a Mains mode. Prelims is MCQ-first practice with miss reasons, FSRS for MCQs and
+  flashcards, puzzles with a 0–1000 rating, and nightly lessons from the day's misses. Mains is
+  answers written on paper, photographed and marked by Claude, plus Essay, Ethics case studies and
+  the Medical Science optional. The user chose every screen from three mocks on the design canvas
+  (https://claude.ai/artifact/5L9F2MBYd2QSETo5r485cQ).
+- **The rating is the one exception to "no gamification".** The user asked for a chess.com-style
+  rating with ± points on puzzles. There are still no streaks, badges or points anywhere else.
+- **Board shell everywhere.** The sidebar, the top bar and the Prelims/Mains switch use the Board
+  look: warm graphite in dark, warm paper in light, Nunito, green for Prelims and amber for Mains.
+  Note and card pages keep their reading style inside it. Board has a light mode as well as a
+  dark one, because every screen must work in both.
+- **Modes follow the URL.** Prelims lives under `/prelims`, and every existing route is Mains. The
+  switch remembers the last page of each mode on the device (`atlas-mode-path-prelims`,
+  `atlas-mode-path-mains`).
+- **One attempt log feeds the engine.** Every answer is added once to `attempts/{day}` and never
+  changed, except its miss reason. Three layers read it. On the device, without AI: FSRS, the
+  rating, readiness and the daily target. Claude's scheduled runs: marking, the nightly lesson and
+  morning quiz, generated questions with a blind fact-check, and the weekly note. A monthly tuning
+  pass fits FSRS to the user's own log.
+- **Marking waits for the next scheduled run.** That needs no API key and costs nothing per
+  answer. A faster path (a Cloud Function calling the API) can come later.
+- **No PYQ reaches a session until its key is checked** against UPSC's official answer key
+  (`keyVerified`). The register's answers came from a third-party export.
+- **Data shapes** are in `app/src/lib/practice.ts`, pure and tested: items (MCQ, flashcard,
+  puzzle), attempts with the eight grades from the chosen session design, and the grade-to-FSRS
+  mapping. Wrong answers (Didn't know, Forgot, Mixed up, Misread, Risky guess) are Again; Guessed
+  is Hard, Knew it is Good and Instant is Easy. FSRS itself (`ts-fsrs`) arrives with M7.
+- **Firestore:** `items/{bank}` holds a bank of items, which the CLI writes and the app only reads.
+  `attempts/{YYYY-MM-DD}` holds a day's attempts and `srs/{bank}` a bank's review state. Both are
+  owner-only reads and writes.
+
 ## 2026-10-19 — App pages are not cached for an hour
 
 - Hosting matches header rules against the requested path, before the rewrite to `/index.html`.

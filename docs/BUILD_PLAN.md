@@ -84,6 +84,71 @@ proposals, and the twice-daily task (7 am, 7 pm) using them.
 - Later (user's idea, 2026-10-16): a bank of ready introductions and conclusions for each
   microtheme, for answer writing.
 
+## Prelims and Mains practice (from 2026-10-20)
+
+The user asked for one study system for CSE 2027: a Prelims mode and a Mains mode in this app.
+Each step below is one milestone and one PR. Screens follow the mocks the user chose on the
+design canvas (https://claude.ai/artifact/5L9F2MBYd2QSETo5r485cQ); the reasons are in
+DECISIONS (2026-10-20).
+
+### M6 · Practice foundations (this branch: `claude/practice-foundations`)
+
+- Board shell: the sidebar, the top bar and a Prelims/Mains switch in the Board look, in light
+  and dark, green for Prelims and amber for Mains. Note pages keep their reading style.
+- Prelims mode under `/prelims`, with its own sidebar. Mains keeps every existing route. The
+  switch remembers the last page of each mode.
+- Data shapes for items and attempts (`app/src/lib/practice.ts`), their Firestore documents, and
+  owner-only rules with emulator tests.
+- **Done when** the switch works at all three sizes in light and dark, the existing tests pass,
+  and the shapes have unit and rules tests.
+
+### M7 · Prelims MCQ loop
+
+- The practice session (Session 3 · Statement marks): a ✓/✕ per statement, sure/unsure lock-in,
+  feedback after each question or at the end in exam mode, keyboard shortcuts, and a summary.
+- The eight grade buttons, FSRS scheduling with `ts-fsrs`, and the day's attempts saved to
+  `attempts/{day}`.
+- The Mistake notebook (Notebook 2 · Two panes, with the revision-book view).
+- Content: Polity PYQs whose keys are verified, imported by the CLI into `items/`.
+- **Done when** a session's answers are saved, due dates follow FSRS, misses appear in the
+  notebook, and an unverified key never reaches a session.
+
+### M8 · Mains answer loop
+
+- Write: the phone stepper and the desktop desk, which shows a QR code to send photos from the
+  phone. Photos go to Firebase Storage under owner-only rules.
+- Marking on Claude's next scheduled run: a transcription for the user to check, the checklist
+  out of 10, comments pinned to lines, and "I disagree".
+- The marked page (Feedback 1) and the Feedback tab (table + pattern drawer).
+- **Done when** a photographed answer is marked by the next run, and its feedback, tags and
+  history show.
+
+### M9 · Nightly engine
+
+- The scheduled run writes tonight's lesson (Lesson 3 · Stack, in the night look) and tomorrow
+  morning's quiz from the day's misses, and the weekly note.
+- **Done when** a day's misses produce a fact-checked lesson by evening and a quiz the next
+  morning.
+
+### M10 · More practice
+
+- Flashcards (Flashcards 1 · Classic stack, typed answer, FSRS), puzzles (Puzzles 1 · Arena) with
+  the 0–1000 rating, and Rush.
+- MCQs and flashcards that Claude writes per microtheme, fact-checked blind before import.
+- **Done when** all three item types run on the same attempt log.
+
+### M11 · Homes and analytics
+
+- Prelims Home and Mains Home (both Centre stage), the Prelims subject page (table + analytics
+  drawer), and both analytics screens (the week's story).
+- **Done when** every number on them comes from the attempt log or the notes.
+
+### M12 · The rest of Mains
+
+- Essay, Ethics case studies and Medical Science (table + drawer each), and the Board versions
+  of the Mains Notes table and the Claude inbox.
+- **Done when** each screen works at all three sizes in light and dark.
+
 ## Testing on every milestone
 
 - Unit tests for the Markdown extensions and data helpers.

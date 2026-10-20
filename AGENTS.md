@@ -9,8 +9,12 @@ comment reply and proposal follows the style guide.
 - Build the Mains Atlas reader described in docs/ARCHITECTURE.md: a private, minimal,
   Notion-like app for living Mains revision notes. Design target: the colourful
   mock (Evernote-inspired), https://claude.ai/artifact/V5VbeLQ3hFE9LAgjf8k5Pe.
+- From M6 the app also has Prelims and Mains practice modes. Their screens follow the mocks the
+  user chose (https://claude.ai/artifact/5L9F2MBYd2QSETo5r485cQ) inside the Board shell; note
+  pages keep the colourful reading style.
 - Keep it minimal. Add a feature only when a milestone in docs/BUILD_PLAN.md calls for it
-  or the user asks. No gamification, no chat box, no features "because Notion has them".
+  or the user asks. No chat box, no features "because Notion has them", and no gamification
+  beyond the practice rating the user asked for (DECISIONS 2026-10-20).
 - Everything is one click: no confirmation hops, no new tabs for in-app links, and back
   must always work.
 - It must work at Android phone (412 px), iPad (1024 px) and desktop widths, in light and dark.

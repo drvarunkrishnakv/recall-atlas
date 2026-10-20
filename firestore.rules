@@ -31,6 +31,17 @@ service cloud.firestore {
     match /heatmap/{id} {
       allow read: if isOwner();
     }
+    // Practice (M6). Banks of items are written by Claude's CLI; the app only reads them.
+    match /items/{id} {
+      allow read: if isOwner();
+    }
+    // The attempt log is kept, never thrown away: the app can add and update a day, not delete it.
+    match /attempts/{id} {
+      allow read, create, update: if isOwner();
+    }
+    match /srs/{id} {
+      allow read, write: if isOwner();
+    }
     // Anything else is closed.
   }
 }
