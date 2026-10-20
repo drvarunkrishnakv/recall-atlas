@@ -21,6 +21,7 @@ import { HomePage, InboxPage, RevisePage, SubjectPage } from "./dashboard";
 import { SettingsPage } from "./settings";
 import { PageSkeleton } from "./components/Skeleton";
 import { PrelimsHome } from "./prelims/PrelimsHome";
+import { mainsRoutes, prelimsRoutes } from "./modes/registry";
 
 applySavedTheme();
 // The cloud build loads notes only after Google sign-in (AuthGate); locally they load at once.
@@ -71,6 +72,8 @@ const router = createBrowserRouter([
         ),
       },
       { path: "/prelims", element: <PrelimsHome /> },
+      ...prelimsRoutes,
+      ...mainsRoutes,
       { path: "/prelims/*", element: <NotFound /> },
       { path: "/cards", element: <CardsPage /> },
       { path: "/cards/:cardId", element: <CardPage /> },

@@ -120,9 +120,10 @@ describe("the attempt log", () => {
     expect(() => applyAttemptOp(day, { op: "grade", id: "a1", grade: "good" })).toThrow(/doesn't fit a wrong/);
     expect(() => applyAttemptOp(day, { op: "grade", id: "nope", grade: "forgot" })).toThrow(/No attempt/);
   });
-  it("refuses grades on puzzles, rating changes on anything else, and bad times", () => {
+  it("refuses grades on puzzles, rating changes on flashcards, and bad times", () => {
     expect(() => validateAttempt(attempt({ kind: "puzzle", grade: "forgot" }))).toThrow(/Puzzles/);
-    expect(() => validateAttempt(attempt({ delta: 8 }))).toThrow(/Only puzzles/);
+    expect(() => validateAttempt(attempt({ kind: "flashcard", delta: 8 }))).toThrow(/Only MCQs and puzzles/);
+    expect(validateAttempt(attempt({ delta: -7 })).delta).toBe(-7);
     expect(validateAttempt(attempt({ kind: "puzzle", delta: -7, chosen: 1, marks: undefined })).delta).toBe(-7);
     expect(() => validateAttempt(attempt({ at: "yesterday" }))).toThrow(/time/);
     expect(() => validateAttempt(attempt({ ms: -1 }))).toThrow(/duration/);

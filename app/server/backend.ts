@@ -11,6 +11,7 @@ import type { Proposal, ProposalOp } from "../src/lib/proposals.ts";
 import type { HistoryEntry } from "../src/lib/cloud-docs.ts";
 import { approveProposal, restoreVersion } from "../src/lib/approve.ts";
 import type { Comparison, HeatMap } from "../src/lib/heatmap.ts";
+import type { Attempt, AttemptOp, Bank } from "../src/lib/practice.ts";
 import {
   changeCaptures,
   changeDiscussions,
@@ -29,6 +30,10 @@ import {
   loadThreads,
   loadComparison,
   loadHeatmap,
+  changeAttempts,
+  loadAttempts,
+  loadBanks,
+  saveBanks,
   saveComparison,
   saveHeatmap,
   savePage,
@@ -70,6 +75,12 @@ export interface Backend {
   /** The heat map's comparison with past papers, or null. */
   comparison(): Promise<Comparison | null>;
   setComparison(c: Comparison): Promise<void>;
+  /** Practice banks (lib/practice.ts). `setBanks` checks every bank; `replace` drops banks not given. */
+  banks(): Promise<Bank[]>;
+  setBanks(banks: Bank[], replace?: boolean): Promise<void>;
+  /** Every day's practice attempts, `YYYY-MM-DD` → attempts. */
+  attempts(): Promise<Record<string, Attempt[]>>;
+  changeAttempts(day: string, op: AttemptOp): Promise<Attempt[]>;
   /**
    * Writes everything as given, without version checks: for `atlas import` and `atlas export`.
    * `prune` (files only) also removes pages, comments and discussions that `data` no longer has,
@@ -136,6 +147,10 @@ export function fileBackend(dir: string): Backend {
     setHeatmap: async (map) => saveHeatmap(dir, map),
     comparison: async () => loadComparison(dir),
     setComparison: async (c) => saveComparison(dir, c),
+    banks: async () => loadBanks(dir),
+    setBanks: async (banks, replace) => saveBanks(dir, banks, replace),
+    attempts: async () => loadAttempts(dir),
+    changeAttempts: async (day, op) => changeAttempts(dir, day, op),
     async restoreAll(data, opts) {
       if (opts?.prune) {
         const keep = new Set(data.pages.map((p) => `${p.collection}/${p.id}`));

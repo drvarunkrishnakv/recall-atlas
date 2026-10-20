@@ -1,5 +1,40 @@
 # Handoff
 
+## Prelims MCQ loop (M7) — 2026-10-21
+
+- **Branch:** `claude/m7-mcq-loop`, stacked on `claude/practice-foundations` (PR #47). Assisting
+  tool: Claude Code.
+- **Why:** the user asked for the whole app to be built from the chosen screens; M7 is the first
+  step after the foundations (BUILD_PLAN).
+- **App:**
+  - Prelims Home: countdown, rating, "Practise now" (20/50/100, answer after each or exam mode)
+    and every topic grouped by subject with its due and new counts.
+  - The session (Session 3 · Statement marks): ✓/✕ per statement lights up the option the
+    marks point to (also for "how many are correct"); marks only appear when the options are
+    about the statements. Sure/unsure lock-in, a clock that turns red after 72 s, feedback with
+    each statement's truth and where a mark slipped, the eight grade buttons with FSRS "back
+    in …", exam mode, keys (A–D, S/U, 1–5, Enter) and a summary (UPSC marks, rating change,
+    sure/unsure accuracy). Under each answer: whether it comes from UPSC's final or provisional
+    key, or (2009–2011) from the register, Grok and Gemini agreeing.
+  - The Mistake notebook (Notebook 2 · Two panes, plus the revision book): filters, "fixed"
+    after right answers on two later days, and "Practise N shaky ones".
+  - The floating Capture button hides on practice screens.
+- **Engine:** `src/lib/srs.ts` (FSRS state rebuilt from the attempt log, session planning,
+  counts), `src/lib/statements.ts` (what each option says about the statements),
+  `src/content/practice.ts` (the store; answers are saved optimistically).
+- **Storage:** dev API and Firestore both answer `GET /api/practice` and
+  `POST /api/practice/attempts/<day>`. CLI: `practice`, `practice-import <banks.json>
+  [--replace]`, `attempts [--days 7]`.
+- **Content:** the register's PYQs were built into 129 banks by a private script
+  (`data/practice_build/`) and imported into the local content folder: 1,890 questions, 1,856
+  served. Not imported into Firestore yet; that needs the user's go-ahead:
+  `node cli/atlas.ts practice-import ../data/practice_build/banks.json --replace`.
+- **Checks** (internal-disk copy): Prettier, `tsc -b`, 96 unit tests, build; `npm run
+  test:cloud` 23 passed; `npx playwright test` 69 passed + 24 skips (installed Chrome; new: a
+  session with statement marks and a miss that reaches the notebook, exam mode with keys).
+  Screenshots (fixture): `docs/design/m7-mcq-loop/`.
+- **Not done:** deploying (needs the user's go-ahead, plus `firestore:rules`).
+
 ## Practice foundations (M6) — 2026-10-20
 
 - **Branch:** `claude/practice-foundations`, from `main` (9c34a97). Assisting tool: Claude Code.

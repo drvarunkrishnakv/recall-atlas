@@ -31,6 +31,7 @@ import { applyThreadOp, type StoredThread } from "../src/lib/threads.ts";
 import { applyDiscussionOp, type Discussion } from "../src/lib/discussions.ts";
 import { applyCaptureOp, applyProgressOp, type Capture, type Progress } from "../src/lib/progress.ts";
 import type { Comparison, HeatMap } from "../src/lib/heatmap.ts";
+import { applyAttemptOp, attemptsDocId, validateBank, type Attempt, type Bank } from "../src/lib/practice.ts";
 import type { Backend } from "./backend.ts";
 
 export const KEY_PATH = join(homedir(), ".config", "mains-atlas", "service-account.json");
@@ -179,6 +180,38 @@ export function firestoreBackend(db: Firestore = getFirestore(adminApp())): Back
         batch.set(db.doc(`heatmap/${id}`), record);
       await batch.commit();
     },
+    banks: async () =>
+      (await db.collection("items").get()).docs
+        .map((d) => decodeJson<Bank | null>(d.data(), null))
+        .filter((b): b is Bank => !!b),
+    async setBanks(banks, replace) {
+      banks.forEach(validateBank);
+      const keep = new Set(banks.map((b) => b.id));
+      const batch = db.batch();
+      for (const b of banks)
+        batch.set(db.doc(`items/${b.id}`), {
+          json: JSON.stringify(b),
+          subject: b.subject,
+          topic: b.topic,
+          count: b.items.length,
+          updatedAt: Date.now(),
+        });
+      if (replace) for (const d of (await db.collection("items").get()).docs) if (!keep.has(d.id)) batch.delete(d.ref);
+      await batch.commit();
+    },
+    attempts: async () =>
+      Object.fromEntries(
+        (await db.collection("attempts").get()).docs.map((d) => [
+          d.id,
+          decodeJson(d.data(), { attempts: [] as Attempt[] }).attempts,
+        ]),
+      ),
+    changeAttempts: async (day, op) =>
+      (
+        await change(db.doc(`attempts/${attemptsDocId(day)}`), { attempts: [] as Attempt[] }, (v) =>
+          applyAttemptOp(v, op),
+        )
+      ).attempts,
     async restoreAll(data) {
       // Small batches: a long page is close to a megabyte on its own.
       const writes: [DocumentReference, Record<string, unknown>][] = [];

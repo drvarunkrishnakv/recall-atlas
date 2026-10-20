@@ -109,7 +109,8 @@ DECISIONS (2026-10-20).
 - The eight grade buttons, FSRS scheduling with `ts-fsrs`, and the day's attempts saved to
   `attempts/{day}`.
 - The Mistake notebook (Notebook 2 · Two panes, with the revision-book view).
-- Content: Polity PYQs whose keys are verified, imported by the CLI into `items/`.
+- Content: every register PYQ (2009–2026) whose key is verified, imported by the CLI into
+  `items/` — 1,856 of 1,890 on 21 Oct 2026; the other 34 are kept but not served.
 - **Done when** a session's answers are saved, due dates follow FSRS, misses appear in the
   notebook, and an unverified key never reaches a session.
 
@@ -148,6 +149,21 @@ DECISIONS (2026-10-20).
 - Essay, Ethics case studies and Medical Science (table + drawer each), and the Board versions
   of the Mains Notes table and the Claude inbox.
 - **Done when** each screen works at all three sizes in light and dark.
+
+### Routes and data for M8–M12
+
+Fixed up front (2026-10-21) so the milestones can be built side by side and merged without
+guessing. Each milestone adds its routes and sidebar entries in `src/modes/registry.tsx`, its
+screens in its own folder with its own stylesheet, and its end-to-end tests in its own
+`e2e/<milestone>.spec.ts`.
+
+| Milestone | Routes | Data (Firestore · dev files) | Code |
+|---|---|---|---|
+| M8 | `/mains/write`, `/mains/answers/:id`, `/mains/feedback` | `mainsq/{paper}` · `mains/questions/<paper>.json` (questions, CLI-imported); `answers/{id}` · `mains/answers/<id>.json`; photos in Storage `answers/{id}/page-{n}.jpg` · `mains/photos/<id>/` | `src/lib/mains.ts`, `src/mains/` |
+| M9 | `/prelims/lesson`, `/prelims/quiz` (and the Mains lesson inside `/mains/answers/:id`) | `lessons/{day}` · `practice/lessons/<day>.json`; weekly note `notes-week/{week}` · `practice/weeks/<week>.json` | `src/lib/lessons.ts`, `src/lessons/`, `docs/routines/` |
+| M10 | `/prelims/cards`, `/prelims/puzzles`, `/prelims/rush` | Flashcards and puzzles are items in `items/{bank}`; answers in `attempts/{day}` | `src/lib/puzzles.ts`, `src/practice/` |
+| M11 | `/` (Mains Home), `/prelims` (Prelims Home), `/prelims/subject/:subject`, `/prelims/analytics`, `/mains/analytics` | Reads the above | `src/homes/`, `src/analytics/` |
+| M12 | `/mains/notes`, `/mains/essay`, `/mains/ethics`, `/mains/medical`, and `/inbox` in the Board look | `essay/{id}`, `ethics/{id}`, `medical/{line}` · `mains/essay/`, `mains/ethics/`, `mains/medical/` | `src/mains-extra/` |
 
 ## Testing on every milestone
 
