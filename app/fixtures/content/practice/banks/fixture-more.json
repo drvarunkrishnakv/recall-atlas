@@ -1,0 +1,206 @@
+{
+  "id": "fixture-more",
+  "subject": "Sample subject",
+  "topic": "Sample cards and puzzles",
+  "items": [
+    {
+      "id": "fc-cloze-1",
+      "bank": "fixture-more",
+      "topic": "Sample charter",
+      "kind": "flashcard",
+      "style": "cloze",
+      "front": "Sample rights sit under Article ___ of the Sample Charter.",
+      "back": "Article 7",
+      "why": "The made-up Sample Charter lists its rights in Article 7.",
+      "source": {
+        "type": "claude",
+        "checked": true,
+        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+      }
+    },
+    {
+      "id": "fc-qa-1",
+      "bank": "fixture-more",
+      "topic": "Sample charter",
+      "kind": "flashcard",
+      "style": "qa",
+      "front": "Which schedule of the Sample Charter lists the sample rivers?",
+      "back": "The Fourth Schedule",
+      "why": "The made-up charter keeps its rivers in the Fourth Schedule.",
+      "source": {
+        "type": "claude",
+        "checked": true,
+        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+      }
+    },
+    {
+      "id": "fc-list-1",
+      "bank": "fixture-more",
+      "topic": "Sample ports",
+      "kind": "flashcard",
+      "style": "list",
+      "front": "Name the three sample ports, by number.",
+      "back": "Ports 2, 5 and 9",
+      "list": ["Port 2 · Alpha harbour", "Port 5 · Beta harbour", "Port 9 · Gamma harbour"],
+      "source": {
+        "type": "claude",
+        "checked": true,
+        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+      }
+    },
+    {
+      "id": "fc-image-1",
+      "bank": "fixture-more",
+      "topic": "Sample straits",
+      "kind": "flashcard",
+      "style": "image",
+      "image": "svg:sample-coast",
+      "alt": "A made-up coast: a peninsula on the left, an island on the right, a strait between",
+      "front": "Name the strait between the peninsula and the island.",
+      "back": "Strait of Testmore",
+      "why": "Testmore is the made-up strait used in tests.",
+      "source": {
+        "type": "claude",
+        "checked": true,
+        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+      }
+    },
+    {
+      "id": "fc-unchecked-1",
+      "bank": "fixture-more",
+      "topic": "Sample charter",
+      "kind": "flashcard",
+      "style": "qa",
+      "front": "An unchecked sample card that should never be served.",
+      "back": "Never shown",
+      "source": {
+        "type": "claude",
+        "checked": false,
+        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+      }
+    },
+    {
+      "id": "fz-tf-1",
+      "bank": "fixture-more",
+      "topic": "Sample rivers",
+      "kind": "puzzle",
+      "style": "tf",
+      "prompt": "With reference to the sample river:",
+      "statement": "It rises in the north hills.",
+      "truth": true,
+      "difficulty": 480,
+      "why": "The made-up river rises in the north hills.",
+      "source": {
+        "type": "claude",
+        "checked": true,
+        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+      }
+    },
+    {
+      "id": "fz-tf-2",
+      "bank": "fixture-more",
+      "topic": "Sample rivers",
+      "kind": "puzzle",
+      "style": "tf",
+      "prompt": "With reference to the sample river:",
+      "statement": "It has no tributaries.",
+      "truth": false,
+      "difficulty": 500,
+      "why": "From UPSC's 2020 paper: statement 3 is false according to UPSC's answer key.",
+      "source": { "type": "pyq", "year": 2020, "paper": "GS1", "keyVerified": true, "keyFrom": "upsc" }
+    },
+    {
+      "id": "fz-tf-3",
+      "bank": "fixture-more",
+      "topic": "Sample cities",
+      "kind": "puzzle",
+      "style": "tf",
+      "prompt": "True or false?",
+      "statement": "Gamma is the capital of the sample state.",
+      "truth": true,
+      "difficulty": 520,
+      "why": "Gamma is the made-up capital used in tests.",
+      "source": {
+        "type": "claude",
+        "checked": true,
+        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+      }
+    },
+    {
+      "id": "fz-tf-4",
+      "bank": "fixture-more",
+      "topic": "Sample cities",
+      "kind": "puzzle",
+      "style": "tf",
+      "prompt": "True or false?",
+      "statement": "Delta is the capital of the sample state.",
+      "truth": false,
+      "difficulty": 540,
+      "why": "The made-up capital is Gamma, not Delta.",
+      "source": {
+        "type": "claude",
+        "checked": true,
+        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+      }
+    },
+    {
+      "id": "fz-match-1",
+      "bank": "fixture-more",
+      "topic": "Sample charter",
+      "kind": "puzzle",
+      "style": "match",
+      "prompt": "Match each sample article to what it covers.",
+      "pairs": [
+        { "left": "Art. 1", "right": "Name of the sample land" },
+        { "left": "Art. 7", "right": "Sample rights" },
+        { "left": "Art. 9", "right": "Sample duties" }
+      ],
+      "difficulty": 610,
+      "why": "The made-up charter names the land first, then rights and duties.",
+      "source": {
+        "type": "claude",
+        "checked": true,
+        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+      }
+    },
+    {
+      "id": "fz-order-1",
+      "bank": "fixture-more",
+      "topic": "Sample history",
+      "kind": "puzzle",
+      "style": "order",
+      "prompt": "Put these sample events in order, oldest first.",
+      "order": ["Sample charter signed", "First sample election", "Sample ports opened", "Sample capital moved"],
+      "difficulty": 580,
+      "why": "In the made-up timeline the charter comes first and the capital moves last.",
+      "source": {
+        "type": "claude",
+        "checked": true,
+        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+      }
+    },
+    {
+      "id": "fz-map-1",
+      "bank": "fixture-more",
+      "topic": "Sample straits",
+      "kind": "puzzle",
+      "style": "map",
+      "prompt": "Tap the Strait of Testmore.",
+      "map": "svg:sample-coast",
+      "alt": "A made-up coast: a peninsula on the left, an island on the right, three lettered places",
+      "regions": [
+        { "id": "A", "x": 20, "y": 18, "label": "North bay" },
+        { "id": "B", "x": 56, "y": 58, "label": "Strait of Testmore" },
+        { "id": "C", "x": 86, "y": 72, "label": "East cape" }
+      ],
+      "region": "B",
+      "difficulty": 450,
+      "why": "The made-up strait runs between the peninsula and the island.",
+      "source": {
+        "type": "claude",
+        "checked": true,
+        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+      }
+    }
+  ]
+}

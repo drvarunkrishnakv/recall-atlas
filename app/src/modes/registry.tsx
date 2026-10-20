@@ -27,6 +27,10 @@ export const PRELIMS_NAV: NavEntry[] = [
   { to: "/prelims/notebook", label: "Mistake notebook", icon: "list" },
   { to: "/prelims/lesson", label: "Tonight's lesson", icon: "moon" },
   { to: "/prelims/quiz", label: "Morning quiz", icon: "sun" },
+  // M10: flashcards, puzzles and Rush.
+  { to: "/prelims/cards", label: "Flashcards", icon: "cards" },
+  { to: "/prelims/puzzles", label: "Puzzles", icon: "puzzle" },
+  { to: "/prelims/rush", label: "Rush", icon: "bolt" },
 ];
 
 /** Prelims mode's pages (below /prelims). */
@@ -35,6 +39,10 @@ export const prelimsRoutes: RouteObject[] = [
   { path: "/prelims/notebook", element: lazyPage(() => import("../prelims/Notebook"), "Loading the notebook") },
   { path: "/prelims/lesson", element: lazyPage(() => import("../lessons/Lesson"), "Loading tonight's lesson") },
   { path: "/prelims/quiz", element: lazyPage(() => import("../lessons/Quiz"), "Loading the morning quiz") },
+  // M10: flashcards, puzzles and Rush.
+  { path: "/prelims/cards", element: lazyPage(() => import("../practice/Cards"), "Loading flashcards") },
+  { path: "/prelims/puzzles", element: lazyPage(() => import("../practice/Puzzles"), "Loading puzzles") },
+  { path: "/prelims/rush", element: lazyPage(() => import("../practice/Rush"), "Loading Rush") },
 ];
 
 /** Mains-mode entries added after Home in the sidebar (the reader's own entries follow). */
