@@ -12,6 +12,7 @@ import type { HistoryEntry } from "../src/lib/cloud-docs.ts";
 import { approveProposal, restoreVersion } from "../src/lib/approve.ts";
 import type { Comparison, HeatMap } from "../src/lib/heatmap.ts";
 import type { Attempt, AttemptOp, Bank } from "../src/lib/practice.ts";
+import type { Lesson, LessonOp, WeeklyNote } from "../src/lib/lessons.ts";
 import {
   changeCaptures,
   changeDiscussions,
@@ -38,6 +39,11 @@ import {
   saveHeatmap,
   savePage,
   writePageFiles,
+  changeLesson,
+  loadLessons,
+  loadWeeks,
+  saveWeek,
+  writeLesson,
 } from "./content-api.ts";
 
 export type SaveOutcome = { conflict: true; version: number } | { conflict: false; version: number; updated: string };
@@ -81,6 +87,14 @@ export interface Backend {
   /** Every day's practice attempts, `YYYY-MM-DD` → attempts. */
   attempts(): Promise<Record<string, Attempt[]>>;
   changeAttempts(day: string, op: AttemptOp): Promise<Attempt[]>;
+  /** Every lesson (lib/lessons.ts), oldest first. */
+  lessons(): Promise<Lesson[]>;
+  /** Writes a day's lesson from the current one (null if none), checked, in one step. */
+  writeLesson(day: string, build: (current: Lesson | null) => Lesson): Promise<Lesson>;
+  changeLesson(day: string, op: LessonOp): Promise<Lesson>;
+  /** The weekly notes, oldest first; only the CLI writes them. */
+  weeks(): Promise<WeeklyNote[]>;
+  setWeek(note: WeeklyNote): Promise<void>;
   /**
    * Writes everything as given, without version checks: for `atlas import` and `atlas export`.
    * `prune` (files only) also removes pages, comments and discussions that `data` no longer has,
@@ -151,6 +165,11 @@ export function fileBackend(dir: string): Backend {
     setBanks: async (banks, replace) => saveBanks(dir, banks, replace),
     attempts: async () => loadAttempts(dir),
     changeAttempts: async (day, op) => changeAttempts(dir, day, op),
+    lessons: async () => loadLessons(dir),
+    writeLesson: async (day, build) => writeLesson(dir, day, build),
+    changeLesson: async (day, op) => changeLesson(dir, day, op),
+    weeks: async () => loadWeeks(dir),
+    setWeek: async (note) => saveWeek(dir, note),
     async restoreAll(data, opts) {
       if (opts?.prune) {
         const keep = new Set(data.pages.map((p) => `${p.collection}/${p.id}`));

@@ -352,7 +352,7 @@ export function Layout() {
         )}
       </main>
       {/* Practice screens are focus mode: no floating button over the answers. */}
-      {!/^\/prelims\/(session|cards|puzzles|rush|lesson)/.test(location.pathname) && (
+      {!/^\/prelims\/(session|cards|puzzles|rush|lesson|quiz)/.test(location.pathname) && (
         <button type="button" className="capture-fab" onClick={() => setCapturing(true)}>
           <Icon name="plus" />
           Capture

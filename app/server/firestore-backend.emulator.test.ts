@@ -8,6 +8,7 @@ import { fileBackend, snapshot, type Snapshot } from "./backend.ts";
 import { firestoreBackend } from "./firestore-backend.ts";
 import { HEATMAP_PART } from "../src/lib/cloud-docs.ts";
 import type { HeatMap } from "../src/lib/heatmap.ts";
+import { mergeLesson, type Lesson, type WeeklyNote } from "../src/lib/lessons.ts";
 
 const PROJECT = process.env.GCLOUD_PROJECT ?? "demo-atlas";
 const host = process.env.FIRESTORE_EMULATOR_HOST ?? "127.0.0.1:8080";
@@ -85,6 +86,25 @@ describe("Firestore backend", () => {
     await cloud.changeCaptures({ op: "add", id: "k9", text: "file me" });
     const caps = await cloud.changeCaptures({ op: "done", id: "k9", reply: "Filed.", note: note.id });
     expect(caps.find((c) => c.id === "k9")).toMatchObject({ status: "done", note: note.id });
+  });
+
+  it("writes lessons keeping your ratings, and keeps the weekly notes, like the files do", async () => {
+    const lesson = JSON.parse(readFileSync(join(fixture, "practice", "lessons", "2026-10-20.json"), "utf8")) as Lesson;
+    const week = JSON.parse(readFileSync(join(fixture, "practice", "weeks", "2026-W43.json"), "utf8")) as WeeklyNote;
+    const empty = fileBackend(mkdtempSync(join(tmpdir(), "atlas-lessons-")));
+    for (const b of [cloud, empty]) {
+      await b.writeLesson(lesson.day, () => ({ ...lesson, ratings: [] }));
+      const at = "2026-10-20T15:00:00Z";
+      await b.changeLesson(lesson.day, { op: "rate", cardId: lesson.cards[0].id, rating: "shaky", at });
+      const again = await b.writeLesson(lesson.day, (cur) => mergeLesson(cur, { ...lesson, ratings: [] }, []));
+      expect(again.ratings).toEqual([{ cardId: lesson.cards[0].id, rating: "shaky", at }]);
+      await expect(b.writeLesson("2026-10-21", () => lesson)).rejects.toThrow(/not 2026-10-21/);
+      await expect(b.changeLesson("2026-10-22", { op: "unrate", cardId: "x", at })).rejects.toThrow(/No lesson/);
+      expect((await b.lessons()).map((l) => l.day)).toEqual([lesson.day]);
+      await b.setWeek(week);
+      expect(await b.weeks()).toEqual([week]);
+      await expect(b.setWeek({ ...week, lines: [] })).rejects.toThrow(/lines/);
+    }
   });
 
   it("keeps a heat map too long for one document in parts", async () => {

@@ -74,6 +74,22 @@ feature we don't use.
   card by replaying its attempts (no fuzz, retention 0.9), so the log is the only record.
 - **Screens plug in through `src/modes/registry.tsx`**: each milestone adds its routes and
   sidebar entries there.
+- **The nightly engine (M9).** Claude's evening run reads the day's misses (`atlas misses`),
+  writes one lesson card per concept with a blind fact-check, picks 5–10 quiz items and stores
+  the lesson (`atlas lesson-write`), as `docs/routines/nightly-lesson.md` says. A weekly run
+  writes the weekly note from `atlas week-data` (`docs/routines/weekly-note.md`). Shapes and
+  checks: `app/src/lib/lessons.ts`.
+  - Files: `content/practice/lessons/<YYYY-MM-DD>.json` and `content/practice/weeks/<YYYY-Www>.json`.
+    Firestore: `lessons/{day}` (the app reads it and adds ratings; only the CLI creates one) and
+    `notes-week/{week}` (read-only to the app).
+  - Routes: `GET /api/lessons` (`{days, latest}`: each day's cards and ratings, and the latest
+    lesson in full), `GET /api/lessons/<day>`, `POST /api/lessons/<day>` (a `LessonOp`: rate a
+    card "got" or "shaky", or take a press back), `GET /api/weeks[/<week>]`.
+  - Screens (`src/lessons/`): `/prelims/lesson?day=&card=` (Lesson 3 · Stack, in a night variant of
+    the Board tokens scoped to the lesson) and `/prelims/quiz?day=` (the M7 session's `Run` with
+    mode "quiz"). The Mistake notebook links a question to the newest card that teaches it.
+  - A card rated shaky comes back in the next lessons until it is rated "got" on two different
+    later days (`shakyQueue`); `lesson-write` adds the due ones itself.
 
 ## Stack
 

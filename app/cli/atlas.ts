@@ -35,6 +35,12 @@
 //   node cli/atlas.ts practice-import <banks.json> [--replace]   load practice banks ({banks: Bank[]}),
 //                                                    each checked first; --replace drops banks not in the file
 //   node cli/atlas.ts attempts [--days 7]            recent attempts with grades, for the nightly lesson
+//   node cli/atlas.ts misses [--day YYYY-MM-DD]      JSON: the day's missed and shaky MCQs for tonight's
+//                                                    lesson, with the shaky cards due back (cli/lessons.ts)
+//   node cli/atlas.ts lesson-write <day> <lesson.json>   check and store a day's lesson ({cards, quiz})
+//   node cli/atlas.ts lessons                        every lesson with its cards, fact-checks and ratings
+//   node cli/atlas.ts week-note <YYYY-Www> <note.json>   check and store the weekly note
+//   node cli/atlas.ts week-data [--weeks 1]          JSON: the facts a weekly note is written from
 //   node cli/atlas.ts owner [uid|email] [--remove]   list accounts, or mark the one that may open the app
 //   node cli/atlas.ts mcp-key add <grok|gemini|chatgpt> ["label"]   a key for one AI (shown once)
 //   node cli/atlas.ts mcp-key list | revoke <id>      the MCP server's keys
@@ -573,6 +579,16 @@ switch (cmd) {
         );
       }
     }
+    break;
+  }
+
+  case "misses":
+  case "lesson-write":
+  case "lessons":
+  case "week-note":
+  case "week-data": {
+    const { lessonsCli } = await import("./lessons.ts");
+    await lessonsCli(cmd, args, db);
     break;
   }
 

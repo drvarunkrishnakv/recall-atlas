@@ -1,0 +1,14 @@
+{
+ "week": "2026-W43",
+ "written": "2026-10-25T13:30:00.000Z",
+ "lines": [
+  {
+   "text": "Sample line: two of the week's three misses were in the sample topic.",
+   "evidence": { "route": "/prelims/notebook?filter=week", "label": "This week's misses" }
+  },
+  {
+   "text": "Sample line: the sample river concept is still shaky after one lesson.",
+   "evidence": { "route": "/prelims/lesson?day=2026-10-20", "label": "Lesson of 20 Oct" }
+  }
+ ]
+}

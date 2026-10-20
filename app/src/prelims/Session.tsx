@@ -117,7 +117,8 @@ export default function Session() {
   return <Run items={plan} mode={mode} />;
 }
 
-function Run({ items, mode }: { items: McqItem[]; mode: "practice" | "exam" }) {
+/** The session itself; the morning quiz (src/lessons/Quiz.tsx) reuses it with mode "quiz". */
+export function Run({ items, mode }: { items: McqItem[]; mode: "practice" | "exam" | "quiz" }) {
   const practice = usePractice();
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
@@ -142,7 +143,7 @@ function Run({ items, mode }: { items: McqItem[]; mode: "practice" | "exam" }) {
   const implied = count ? impliedOption(item.options, marks) : null;
   const pick = chosen ?? implied;
   const truth = count ? statementTruth(item.options, item.answer, count) : null;
-  const showAnswer = !!answered && mode === "practice";
+  const showAnswer = !!answered && mode !== "exam";
 
   function lock(sure: boolean) {
     if (pick === null || answered) return;
@@ -316,7 +317,7 @@ function Run({ items, mode }: { items: McqItem[]; mode: "practice" | "exam" }) {
 
       <aside className="s-panel" aria-label="Session">
         <div className="s-head">
-          <b>{mode === "exam" ? "Exam mode" : "Practice"}</b>
+          <b>{mode === "exam" ? "Exam mode" : mode === "quiz" ? "Morning quiz" : "Practice"}</b>
           <span>
             {index + 1} of {items.length}
           </span>
@@ -429,7 +430,7 @@ function Summary({
 }: {
   items: McqItem[];
   answers: Answer[];
-  mode: "practice" | "exam";
+  mode: "practice" | "exam" | "quiz";
   onGrade: (a: Answer[]) => void;
 }) {
   const practice = usePractice();
@@ -519,7 +520,7 @@ function Summary({
                   ))}
                 </span>
               )}
-              {mode === "practice" && a.grade && <span className="g">{GRADE_LABEL[a.grade]}</span>}
+              {mode !== "exam" && a.grade && <span className="g">{GRADE_LABEL[a.grade]}</span>}
             </div>
           );
         })}
