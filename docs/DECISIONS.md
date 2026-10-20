@@ -38,6 +38,39 @@
 - **No real flashcards yet.** Cards Claude writes need the blind fact-check pipeline first, so the
   card screen runs on the fixture until then.
 
+## 2026-10-21 — Readiness: five parts, coverage multiplies (M11)
+
+- **What it measures.** Readiness (0–1000) for a subject, a topic or a microtheme is how much of
+  its Prelims questions you're ready for, worked out on the device from the attempt log and the
+  banks (`app/src/lib/readiness.ts`). Nothing is stored.
+- **The five parts** (the chosen Analytics design):
+  - coverage: the share of servable MCQs and flashcards answered at least once;
+  - memory: FSRS retrievability now, averaged over the items answered;
+  - new questions: the share of MCQs right the first time you met them;
+  - speed: the share of the last four weeks' MCQ answers given within 72 s (100 questions in
+    120 minutes);
+  - calibration: the share of the last four weeks' "sure" answers that were right.
+- **How they combine:** readiness = 1000 × coverage × (0.35 memory + 0.35 new questions +
+  0.15 speed + 0.15 calibration). Coverage multiplies because you can't be ready on questions you
+  haven't met; added like the others, three perfect answers would make a 200-question subject look
+  half ready. Memory and new questions share 70%: one says what you learnt stays, the other that it
+  transfers to unseen questions, which is what the paper asks. Speed and calibration get 15% each:
+  they decide whether knowledge becomes marks (finishing in time; not losing ⅔ of a mark on a
+  confident miss). A part with no evidence yet is left out and the others share its weight.
+- **Prelims readiness** weighs each subject by its share of the banks' Prelims PYQs, so it reads
+  as the share of a paper you're ready for, and "where the marks are" (share × (1 − readiness ÷
+  1000) × 100) adds up to the rest of the paper.
+- **The four-week window** for speed and calibration is the shortest range Analytics offers, so a
+  habit you've dropped stops counting within a month. First tries are kept for good: each item has
+  only one.
+- **Weak spots** are judged on each item's latest answer (at least three answers in the microtheme
+  and at least one latest miss), so a miss you've since fixed stops counting.
+- **The daily target** spreads every unseen servable item plus the reviews due now over the days
+  left to 23 May 2027, recomputed each day; there is no streak counter.
+- **To revisit** in the monthly tuning pass, once a month of real answers exists: the weights, and
+  whether FSRS's retrievability right after a lapse (it is still about 0.7–0.8 two days later)
+  flatters memory on topics you keep missing.
+
 ## 2026-10-20 — Prelims and Mains practice inside the app
 
 - **What the user asked for:** one study system for CSE 2027 inside Mains Atlas, with a Prelims

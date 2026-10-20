@@ -47,6 +47,7 @@ import {
   type LessonOp,
   type WeeklyNote,
 } from "../lib/lessons";
+import { applyReadingOp, readingDocId, type ReadingLog, type ReadingOp } from "../lib/reading";
 
 const ID = /^[A-Za-z0-9][A-Za-z0-9-]{0,80}$/;
 
@@ -183,6 +184,16 @@ export function cloudApi(db: Firestore) {
       );
       if (!note) throw new NotFoundError("No note for that week");
       return note;
+    }
+    // The reading log (M11): reading/{subject}.
+    if (path === "/api/reading" && method === "GET") {
+      const snap = await getDocs(col(db, "reading"));
+      return { subjects: Object.fromEntries(snap.docs.map((d) => [d.id, decodeJson(d.data(), { topics: {} })])) };
+    }
+    const reading = /^\/api\/reading\/([a-z0-9-]+)$/.exec(path);
+    if (reading && method === "POST") {
+      const ref = doc(db, "reading", readingDocId(reading[1]));
+      return change(db, ref, { topics: {} } as ReadingLog, (v) => applyReadingOp(v, body as ReadingOp));
     }
 
     if (path === "/api/progress") {

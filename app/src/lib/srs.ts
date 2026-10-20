@@ -82,3 +82,15 @@ export function bankCounts(items: Item[], states: Map<string, ReviewState>, now 
   }
   return { fresh, due, learning, review };
 }
+
+/** One answer applied to an item's review state: the step `reviewStates` repeats (M11 replays it for trends). */
+export function nextReviewState(cur: ReviewState | undefined, a: Attempt): ReviewState {
+  const at = new Date(a.at);
+  const base = cur ?? { card: createEmptyCard(at), seen: 0, wrong: 0 };
+  const grade = (a.grade ? fsrsRating(a.grade) : a.correct ? 3 : 1) as Grade;
+  const card = scheduler.next(base.card, at, grade).card;
+  return { card, seen: base.seen + 1, wrong: base.wrong + (a.correct ? 0 : 1), last: a };
+}
+
+/** How likely you are to recall an item at `now` (0–1), from its FSRS state (M11 readiness). */
+export const retrievability = (s: ReviewState, now = new Date()) => scheduler.get_retrievability(s.card, now, false);

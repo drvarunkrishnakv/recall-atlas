@@ -1,0 +1,32 @@
+{
+  "attempts": [
+    {
+      "id": "fx11-2026-09-29-gr-1",
+      "itemId": "gr-1",
+      "bank": "fixture-rivers",
+      "kind": "mcq",
+      "at": "2026-09-29T09:00:00.000Z",
+      "ms": 60000,
+      "mode": "practice",
+      "correct": true,
+      "grade": "good",
+      "sure": true,
+      "chosen": 3,
+      "delta": 8
+    },
+    {
+      "id": "fx11-2026-09-29-gr-2",
+      "itemId": "gr-2",
+      "bank": "fixture-rivers",
+      "kind": "mcq",
+      "at": "2026-09-29T09:02:00.000Z",
+      "ms": 66000,
+      "mode": "practice",
+      "correct": false,
+      "grade": "misread",
+      "sure": false,
+      "chosen": 1,
+      "delta": -4
+    }
+  ]
+}

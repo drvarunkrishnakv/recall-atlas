@@ -92,6 +92,50 @@
 - **Not done:** deploying; real flashcards and generated MCQs (M10's second line); importing the
   true-or-false banks into Firestore.
 
+## Prelims homes and analytics (M11, Prelims half) — 2026-10-21
+
+- **Branch:** `claude/m11-prelims-homes`, stacked on `claude/m7-mcq-loop` (be719cf). Assisting
+  tool: Claude Code. Built alongside M8, M9 and M10; the Mains Home and Mains Analytics wait for M8.
+- **App:**
+  - Prelims Home (Board 1 · Centre stage): a big animated Puzzle button in the centre (still under
+    reduced motion; first on phones) with the rating; Practise (sizes, exam mode, due counts, and
+    "Today's reading" once a topic is logged today) and Reviews (due MCQs and flashcards) on the
+    left; tonight's lesson and the morning quiz on the right, or "No lesson yet"; a 3×3 board of
+    the nine most-asked subjects (readiness, change this week, due, weak spot), the rest listed
+    below; Prelims readiness overall.
+  - Subject page (Subject 2 · Table + drawer) at `/prelims/subject/<slug>`: one row per topic in
+    book order with PYQs (count, year last asked, heat tint), readiness, MCQs and flashcards
+    (total · due) and Read; rows open into microthemes. Sorts (book order, most asked, weakest,
+    most due) and filters (weak, not read yet, due) live in the URL. A count opens the drawer
+    (totals, due, recall and average time over 4 weeks, a 14-day strip, weak microthemes, your
+    traps from the miss reasons, Start); on phones it is a page of its own, and back closes it.
+    Header: readiness, an 8-week trend, Practise, Try before reading, Log reading (+ Undo).
+  - Prelims Analytics (Analytics 3 · The week's story) at `/prelims/analytics`: the weekly note
+    pinned on top (or its empty state), readiness and its five parts with weekly changes and
+    trends, then story headings worked out from the log, each over its chart: the biggest mover,
+    the week's misses, speed by week, calibration with your guessing rule (2.667p − 0.667), where
+    the marks are, and folded Effort (calendar against the daily target) and Mock tests (empty
+    until January; no predicted score before three mocks). 8 weeks, 4 weeks or all time.
+  - "Analytics" in the Prelims sidebar.
+- **Engine:** `src/lib/readiness.ts` (weights and why: DECISIONS 2026-10-21), `src/lib/reading.ts`;
+  `src/lib/srs.ts` gained `nextReviewState` and `retrievability`.
+- **Storage:** the reading log, `reading/{subject}` (owner read, create, update) and
+  `practice/reading/<subject>.json`, through `GET /api/reading` and `POST /api/reading/<subject>`.
+  Lessons and the weekly note are optional reads of `GET /api/lessons` (and `/api/weeks`); a 404
+  shows the empty states (ARCHITECTURE, Practice).
+- **Fixture:** a made-up second subject, "Sample geography" (three topics, 10 MCQs, 3 flashcards),
+  26 made-up attempts from 8 Sep to 20 Oct 2026 and a reading log. M7's home test now expects
+  "13 questions ready" and the "Sample subject" tile instead of a "Sample topic" link.
+- **Checks** (internal-disk copy): Prettier, `tsc -b`, 126 unit tests, build; `npm run test:cloud`
+  24 passed (new: the reading log's rules and routes); `npx playwright test` 81 passed + 24 skips
+  (installed Chrome; new `e2e/m11-prelims.spec.ts`, 4 tests × 3 sizes, clock fixed to 21 Oct 2026).
+  One earlier run, with a second dev server busy beside it, timed out on two unrelated desktop
+  tests (the AI flag and the heat-map questions); both pass alone and in the clean rerun. Screenshots
+  (fixture, desktop and phone, light and dark): `docs/design/m11-prelims-homes/`.
+- **Not done:** the Mains Home and Mains Analytics (after M8); deploying (needs the user's
+  go-ahead, plus `firebase deploy --only firestore:rules` for `reading/`). No real content was
+  imported.
+
 ## Prelims MCQ loop (M7) — 2026-10-21
 
 - **Branch:** `claude/m7-mcq-loop`, stacked on `claude/practice-foundations` (PR #47). Assisting

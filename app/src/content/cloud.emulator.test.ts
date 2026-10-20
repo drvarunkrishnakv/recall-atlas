@@ -304,3 +304,26 @@ describe("cloud API", () => {
     await expect(api("/api/pages/notes/Nope")).rejects.toThrow("Not found");
   });
 });
+
+describe("reading log (M11)", () => {
+  it("lets the owner log and undo reading, never delete the record, and keeps everyone else out", async () => {
+    await post("/api/reading/sample-science", { op: "log", bank: "fixture-stars", day: "2026-10-21" });
+    await post("/api/reading/sample-science", { op: "log", bank: "fixture-stars", day: "2026-10-21" });
+    await post("/api/reading/sample-science", { op: "log", bank: "fixture-tides", day: "2026-10-20" });
+    expect(await api("/api/reading")).toEqual({
+      subjects: { "sample-science": { topics: { "fixture-stars": ["2026-10-21"], "fixture-tides": ["2026-10-20"] } } },
+    });
+    await post("/api/reading/sample-science", { op: "unlog", bank: "fixture-tides", day: "2026-10-20" });
+    expect(await api("/api/reading")).toEqual({
+      subjects: { "sample-science": { topics: { "fixture-stars": ["2026-10-21"] } } },
+    });
+    await expect(
+      post("/api/reading/sample-science", { op: "log", bank: "Bad Bank", day: "2026-10-21" }),
+    ).rejects.toThrow();
+    await denied(deleteDoc(doc(owner, "reading/sample-science")));
+    for (const db of [stranger, nobody]) {
+      await denied(getDoc(doc(db, "reading/sample-science")));
+      await denied(setDoc(doc(db, "reading/sample-science"), { json: "{}" }));
+    }
+  });
+});

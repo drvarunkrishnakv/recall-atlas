@@ -1,0 +1,18 @@
+{
+  "attempts": [
+    {
+      "id": "fx11-2026-10-08-gh-4",
+      "itemId": "gh-4",
+      "bank": "fixture-hills",
+      "kind": "mcq",
+      "at": "2026-10-08T09:00:00.000Z",
+      "ms": 62000,
+      "mode": "practice",
+      "correct": false,
+      "grade": "mixed",
+      "sure": true,
+      "chosen": 1,
+      "delta": -7
+    }
+  ]
+}

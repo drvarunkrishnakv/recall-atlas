@@ -80,6 +80,7 @@ import {
   type LessonOp,
   type WeeklyNote,
 } from "../src/lib/lessons.ts";
+import { applyReadingOp, readingDocId, ReadingError, type ReadingLog, type ReadingOp } from "../src/lib/reading.ts";
 
 const COLLECTIONS = ["notes", "cards"] as const;
 type Collection = (typeof COLLECTIONS)[number];
@@ -430,6 +431,29 @@ export function writeLesson(dir: string, day: string, build: (current: Lesson | 
   return next;
 }
 
+// Reading log (M11): practice/reading/<subject>.json, the days you logged reading each topic (lib/reading.ts).
+const READING_FILE = /^([a-z0-9][a-z0-9-]{0,80})\.json$/;
+
+export function loadReading(dir: string): Record<string, ReadingLog> {
+  const folder = join(dir, "practice", "reading");
+  const out: Record<string, ReadingLog> = {};
+  if (!existsSync(folder)) return out;
+  for (const f of readdirSync(folder).sort()) {
+    const m = READING_FILE.exec(f);
+    if (m) out[m[1]] = readJson<ReadingLog>(join(folder, f), { topics: {} });
+  }
+  return out;
+}
+
+export function changeReading(dir: string, subject: string, op: ReadingOp): ReadingLog {
+  const folder = join(dir, "practice", "reading");
+  mkdirSync(folder, { recursive: true });
+  const path = join(folder, `${readingDocId(subject)}.json`);
+  const next = applyReadingOp(readJson(path, { topics: {} } as ReadingLog), op);
+  writeAtomic(path, JSON.stringify(next, null, 1) + "\n");
+  return next;
+}
+
 /** Applies a "Got it" / "Still shaky" press (or its undo) from the app. */
 export function changeLesson(dir: string, day: string, op: LessonOp): Lesson {
   const path = lessonPath(dir, day);
@@ -538,6 +562,14 @@ export function contentApi(appRoot: string): Connect.NextHandleFunction {
         const note = loadWeeks(dir).find((n) => n.week === weekDocId(parts[2]));
         return note ? send(res, 200, note) : send(res, 404, { error: "No note for that week" });
       }
+      if (url.pathname === "/api/reading" && req.method === "GET")
+        return send(res, 200, { subjects: loadReading(dir) });
+      if (parts[1] === "reading" && parts.length === 3) {
+        if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+        const refused = writeAllowed(req);
+        if (refused) return send(res, 403, { error: refused });
+        return send(res, 200, changeReading(dir, parts[2], (await readBody(req)) as ReadingOp));
+      }
 
       const [, kind, collection, id, extra] = parts;
       if (
@@ -609,7 +641,8 @@ export function contentApi(appRoot: string): Connect.NextHandleFunction {
         e instanceof DiscussionOpError ||
         e instanceof ProposalError ||
         e instanceof PracticeError ||
-        e instanceof LessonError
+        e instanceof LessonError ||
+        e instanceof ReadingError
       )
         return send(res, 400, { error: e.message });
       return send(res, 500, { error: e instanceof Error ? e.message : String(e) });
