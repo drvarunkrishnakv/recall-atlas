@@ -1,5 +1,25 @@
 # Decisions
 
+## 2026-10-21 — Flashcards, puzzles and Rush on the one log (M10)
+
+- **One rating.** Puzzles move the same 0–1000 rating as MCQs: each answer's `delta` is Elo with
+  K = 32 against the puzzle's difficulty, as agreed, and `ratingAfter` adds every delta up. Rush
+  never moves it (mode `rush`, no `delta`; the check refuses one).
+- **Rush keeps its best in the log, not on the device.** Each run's answers share a `session` id,
+  so the best score (most right answers in a run) follows the user to every device.
+- **Puzzle shape.** `PuzzleItem` gained an optional `style` (`tf`, `match`, `order`, `map`) with
+  each style's own fields; `options` and `answer` became optional and are required only when there
+  is no style, so items in the older shape still load.
+- **True-or-false puzzles come from verified PYQs, conservatively.** One per statement, only when
+  the answer key says for certain whether that statement is true (the app's own option logic,
+  ported and checked against it on 21,912 cases), the question asks which statements are correct,
+  and the statement reads on its own. Pairs, "not correct" questions, count answers, the
+  "explains" part of Statement-I/II questions and property lists ("Which of the above…") are left
+  out. Every puzzle starts at difficulty 500: there's no principled way yet to rate a single
+  statement, and the rating places them as they are answered.
+- **No real flashcards yet.** Cards Claude writes need the blind fact-check pipeline first, so the
+  card screen runs on the fixture until then.
+
 ## 2026-10-20 — Prelims and Mains practice inside the app
 
 - **What the user asked for:** one study system for CSE 2027 inside Mains Atlas, with a Prelims

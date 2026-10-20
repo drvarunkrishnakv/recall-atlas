@@ -1,5 +1,46 @@
 # Handoff
 
+## Flashcards, puzzles and Rush (M10) — 2026-10-21
+
+- **Branch:** `claude/m10-cards-puzzles`, stacked on `claude/m7-mcq-loop`. Assisting tool: Claude
+  Code. Built alongside M8, M9, M11 and M12 in their own worktrees.
+- **App:**
+  - Flashcards (`/prelims/cards`, Flashcards 1 · Classic stack): a tall card with its subject's
+    colour and the next two peeking behind; type an answer (or not) and flip (3D); the back shows the
+    answer, how your typing compares and rings the suggested grade. Fling right for Knew it, left for
+    Forgot (0.35 s, as the lesson stack), or press Hard / Easy; keys Enter, ← →, 1–4. Cloze, Q&A, list
+    (items ticked off, tap to change) and picture cards. FSRS plans the deck (due first, then new);
+    `?banks=`, `?n=`, `?items=`. A short summary at the end; no motion when the device asks for less.
+  - Puzzles (`/prelims/puzzles`, Puzzles 1 · Arena, phone first): an endless, untimed stream near
+    your rating; the rating on top with ± after each, each puzzle's difficulty, its subject and (for
+    a PYQ statement) its year. True or false, match the pairs, put in order, pin on the map. A miss
+    shows the right answer and why and is logged for tonight's lesson. A subject filter (in the URL),
+    tick and buzz (WebAudio and vibration, mutable, remembered), and a summary when you leave.
+  - Rush (`/prelims/rush`, Puzzles 3 · Rush): true or false for 3 minutes or 3 strikes, its own best
+    score (from the log), misses listed and logged, no effect on the rating.
+  - Prelims Home: three links (Flashcards, Puzzles, Rush); banks with no MCQs aren't listed as
+    topics. Sidebar: Flashcards, Puzzles, Rush.
+- **Data:** `lib/practice.ts` gained puzzle styles (`tf`, `match`, `order`, `map`), image cards
+  (`image`, `alt`) and an optional `why` on cards, and an optional `session` on attempts; Rush
+  answers may not carry a `delta`. `lib/puzzles.ts` (Elo, the next puzzle, Rush runs and best),
+  `lib/flashcards.ts` (the typed-answer check, grade mapping, "back in …"). Storage, rules and the
+  CLI are unchanged.
+- **Content:** a private script, `data/practice_build/derive_puzzles.py`, made 1,161 true-or-false
+  puzzles in 15 banks (`<subject>-tf`) from 453 verified PYQ statement questions (of 910 read), and
+  they were imported into the local content folder only (no `--replace`; 144 banks, 3,051 items).
+  Not imported into Firestore; that needs the user's go-ahead:
+  `node cli/atlas.ts practice-import ../data/practice_build/tf_banks.json`. Its report, with what
+  was skipped and why, is `data/practice_build/tf_report.md`. No real flashcards: they need the
+  blind fact-check pipeline; the fixture has one card of each style.
+- **Checks** (internal-disk copy): Prettier, `tsc -b`, 118 unit tests, build; `npm run test:cloud`
+  23 passed; `npx playwright test` 86 passed + 25 skips (installed Chrome; new `e2e/m10.spec.ts`,
+  17 passed + 1 skip, on desktop, iPad and Android: a card typed, flipped, flung and saved; list
+  and picture cards; each puzzle style right and wrong with the rating moving; the filter and the
+  sound switch; Rush to three strikes with the best kept after a reload). Screenshots (fixture):
+  `docs/design/m10-cards-puzzles/`.
+- **Not done:** deploying; real flashcards and generated MCQs (M10's second line); importing the
+  true-or-false banks into Firestore.
+
 ## Prelims MCQ loop (M7) — 2026-10-21
 
 - **Branch:** `claude/m7-mcq-loop`, stacked on `claude/practice-foundations` (PR #47). Assisting
