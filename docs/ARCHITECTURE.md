@@ -4,6 +4,10 @@ A private, minimal, Notion-like app for living UPSC Mains revision notes. You re
 and edit notes in it on a Mac, an Android phone and an iPad. Claude keeps the notes
 current from official sources and acts on your comments twice a day.
 
+From M6 it is also a practice app with two modes, Prelims and Mains (see "Practice" below).
+The sidebar, the top bar and the mode switch use the Board look; note pages keep the
+colourful reading style described next.
+
 The visual direction is the **colourful mock** (Evernote-inspired: warm paper ground, a colour
 per subject, rounded green action buttons, lavender for Claude): https://claude.ai/artifact/V5VbeLQ3hFE9LAgjf8k5Pe
 It replaced Mock A · Paper on 2026-10-16.
@@ -41,7 +45,25 @@ It replaced Mock A · Paper on 2026-10-16.
   app; Claude imports it.
 
 Non-goals: multiple users, live co-editing, an AI chat box, public sharing,
-gamification, or any Notion feature we don't use.
+gamification (the practice rating the user asked for is the one exception), or any Notion
+feature we don't use.
+
+## Practice (M6 on)
+
+- **Two modes.** Prelims lives under `/prelims` with its own sidebar; every other route is Mains.
+  A big PRELIMS / MAINS switch sits in the top bar, green for Prelims and amber for Mains, and
+  remembers each mode's last page on the device.
+- **One attempt log.** Every answer (MCQ, flashcard, puzzle) is added once to `attempts/{day}`.
+  Only its miss reason can change later. Shapes and checks: `app/src/lib/practice.ts`.
+- **The engine has three layers**, all reading that log:
+  1. On the device, with no AI: FSRS scheduling for MCQs and flashcards (`ts-fsrs`, from M7), the
+     puzzle rating, readiness and the daily target.
+  2. Claude's scheduled runs: marking Mains answers, tonight's lesson and the morning quiz,
+     generated questions with a blind fact-check, and the weekly note. Results reach the Claude
+     inbox.
+  3. A monthly tuning pass that fits FSRS to your own log and records changes in DECISIONS.
+- **Items** come in banks (one per Prelims chapter topic). A PYQ is served only when its key
+  has been checked against UPSC's official key (`keyVerified`).
 
 ## Stack
 
@@ -97,6 +119,9 @@ undefined fields aren't valid Firestore values). Shapes are in `app/src/lib/clou
 | `study/progress`, `study/captures` | `json` = revision progress, and quick captures |
 | `heatmap/questions[, questions-1…]` | `json` = the comparison with past papers (`Comparison` in `app/src/lib/heatmap.ts`): each question matched to a story, and the findings. Read-only to the app; written by `atlas heatmap-compare-import` |
 | `heatmap/current[, current-1…]` | `json` = the news heat map (`app/src/lib/heatmap.ts`), split across parts of at most 300 000 characters; `current` carries `parts`. Read-only to the app; written by `atlas heatmap-import` |
+| `items/{bank}` | `json` = `{items}`: MCQs, flashcards and puzzles for one bank (`Item` in `app/src/lib/practice.ts`). Written by the CLI; the app only reads |
+| `attempts/{YYYY-MM-DD}` | `json` = `{attempts}`: that day's answers, in order (`Attempt`) |
+| `srs/{bank}` | `json` = `{cards}`: each item's review state in that bank (from M7) |
 | `proposals/{collection}-{id}` | `json` = `{proposals}`: kind (edit / add / row / check), blockId, find/replace, text or cells, source, reason, origin (flag / feed / claude), status (pending / applied / rejected / stale) |
 
 - The syllabus tree (papers, subjects, topics, planned notes) is not private, so it

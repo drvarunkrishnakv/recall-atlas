@@ -3,7 +3,16 @@
 // nobody signed in.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { deleteApp, initializeApp, type FirebaseApp } from "firebase/app";
-import { connectFirestoreEmulator, doc, getDoc, getDocs, collection, getFirestore, setDoc } from "firebase/firestore";
+import {
+  connectFirestoreEmulator,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  collection,
+  getFirestore,
+  setDoc,
+} from "firebase/firestore";
 import { cloudApi } from "./cloud";
 import { ConflictError } from "./store";
 import { encodePage } from "../lib/cloud-docs";
@@ -75,6 +84,23 @@ describe("Firestore rules", () => {
     await denied(setDoc(doc(owner, "heatmap/current"), { json: "{}" }));
     for (const db of [stranger, nobody]) await denied(getDoc(doc(db, "heatmap/current")));
     expect(await api("/api/heatmap")).toEqual({ map: null, comparison: null });
+  });
+
+  it("let the owner read practice banks, keep the attempt log and review state, but never delete attempts", async () => {
+    expect((await getDoc(doc(owner, "items/polity-parliament"))).exists()).toBe(false);
+    await denied(setDoc(doc(owner, "items/polity-parliament"), { json: "{}" }));
+    await setDoc(doc(owner, "attempts/2026-10-20"), { json: '{"attempts":[]}' });
+    await setDoc(doc(owner, "attempts/2026-10-20"), { json: '{"attempts":[{"id":"a1"}]}' });
+    expect((await getDoc(doc(owner, "attempts/2026-10-20"))).data()?.json).toContain("a1");
+    await denied(deleteDoc(doc(owner, "attempts/2026-10-20")));
+    await setDoc(doc(owner, "srs/polity-parliament"), { json: '{"cards":{}}' });
+    await deleteDoc(doc(owner, "srs/polity-parliament"));
+    for (const db of [stranger, nobody]) {
+      await denied(getDoc(doc(db, "items/polity-parliament")));
+      await denied(getDoc(doc(db, "attempts/2026-10-20")));
+      await denied(setDoc(doc(db, "attempts/2026-10-21"), { json: "{}" }));
+      await denied(getDoc(doc(db, "srs/polity-parliament")));
+    }
   });
 
   it("refuse a signed-out visitor and any other account, for reads and writes", async () => {

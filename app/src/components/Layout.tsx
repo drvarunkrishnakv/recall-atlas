@@ -11,6 +11,8 @@ import { useEdgeBack } from "./gestures";
 import { Icon } from "./Icon";
 import { Peek, usePeekHost } from "./SidePeek";
 import { Search } from "./Search";
+import { ModeSwitch, useMode } from "./ModeSwitch";
+import { MODE_HOME, modeOf } from "../lib/mode";
 
 /** Counts for the sidebar badges. */
 export function useBadges() {
@@ -24,8 +26,7 @@ export function useBadges() {
 }
 
 function Sidebar({ onCapture, onSearch }: { onCapture: () => void; onSearch: () => void }) {
-  const { pages } = useContent();
-  const { due, inbox } = useBadges();
+  const mode = useMode();
   const [menu, setMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -69,6 +70,32 @@ function Sidebar({ onCapture, onSearch }: { onCapture: () => void; onSearch: () 
           </div>
         )}
       </div>
+      {mode === "prelims" ? (
+        <nav className="side-nav" aria-label="Prelims">
+          <NavLink to="/prelims" end>
+            <Icon name="home" />
+            Home
+          </NavLink>
+        </nav>
+      ) : (
+        <MainsNav />
+      )}
+      <div className="nav-foot">
+        <NavLink to="/settings">
+          <Icon name="settings" />
+          Settings
+        </NavLink>
+      </div>
+    </>
+  );
+}
+
+/** Mains mode's sidebar: everything the reader had before the modes arrived. */
+function MainsNav() {
+  const { pages } = useContent();
+  const { due, inbox } = useBadges();
+  return (
+    <>
       <nav className="side-nav" aria-label="Atlas">
         <NavLink to="/" end>
           <Icon name="home" />
@@ -116,12 +143,6 @@ function Sidebar({ onCapture, onSearch }: { onCapture: () => void; onSearch: () 
           </span>
         ))}
       </nav>
-      <div className="nav-foot">
-        <NavLink to="/settings">
-          <Icon name="settings" />
-          Settings
-        </NavLink>
-      </div>
     </>
   );
 }
@@ -148,6 +169,8 @@ function Crumbs() {
     add("/settings", "Settings");
   } else if (pathname === "/heat-map") {
     add("/heat-map", "News heat map");
+  } else if (modeOf(pathname) === "prelims") {
+    add("/prelims", "Prelims");
   } else {
     const located = params.noteId ? locateNote(params.noteId, note?.parent) : null;
     const loc = located ?? (params.topicId ? findTopic(params.paperId!, params.subjectId!, params.topicId) : null);
@@ -194,6 +217,7 @@ function useCollapsed() {
 
 export function Layout() {
   const location = useLocation();
+  const mode = useMode();
   const navigate = useNavigate();
   const [navOpen, setNavOpen] = useState(false);
   const [collapsed, toggleCollapsed] = useCollapsed();
@@ -241,14 +265,14 @@ export function Layout() {
   }, []);
 
   return (
-    <div className={`frame${navOpen ? " nav-open" : ""}${collapsed ? " nav-collapsed" : ""}`}>
+    <div className={`frame${navOpen ? " nav-open" : ""}${collapsed ? " nav-collapsed" : ""}`} data-mode={mode}>
       <aside className="nav" aria-label="Sidebar">
         <div className="nav-head">
-          <Link className="brand" to="/">
+          <Link className="brand" to={MODE_HOME[mode]}>
             <span className="logo" aria-hidden="true">
               <Icon name="atlas" />
             </span>
-            Mains Atlas
+            Atlas
           </Link>
           <button
             className="iconbtn nav-fold"
@@ -303,6 +327,7 @@ export function Layout() {
           </button>
           <Crumbs />
           <div className="spacer" />
+          <ModeSwitch />
           <button type="button" className="iconbtn" aria-label="Search" onClick={() => setSearching(true)}>
             <Icon name="search" />
           </button>

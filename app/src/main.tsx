@@ -8,6 +8,9 @@ import "@fontsource/figtree/700.css";
 import "@fontsource/bricolage-grotesque/600.css";
 import "@fontsource/bricolage-grotesque/700.css";
 import "@fontsource/shantell-sans/600.css";
+import "@fontsource/nunito/700.css";
+import "@fontsource/nunito/800.css";
+import "@fontsource/nunito/900.css";
 import "./index.css";
 import { Layout } from "./components/Layout";
 import { applySavedTheme } from "./components/ThemeToggle";
@@ -17,6 +20,7 @@ import { PaperPage, TopicPage, NotePage, CardPage, CardsPage, NotFound } from ".
 import { HomePage, InboxPage, RevisePage, SubjectPage } from "./dashboard";
 import { SettingsPage } from "./settings";
 import { PageSkeleton } from "./components/Skeleton";
+import { PrelimsHome } from "./prelims/PrelimsHome";
 
 applySavedTheme();
 // The cloud build loads notes only after Google sign-in (AuthGate); locally they load at once.
@@ -66,6 +70,8 @@ const router = createBrowserRouter([
           </Suspense>
         ),
       },
+      { path: "/prelims", element: <PrelimsHome /> },
+      { path: "/prelims/*", element: <NotFound /> },
       { path: "/cards", element: <CardsPage /> },
       { path: "/cards/:cardId", element: <CardPage /> },
       { path: "/:paperId", element: <PaperPage /> },

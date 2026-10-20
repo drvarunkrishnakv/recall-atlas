@@ -646,3 +646,31 @@ test("the heat map shows past-paper questions on their stories and sums them up"
   await expect(page.locator(".hm-dot.asked")).toHaveCount(2);
   await noSideScroll(page);
 });
+
+test("the Prelims / Mains switch changes the sidebar and remembers each mode's page", async ({ page }) => {
+  await page.goto("/gs2/polity");
+  const frame = page.locator(".frame");
+  const exam = page.getByRole("group", { name: "Exam" });
+  await expect(frame).toHaveAttribute("data-mode", "mains");
+  await expect(exam.locator('[aria-current="page"]')).toHaveText("Mains");
+
+  await exam.getByRole("link", { name: "Prelims" }).click();
+  await expect(page).toHaveURL(/\/prelims$/);
+  await expect(frame).toHaveAttribute("data-mode", "prelims");
+  await expect(page.getByRole("heading", { level: 1, name: "Prelims" })).toBeVisible();
+  await expect(page.getByText(/\d+ days to Prelims|Today to Prelims/)).toBeVisible();
+  await expect(page.locator(".nav").getByRole("link", { name: "Claude inbox" })).toHaveCount(0);
+  await noSideScroll(page);
+
+  if (isDesktop(page)) {
+    // Settings belongs to both modes, so it keeps the one you came from.
+    await page.locator(".nav").getByRole("link", { name: "Settings" }).click();
+    await expect(page).toHaveURL(/\/settings$/);
+    await expect(frame).toHaveAttribute("data-mode", "prelims");
+  }
+
+  await exam.getByRole("link", { name: "Mains" }).click();
+  await expect(page).toHaveURL(/\/gs2\/polity$/);
+  await expect(frame).toHaveAttribute("data-mode", "mains");
+  await expect(page.locator(".nav").getByRole("link", { name: "Claude inbox" })).toHaveCount(1);
+});

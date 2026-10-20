@@ -8,6 +8,9 @@
 //   study/progress, study/captures   {json: Progress} and {json: {captures}}
 //   heatmap/current[, current-1…]    {json, parts}: the news heat map, split when it's long
 //   heatmap/questions[, questions-1…] {json, parts}: its comparison with past papers
+//   items/{bank}                     {json: {items}}: a bank of practice items (lib/practice.ts)
+//   attempts/{YYYY-MM-DD}            {json: {attempts}}: that day's answers, never deleted
+//   srs/{bank}                       {json: {cards}}: each item's review state (from M7)
 //
 // Each document keeps its data as one JSON string (`json`): BlockNote's nested arrays
 // (table cells) and undefined fields aren't valid Firestore values, and a string keeps key

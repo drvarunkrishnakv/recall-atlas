@@ -1,5 +1,36 @@
 # Handoff
 
+## Practice foundations (M6) — 2026-10-20
+
+- **Branch:** `claude/practice-foundations`, from `main` (9c34a97). Assisting tool: Claude Code.
+- **Why:** the user agreed a build order for Prelims and Mains practice (DECISIONS 2026-10-20)
+  and asked for step 0: the mode switch, the Board colours with a light mode, the data shapes for
+  questions and attempts, and the build-plan and DECISIONS updates.
+- **App:**
+  - A PRELIMS / MAINS switch in the top bar, compact on phones. Prelims lives under `/prelims`;
+    every other route is Mains. Each side opens the last page you had open in that mode
+    (`atlas-mode-path-*`). Settings belongs to both, so it keeps the mode you came from
+    (`atlas-mode`).
+  - The sidebar and top bar use the Board look: Nunito and `--bd-*` colours in light and dark,
+    with the logo and switch green in Prelims and amber in Mains. Note pages keep the reading
+    style. The brand in the sidebar now reads "Atlas".
+  - Prelims has its own sidebar (Home for now) and a Home page with the countdown to 23 May 2027
+    and a line on what comes next.
+- **Data:** `src/lib/practice.ts` holds items, attempts, the eight grades and their FSRS ratings,
+  validation, `servable` (no unverified PYQ key, no unchecked generated item) and
+  `applyAttemptOp`. Also `src/lib/mode.ts` and `src/lib/exam.ts`. Firestore rules: `items/` is
+  owner read-only (the CLI writes it), `attempts/` owner read, create and update but never
+  delete, `srs/` owner read and write.
+- **Docs:** BUILD_PLAN (M6–M12), DECISIONS, ARCHITECTURE (Practice) and AGENTS (the rating
+  exception).
+- **Checks** (internal-disk copy): Prettier, `tsc -b`, 86 unit tests, build; `npm run test:cloud`
+  23 passed (new: the practice rules); `npx playwright test` 65 passed + 22 skips (installed
+  Chrome; new: the switch test at three sizes). Screenshots (fixture):
+  `docs/design/practice-foundations/`.
+- **Not done:** deploying. It needs the user's go-ahead, and `firebase deploy --only
+  firestore:rules` as well as Hosting. Next: M7, the Prelims MCQ loop. It waits on the answer-key
+  check running in its own session.
+
 ## Sticky notes: heading and text, the rest behind ⋯ — 2026-10-19
 
 - **Branch:** `claude/sticky-menu`, from `main` (4cefbf8). Assisting tool: Claude Code.
