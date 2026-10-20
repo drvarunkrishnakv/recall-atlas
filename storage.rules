@@ -1,0 +1,26 @@
+rules_version = '2';
+
+// Owner-only, like Firestore: only an account carrying the `atlasOwner` custom claim (set by
+// the Admin SDK, `npm run atlas -- owner <uid>`) can read or upload anything. The CLI uses the
+// Admin SDK, which these rules don't apply to.
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isOwner() {
+      return request.auth != null && request.auth.token.get('atlasOwner', false) == true;
+    }
+
+    // The page photos of Mains answers (M8): answers/{answerId}/page-1.jpg … page-9.webp, and
+    // rewrites of one part as rewrite-1.jpg …. Images only, under 8 MB. A photo can be replaced
+    // (turned the right way up) but not deleted, so the record stays.
+    match /answers/{answerId}/{file} {
+      allow read: if isOwner();
+      allow create, update: if isOwner()
+        && answerId.matches('[A-Za-z0-9][A-Za-z0-9._-]{0,80}')
+        && file.matches('(page|rewrite)-[1-9][.](jpg|png|webp)')
+        && request.resource.size < 8 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+    }
+
+    // Anything else is closed.
+  }
+}

@@ -48,6 +48,15 @@ import {
   type WeeklyNote,
 } from "../lib/lessons";
 import { applyReadingOp, readingDocId, type ReadingLog, type ReadingOp } from "../lib/reading";
+import {
+  APP_OPS,
+  applyAnswerOp,
+  MainsError,
+  validateAnswer,
+  type AnswerOp,
+  type MainsAnswer,
+  type QuestionSet,
+} from "../lib/mains";
 
 const ID = /^[A-Za-z0-9][A-Za-z0-9-]{0,80}$/;
 
@@ -194,6 +203,37 @@ export function cloudApi(db: Firestore) {
     if (reading && method === "POST") {
       const ref = doc(db, "reading", readingDocId(reading[1]));
       return change(db, ref, { topics: {} } as ReadingLog, (v) => applyReadingOp(v, body as ReadingOp));
+    }
+    // Mains answers (M8): questions in mainsq/{paper} (read-only here), answers in answers/{id}.
+    // Page photos go to Firebase Storage straight from the store (content/mains.ts), not through here.
+    if (path === "/api/mains" && method === "GET") {
+      const [sets, answers] = await Promise.all([getDocs(col(db, "mainsq")), getDocs(col(db, "answers"))]);
+      return {
+        sets: sets.docs.map((d) => decodeJson<QuestionSet | null>(d.data(), null)).filter((s): s is QuestionSet => !!s),
+        answers: answers.docs
+          .map((d) => decodeJson<MainsAnswer | null>(d.data(), null))
+          .filter((a): a is MainsAnswer => !!a),
+      };
+    }
+    const mainsAnswer = /^\/api\/mains\/answers\/([A-Za-z0-9][A-Za-z0-9._-]{0,80})$/.exec(path);
+    if (mainsAnswer) {
+      const id = mainsAnswer[1];
+      const ref = doc(db, "answers", id);
+      if (method === "GET") {
+        const a = decodeJson<MainsAnswer | null>((await getDoc(ref)).data(), null);
+        if (!a) throw new NotFoundError("Not found");
+        return a;
+      }
+      const op = body as AnswerOp;
+      if (!APP_OPS.includes(op?.op as never)) throw new MainsError("Only Claude's CLI marks answers");
+      const answer = await runTransaction(db, async (tx) => {
+        const next = applyAnswerOp(decodeJson<MainsAnswer | null>((await tx.get(ref)).data(), null), op);
+        if (next.id !== id) throw new MainsError("The answer's id doesn't match its address");
+        validateAnswer(next);
+        tx.set(ref, { json: JSON.stringify(next), updatedAt: Date.now() });
+        return next;
+      });
+      return { answer };
     }
 
     if (path === "/api/progress") {

@@ -123,6 +123,12 @@ DECISIONS (2026-10-20).
 - The marked page (Feedback 1) and the Feedback tab (table + pattern drawer).
 - **Done when** a photographed answer is marked by the next run, and its feedback, tags and
   history show.
+- **Built on `claude/m8-mains-answers` (2026-10-21):** everything above in the app, the dev API,
+  Firestore, Storage rules and the CLI (`mains-import`, `answers-waiting`, `mark`, `mark-rewrite`,
+  `disputes`, `resolve-dispute`, `answers`), the marking run's prompt in
+  `docs/routines/mark-answers.md` (not scheduled), and 974 register PYQs loaded into the local
+  content folder. Still to do: enable Storage and deploy the rules, import the questions into
+  Firestore, and schedule the marking run, each with the user's go-ahead.
 
 ### M9 · Nightly engine
 

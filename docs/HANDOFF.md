@@ -136,6 +136,62 @@
   go-ahead, plus `firebase deploy --only firestore:rules` for `reading/`). No real content was
   imported.
 
+## Mains answer loop (M8) — 2026-10-21
+
+- **Branch:** `claude/m8-mains-answers`, stacked on `claude/m7-mcq-loop`. Assisting tool: Claude
+  Code. Built overnight alongside the other milestones, from the chosen mocks (Write 1 · Stepper on
+  phones, Write 3 · Desk + phone on wider screens, Feedback 1 · Marked page, Feedback tab 1 ·
+  Table + pattern drawer, and the "It asks for" box from Mains 3).
+- **App:**
+  - Sidebar (Mains): Write and Feedback after Home.
+  - `/mains/write`: retries due first, then new questions (a written note first), a paper filter,
+    "Different question" and a short list of others. The question card shows "It asks for", length
+    and time, and the note. An optional 1-minute plan, then a big countdown (7 min for 10 marks,
+    11 for 15) in a dimmed full-screen exam hall, with a buzz and two soft beeps at one minute left;
+    overtime keeps counting and is logged. Then 1–3 page photos (shrunk on the device, turned a
+    quarter turn at a time, reordered, removed), "your score first" with what you think you missed,
+    and "Sent for marking". The desk shows a QR code (made on the device) to
+    `/mains/write?answer=<id>`, so the phone adds photos to the same answer while the desk watches.
+    Questions without recorded marks offer a 10/15 switch. `?drill=<tag>` shows a fix tag's drill.
+  - `/mains/answers/:id`: waiting for marking until the run, then the photo with numbered pins in
+    examiner pen colours and their comments, "Check my reading" (unsure words highlighted, your
+    corrections saved), the checklist out of 10 with "I disagree" on each item (waits for the run,
+    then shows changed or kept with the reason), Fix first with keep and the fix tags, the stronger
+    outline behind a tap, "Rewrite one part" (timer, photo, logged beside the original; the score
+    stays), "From your notes, you could have used…" with note links, and earlier attempts side by
+    side with what got better and the gaps that repeated. On narrow screens the marks come right
+    after the page.
+  - `/mains/feedback`: this month's average against last month's, how far self-scores are off,
+    the costliest fix and disputes; filters by paper, fix tag and "Retry due"; a row opens its page;
+    a tag opens its pattern (count, marks lost, change against last month, what it means, each
+    time it showed, and a drill).
+- **Data:** `src/lib/mains.ts` (questions, answers, the marking and its checks, the AnswerOps, and
+  the Feedback numbers), with 17 unit tests. Files `content/mains/{questions,answers,photos}/`;
+  Firestore `mainsq/{paper}` (read-only to the app) and `answers/{id}` (no deletes); Storage
+  `answers/{id}/page-{n}.<ext>` under the new `storage.rules`. The app's ops can't mark: marking,
+  resolving and rewrite marks go through the CLI. Decisions: DECISIONS (2026-10-21).
+- **CLI** (`cli/mains.ts`): `mains-import`, `mains-questions`, `answers-waiting [--json]` (photos as
+  file paths; downloaded from Storage first on Firestore), `mark`, `mark-rewrite`, `disputes`,
+  `resolve-dispute`, `answers`. The marking run's prompt: `docs/routines/mark-answers.md` (not
+  scheduled).
+- **Content:** a private script (`data/mains_build/build_questions.py`) built the register's 974
+  Mains PYQs (GS1 267, GS2 275, GS3 266, GS4 166) and imported them into the local content folder
+  only. 86 carry a word limit from the paper (37 with marks); 888 are set as 10-markers of 150
+  words and flagged. 129 link to a Polity note unit. "It asks for" is built from each question's
+  sentences and directive words. Not in Firestore yet; that needs the user's go-ahead:
+  `node cli/atlas.ts mains-import ../data/mains_build/questions.json --replace`.
+- **Checks** (internal-disk copy): Prettier, `tsc -b`, 113 unit tests, build (local and cloud);
+  `npm run test:cloud` 31 passed (now with the Storage emulator; new: Mains rules, cloud API,
+  Storage rules, and the CLI's Firestore and Storage steps); `npx playwright test` 79 passed + 26
+  skips (installed Chrome; new `e2e/m8.spec.ts`: writing to "Sent for marking" with a photo, the
+  marked page with a dispute that survives a reload and the outline on tap, and the Feedback tab's
+  filters, drawer, retry due and rows). Screenshots (fixture): `docs/design/m8-mains-answers/`.
+- **Not done:** enabling Firebase Storage and deploying `storage.rules` and the Firestore rules
+  (`firebase deploy --only storage,firestore:rules`), importing the questions into Firestore, and
+  scheduling the marking run, each with the user's go-ahead. On the dev server the QR code points
+  at `localhost`, which a phone can't open; use the cloud build, or the LAN address with
+  `ATLAS_ALLOW_LAN_WRITES=1`.
+
 ## Prelims MCQ loop (M7) — 2026-10-21
 
 - **Branch:** `claude/m7-mcq-loop`, stacked on `claude/practice-foundations` (PR #47). Assisting

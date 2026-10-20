@@ -43,6 +43,29 @@ import {
   type WeeklyNote,
 } from "../src/lib/lessons.ts";
 import type { Backend } from "./backend.ts";
+import { mkdirSync } from "node:fs";
+import {
+  applyAnswerOp,
+  isAnswerId,
+  MainsError,
+  PHOTO_FILE,
+  storagePath,
+  validateAnswer,
+  validateQuestionSet,
+  type MainsAnswer,
+  type QuestionSet,
+} from "../src/lib/mains.ts";
+
+/** Where answer photos live: ATLAS_STORAGE_BUCKET, or the project's default Storage bucket. */
+export const photoBucket = (app: App) =>
+  process.env.ATLAS_STORAGE_BUCKET ?? `${app.options.projectId}.firebasestorage.app`;
+
+// Named through a variable so the MCP bundles (rolldown) leave Storage out: only the CLI
+// downloads photos.
+const STORAGE_MODULE = "firebase-admin/storage";
+
+/** Where the CLI keeps photos it downloads for the marking run to read. */
+export const PHOTO_CACHE = process.env.ATLAS_PHOTO_CACHE ?? join(homedir(), ".cache", "mains-atlas", "answers");
 
 export const KEY_PATH = join(homedir(), ".config", "mains-atlas", "service-account.json");
 
@@ -250,6 +273,54 @@ export function firestoreBackend(db: Firestore = getFirestore(adminApp())): Back
     async setWeek(note) {
       validateWeeklyNote(note);
       await db.doc(`notes-week/${weekDocId(note.week)}`).set({ json: JSON.stringify(note), updatedAt: Date.now() });
+    },
+    mainsQuestions: async () =>
+      (await db.collection("mainsq").get()).docs
+        .map((d) => decodeJson<QuestionSet | null>(d.data(), null))
+        .filter((s): s is QuestionSet => !!s),
+    async setMainsQuestions(sets, replace) {
+      sets.forEach(validateQuestionSet);
+      const keep = new Set<string>(sets.map((s) => s.paper));
+      const batch = db.batch();
+      for (const s of sets)
+        batch.set(db.doc(`mainsq/${s.paper}`), {
+          json: JSON.stringify(s),
+          paper: s.paper,
+          count: s.questions.length,
+          updatedAt: Date.now(),
+        });
+      if (replace) for (const d of (await db.collection("mainsq").get()).docs) if (!keep.has(d.id)) batch.delete(d.ref);
+      await batch.commit();
+    },
+    answers: async () =>
+      (await db.collection("answers").get()).docs
+        .map((d) => decodeJson<MainsAnswer | null>(d.data(), null))
+        .filter((a): a is MainsAnswer => !!a),
+    async answer(id) {
+      if (!isAnswerId(id)) return null;
+      return decodeJson<MainsAnswer | null>((await db.doc(`answers/${id}`).get()).data(), null);
+    },
+    async changeAnswer(id, op) {
+      if (!isAnswerId(id)) throw new MainsError("Bad answer id");
+      return db.runTransaction(async (tx) => {
+        const ref = db.doc(`answers/${id}`);
+        const next = applyAnswerOp(decodeJson<MainsAnswer | null>((await tx.get(ref)).data(), null), op);
+        if (next.id !== id) throw new MainsError("The answer's id doesn't match its address");
+        validateAnswer(next);
+        tx.set(ref, { json: JSON.stringify(next), updatedAt: Date.now() });
+        return next;
+      });
+    },
+    async answerPhoto(id, file) {
+      if (!isAnswerId(id) || !PHOTO_FILE.test(file)) throw new MainsError("Bad photo path");
+      const { getStorage } = (await import(STORAGE_MODULE)) as typeof import("firebase-admin/storage");
+      const app = adminApp();
+      const remote = getStorage(app).bucket(photoBucket(app)).file(storagePath(id, file));
+      if (!(await remote.exists())[0]) return null;
+      mkdirSync(join(PHOTO_CACHE, id), { recursive: true });
+      const destination = join(PHOTO_CACHE, id, file);
+      await remote.download({ destination });
+      return destination;
     },
     async restoreAll(data) {
       // Small batches: a long page is close to a megabyte on its own.

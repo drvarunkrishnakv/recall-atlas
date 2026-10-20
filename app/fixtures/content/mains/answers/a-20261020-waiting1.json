@@ -1,0 +1,22 @@
+{
+ "id": "a-20261020-waiting1",
+ "question": {
+  "id": "gs3-2022-sample-budget",
+  "paper": "GS3",
+  "text": "Sample question: distinguish between a sample capital plan and a sample running plan, and explain the parts of each.",
+  "topic": "Sample budgeting",
+  "year": 2022,
+  "marks": 10,
+  "words": 150
+ },
+ "status": "waiting",
+ "createdAt": "2026-10-20T05:00:00.000Z",
+ "submittedAt": "2026-10-20T05:10:00.000Z",
+ "plan": [],
+ "times": { "planMs": 0, "writeMs": 398000, "overtimeMs": 0, "limitMs": 420000 },
+ "pages": [{ "file": "page-1.png", "type": "image/png", "at": "2026-10-20T05:09:00.000Z" }],
+ "selfScore": 7,
+ "selfMissed": [],
+ "disputes": [],
+ "rewrites": []
+}

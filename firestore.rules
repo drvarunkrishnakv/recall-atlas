@@ -55,6 +55,15 @@ service cloud.firestore {
     match /reading/{id} {
       allow read, create, update: if isOwner();
     }
+    // Mains answers (M8). The questions are imported by Claude's CLI; the app only reads them.
+    match /mainsq/{paper} {
+      allow read: if isOwner();
+    }
+    // Answers are kept, like the attempt log: the app can add and update one, not delete it.
+    // Marking is written by Claude's CLI (Admin SDK). Page photos are in Storage (storage.rules).
+    match /answers/{id} {
+      allow read, create, update: if isOwner();
+    }
     // Anything else is closed.
   }
 }

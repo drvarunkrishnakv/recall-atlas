@@ -26,6 +26,14 @@ const PATHS: Record<string, string> = {
   list: "M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01",
   // Bars on a baseline, for Prelims Analytics (M11).
   chart: "M5 20V11M11 20V5M17 20v-7M3 20h18",
+  // A pen, for writing a Mains answer.
+  pen: "M4 20l1-5L16 4l4 4L9 19zM14 6l4 4M4 20h6",
+  // A marked sheet, for Mains feedback.
+  feedback: "M7 3h10l2 2v16H5V5zM9 8h6M9 12l2 2 4-4M9 17h4",
+  // A camera, for photographing pages.
+  camera: "M4 8h3l2-3h6l2 3h3v11H4zM12 16.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z",
+  // A quarter turn, for straightening a photo.
+  turn: "M20 12a8 8 0 11-2.3-5.7M20 4v5h-5",
   // A flame, for the news heat map.
   heat: "M12 3c.6 3.2 4.5 5.2 4.5 10a4.5 4.5 0 0 1-9 0c0-2 .9-3.4 2.2-4.4 0 1.7.9 2.8 2.1 2.8-.4-3 0-5.6.2-8.4z",
   // M10: a puzzle piece (after Lucide's "puzzle", ISC licence), a bolt for Rush, sound on and off.

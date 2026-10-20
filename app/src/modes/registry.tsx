@@ -57,7 +57,16 @@ export const prelimsRoutes: RouteObject[] = [
 ];
 
 /** Mains-mode entries added after Home in the sidebar (the reader's own entries follow). */
-export const MAINS_NAV: NavEntry[] = [];
+export const MAINS_NAV: NavEntry[] = [
+  // M8: the Mains answer loop.
+  { to: "/mains/write", label: "Write", icon: "pen" },
+  { to: "/mains/feedback", label: "Feedback", icon: "feedback" },
+];
 
 /** Mains mode's added pages. */
-export const mainsRoutes: RouteObject[] = [];
+export const mainsRoutes: RouteObject[] = [
+  // M8: write an answer, its marked page, and the Feedback tab.
+  { path: "/mains/write", element: lazyPage(() => import("../mains/Write"), "Loading the desk") },
+  { path: "/mains/answers/:id", element: lazyPage(() => import("../mains/AnswerPage"), "Loading the answer") },
+  { path: "/mains/feedback", element: lazyPage(() => import("../mains/FeedbackTab"), "Loading your feedback") },
+];

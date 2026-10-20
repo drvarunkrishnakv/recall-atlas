@@ -41,6 +41,15 @@
 //   node cli/atlas.ts lessons                        every lesson with its cards, fact-checks and ratings
 //   node cli/atlas.ts week-note <YYYY-Www> <note.json>   check and store the weekly note
 //   node cli/atlas.ts week-data [--weeks 1]          JSON: the facts a weekly note is written from
+//   Mains answers (cli/mains.ts; the marking run: docs/routines/mark-answers.md):
+//   node cli/atlas.ts mains-import <questions.json> [--replace]   load Mains questions, each checked first
+//   node cli/atlas.ts mains-questions [--paper GS2]  questions per paper
+//   node cli/atlas.ts answers-waiting [--json]       answers waiting for marking, with each photo's file path
+//   node cli/atlas.ts mark <answerId> <marking.json> [--again]   save a marking (checklist, comments, tags…)
+//   node cli/atlas.ts mark-rewrite <answerId> <rewriteId> <better|same> "<verdict>"
+//   node cli/atlas.ts disputes                       open "I disagree"s and corrected readings
+//   node cli/atlas.ts resolve-dispute <answerId> <disputeId> <changed|kept> "<reason>" [--points n] [--item key]
+//   node cli/atlas.ts answers [--days 14]            recent answers with scores and fix tags
 //   node cli/atlas.ts owner [uid|email] [--remove]   list accounts, or mark the one that may open the app
 //   node cli/atlas.ts mcp-key add <grok|gemini|chatgpt> ["label"]   a key for one AI (shown once)
 //   node cli/atlas.ts mcp-key list | revoke <id>      the MCP server's keys
@@ -589,6 +598,18 @@ switch (cmd) {
   case "week-data": {
     const { lessonsCli } = await import("./lessons.ts");
     await lessonsCli(cmd, args, db);
+    break;
+  }
+  case "mains-import":
+  case "mains-questions":
+  case "answers-waiting":
+  case "mark":
+  case "mark-rewrite":
+  case "disputes":
+  case "resolve-dispute":
+  case "answers": {
+    const { mainsCommand } = await import("./mains.ts");
+    await mainsCommand(db, cmd, args);
     break;
   }
 

@@ -1,0 +1,90 @@
+{
+ "id": "a-20260915-sample01",
+ "question": {
+  "id": "gs2-2020-sample-chair",
+  "paper": "GS2",
+  "text": "Sample question: should the chair of a sample assembly give up party ties for good, as a sample convention suggests? What would it change for how the sample assembly works?",
+  "topic": "Sample assembly",
+  "year": 2020,
+  "marks": 10,
+  "words": 150,
+  "note": "P06"
+ },
+ "status": "marked",
+ "createdAt": "2026-09-15T04:30:00.000Z",
+ "submittedAt": "2026-09-15T04:45:00.000Z",
+ "plan": ["Where the convention comes from", "Neutral chair", "Concerns", "What changes"],
+ "times": { "planMs": 52000, "writeMs": 452000, "overtimeMs": 32000, "limitMs": 420000 },
+ "pages": [{ "file": "page-1.png", "type": "image/png", "at": "2026-09-15T04:44:00.000Z" }],
+ "selfScore": 6,
+ "selfMissed": ["Dimensions", "Length"],
+ "transcript": {
+  "text": "The sample convention comes from a sample country, where the chair leaves the party and is returned unopposed. The sample assembly has no such rule.\n\nWhy adopt it:\n1. Neutrality: the chair rules on sample disputes and certifies sample bills.\n2. Trust: the sample opposition would accept rulings more readily.\n\nConcerns: parties may not leave a seat uncontested, and the sample district loses an active voice.\n\nWhat it changes: fairer rulings, fewer sample walkouts, smoother sittings.\n\nWay forward: a cross-party sample agreement.",
+  "unsure": ["walkouts", "sittings"]
+ },
+ "marking": {
+  "score": 5,
+  "checklist": [
+   { "key": "demand", "got": 1.5, "why": "Sample: both parts answered, but your own view is only implied." },
+   { "key": "structure", "got": 1.5, "why": "Sample: opening, case for, concerns, way forward." },
+   { "key": "dimensions", "got": 0.5, "why": "Sample: only one country's model, and nothing on review of rulings." },
+   { "key": "evidence", "got": 1, "why": "Sample: sample disputes and sample bills named, but no figure." },
+   { "key": "current", "got": 0, "why": "Sample: nothing from the last two years." },
+   { "key": "presentation", "got": 0.5, "why": "Sample: headings not underlined." },
+   { "key": "length", "got": 0, "why": "Sample: about 95 words for a 150-word answer." }
+  ],
+  "comments": [
+   { "page": 1, "y": 0.06, "kind": "good", "text": "Sample comment: a good opening, saying where the idea comes from." },
+   { "page": 1, "y": 0.17, "kind": "fix", "text": "Sample comment: underline your headings so the examiner can scan the page." },
+   { "page": 1, "y": 0.25, "kind": "strong", "text": "Sample comment: ties neutrality to the chair's real powers.", "note": "P06" },
+   { "page": 1, "y": 0.44, "kind": "missing", "text": "Sample comment: no recent case. Your note has one.", "note": "P06" },
+   { "page": 1, "y": 0.58, "kind": "fix", "text": "Sample comment: half the question gets one line. Show the chain from rulings to sittings." },
+   { "page": 1, "y": 0.7, "kind": "strong", "text": "Sample comment: a clear way forward." }
+  ],
+  "keep": ["Sample: both parts answered, with a clear way forward."],
+  "fix": [
+   { "item": "dimensions", "gain": 1.5, "text": "Sample fix: add a second angle, such as review of the chair's rulings." },
+   { "item": "current", "gain": 1, "text": "Sample fix: name one recent sample case from your note." },
+   { "item": "length", "gain": 0.5, "text": "Sample fix: about 95 of 150 words. Spend the rest on what it changes." },
+   { "item": "presentation", "gain": 0.5, "text": "Sample fix: underline your headings." }
+  ],
+  "outline": [
+   { "h": "Intro", "p": "Sample outline: where the convention comes from, and that the sample assembly lacks it." },
+   { "h": "Your view", "p": "Sample outline: yes, as a convention all parties agree to." },
+   { "h": "Why it matters", "p": "Sample outline: the chair's powers over sample disputes and sample bills." },
+   { "h": "Concerns", "p": "Sample outline: an uncontested seat, and a district without an active voice." },
+   { "h": "What it changes", "p": "Sample outline: trusted rulings, fewer walkouts, more time for debate." },
+   { "h": "Way forward", "p": "Sample outline: an all-party agreement." }
+  ],
+  "fromNotes": [
+   { "fact": "Sample fact from your note: a sample case decided in a sample year.", "note": "P06", "item": "current" },
+   { "fact": "Sample fact from your note: a sample figure on sample seats.", "note": "P06", "item": "evidence" }
+  ],
+  "tags": [
+   { "tag": "thin-dimensions", "note": "Sample: only one country's model" },
+   { "tag": "no-current-link", "note": "Sample: no recent case" },
+   { "tag": "too-short", "note": "Sample: about 95 of 150 words" }
+  ],
+  "rewrite": {
+   "item": "demand",
+   "part": "What it changes",
+   "words": 40,
+   "minutes": 3,
+   "hint": "Sample hint: show the chain from trusted rulings to more time for debate."
+  },
+  "run": "2026-09-15 evening",
+  "markedAt": "2026-09-15T13:40:00.000Z"
+ },
+ "disputes": [
+  {
+   "id": "d-20260916-sample1",
+   "item": "length",
+   "text": "Sample dispute: I think it was closer to 150 words.",
+   "at": "2026-09-16T03:00:00.000Z",
+   "status": "kept",
+   "reply": "Sample reply: the page has about 95 words, and a 10-marker asks for 150.",
+   "resolvedAt": "2026-09-16T13:30:00.000Z"
+  }
+ ],
+ "rewrites": []
+}
