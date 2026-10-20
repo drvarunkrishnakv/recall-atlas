@@ -150,6 +150,21 @@ DECISIONS (2026-10-20).
   of the Mains Notes table and the Claude inbox.
 - **Done when** each screen works at all three sizes in light and dark.
 
+### Routes and data for M8–M12
+
+Fixed up front (2026-10-21) so the milestones can be built side by side and merged without
+guessing. Each milestone adds its routes and sidebar entries in `src/modes/registry.tsx`, its
+screens in its own folder with its own stylesheet, and its end-to-end tests in its own
+`e2e/<milestone>.spec.ts`.
+
+| Milestone | Routes | Data (Firestore · dev files) | Code |
+|---|---|---|---|
+| M8 | `/mains/write`, `/mains/answers/:id`, `/mains/feedback` | `mainsq/{paper}` · `mains/questions/<paper>.json` (questions, CLI-imported); `answers/{id}` · `mains/answers/<id>.json`; photos in Storage `answers/{id}/page-{n}.jpg` · `mains/photos/<id>/` | `src/lib/mains.ts`, `src/mains/` |
+| M9 | `/prelims/lesson`, `/prelims/quiz` (and the Mains lesson inside `/mains/answers/:id`) | `lessons/{day}` · `practice/lessons/<day>.json`; weekly note `notes-week/{week}` · `practice/weeks/<week>.json` | `src/lib/lessons.ts`, `src/lessons/`, `docs/routines/` |
+| M10 | `/prelims/cards`, `/prelims/puzzles`, `/prelims/rush` | Flashcards and puzzles are items in `items/{bank}`; answers in `attempts/{day}` | `src/lib/puzzles.ts`, `src/practice/` |
+| M11 | `/` (Mains Home), `/prelims` (Prelims Home), `/prelims/subject/:subject`, `/prelims/analytics`, `/mains/analytics` | Reads the above | `src/homes/`, `src/analytics/` |
+| M12 | `/mains/notes`, `/mains/essay`, `/mains/ethics`, `/mains/medical`, and `/inbox` in the Board look | `essay/{id}`, `ethics/{id}`, `medical/{line}` · `mains/essay/`, `mains/ethics/`, `mains/medical/` | `src/mains-extra/` |
+
 ## Testing on every milestone
 
 - Unit tests for the Markdown extensions and data helpers.
