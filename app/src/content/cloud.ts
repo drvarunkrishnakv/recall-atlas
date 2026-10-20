@@ -36,6 +36,7 @@ import {
   type Progress,
   type ProgressOp,
 } from "../lib/progress";
+import { applyAttemptOp, attemptsDocId, type Attempt, type AttemptOp, type Bank } from "../lib/practice";
 
 const ID = /^[A-Za-z0-9][A-Za-z0-9-]{0,80}$/;
 
@@ -123,6 +124,22 @@ export function cloudApi(db: Firestore) {
           (await getDoc(doc(db, "heatmap", `${base}-${i}`))).data(),
         );
       return { map: await read("current"), comparison: await read("questions") };
+    }
+
+    if (path === "/api/practice" && method === "GET") {
+      const [banks, days] = await Promise.all([getDocs(col(db, "items")), getDocs(col(db, "attempts"))]);
+      return {
+        banks: banks.docs.map((d) => decodeJson<Bank | null>(d.data(), null)).filter((b): b is Bank => !!b),
+        days: Object.fromEntries(
+          days.docs.map((d) => [d.id, decodeJson(d.data(), { attempts: [] as Attempt[] }).attempts]),
+        ),
+      };
+    }
+    const practiceDay = /^\/api\/practice\/attempts\/(\d{4}-\d{2}-\d{2})$/.exec(path);
+    if (practiceDay && method === "POST") {
+      const ref = doc(db, "attempts", attemptsDocId(practiceDay[1]));
+      const next = await change(db, ref, { attempts: [] as Attempt[] }, (v) => applyAttemptOp(v, body as AttemptOp));
+      return { attempts: next.attempts };
     }
 
     if (path === "/api/progress") {

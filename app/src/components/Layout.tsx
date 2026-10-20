@@ -13,6 +13,7 @@ import { Peek, usePeekHost } from "./SidePeek";
 import { Search } from "./Search";
 import { ModeSwitch, useMode } from "./ModeSwitch";
 import { MODE_HOME, modeOf } from "../lib/mode";
+import { MAINS_NAV, PRELIMS_NAV } from "../modes/registry";
 
 /** Counts for the sidebar badges. */
 export function useBadges() {
@@ -72,10 +73,12 @@ function Sidebar({ onCapture, onSearch }: { onCapture: () => void; onSearch: () 
       </div>
       {mode === "prelims" ? (
         <nav className="side-nav" aria-label="Prelims">
-          <NavLink to="/prelims" end>
-            <Icon name="home" />
-            Home
-          </NavLink>
+          {PRELIMS_NAV.map((n) => (
+            <NavLink key={n.to} to={n.to} end={n.end}>
+              <Icon name={n.icon} />
+              {n.label}
+            </NavLink>
+          ))}
         </nav>
       ) : (
         <MainsNav />
@@ -101,6 +104,12 @@ function MainsNav() {
           <Icon name="home" />
           Home
         </NavLink>
+        {MAINS_NAV.map((n) => (
+          <NavLink key={n.to} to={n.to} end={n.end}>
+            <Icon name={n.icon} />
+            {n.label}
+          </NavLink>
+        ))}
         <NavLink to="/inbox">
           <Icon name="inbox" />
           Claude inbox
@@ -342,10 +351,13 @@ export function Layout() {
           <PageSkeleton label="Loading notes" />
         )}
       </main>
-      <button type="button" className="capture-fab" onClick={() => setCapturing(true)}>
-        <Icon name="plus" />
-        Capture
-      </button>
+      {/* Practice screens are focus mode: no floating button over the answers. */}
+      {!/^\/prelims\/(session|cards|puzzles|rush|lesson)/.test(location.pathname) && (
+        <button type="button" className="capture-fab" onClick={() => setCapturing(true)}>
+          <Icon name="plus" />
+          Capture
+        </button>
+      )}
       {status === "ready" && <Peek />}
       <div className="edge-back" ref={edgeArrow} aria-hidden="true">
         <Icon name="back" />

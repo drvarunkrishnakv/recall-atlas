@@ -31,6 +31,7 @@ import {
   readFileSync,
   readdirSync,
   renameSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -53,6 +54,15 @@ import {
   type ProgressOp,
 } from "../src/lib/progress.ts";
 import type { Comparison, HeatMap } from "../src/lib/heatmap.ts";
+import {
+  applyAttemptOp,
+  attemptsDocId,
+  PracticeError,
+  validateBank,
+  type Attempt,
+  type AttemptOp,
+  type Bank,
+} from "../src/lib/practice.ts";
 
 const COLLECTIONS = ["notes", "cards"] as const;
 type Collection = (typeof COLLECTIONS)[number];
@@ -325,6 +335,55 @@ export function saveComparison(dir: string, c: Comparison) {
   writeAtomic(join(dir, "heatmap-questions.json"), JSON.stringify(c, null, 1) + "\n");
 }
 
+// Practice: banks of items in practice/banks/<bank>.json, and each day's attempts in
+// practice/attempts/<YYYY-MM-DD>.json (lib/practice.ts).
+const BANK_FILE = /^([a-z0-9][a-z0-9-]{0,60})\.json$/;
+const DAY_FILE = /^(\d{4}-\d{2}-\d{2})\.json$/;
+
+export function loadBanks(dir: string): Bank[] {
+  const folder = join(dir, "practice", "banks");
+  if (!existsSync(folder)) return [];
+  return readdirSync(folder)
+    .filter((f) => BANK_FILE.test(f))
+    .sort()
+    .map((f) => readJson<Bank | null>(join(folder, f), null))
+    .filter((b): b is Bank => !!b);
+}
+
+/** Writes each bank after checking it; `replace` also removes banks not in the list. */
+export function saveBanks(dir: string, banks: Bank[], replace = false) {
+  const folder = join(dir, "practice", "banks");
+  mkdirSync(folder, { recursive: true });
+  const keep = new Set<string>();
+  for (const b of banks) {
+    validateBank(b);
+    keep.add(`${b.id}.json`);
+    writeAtomic(join(folder, `${b.id}.json`), JSON.stringify(b, null, 1) + "\n");
+  }
+  if (replace) for (const f of readdirSync(folder)) if (BANK_FILE.test(f) && !keep.has(f)) rmSync(join(folder, f));
+}
+
+/** Every day's attempts: `YYYY-MM-DD` → attempts in the order they were made. */
+export function loadAttempts(dir: string): Record<string, Attempt[]> {
+  const folder = join(dir, "practice", "attempts");
+  const out: Record<string, Attempt[]> = {};
+  if (!existsSync(folder)) return out;
+  for (const f of readdirSync(folder).sort()) {
+    const m = DAY_FILE.exec(f);
+    if (m) out[m[1]] = readJson<{ attempts: Attempt[] }>(join(folder, f), { attempts: [] }).attempts;
+  }
+  return out;
+}
+
+export function changeAttempts(dir: string, day: string, op: AttemptOp): Attempt[] {
+  const folder = join(dir, "practice", "attempts");
+  mkdirSync(folder, { recursive: true });
+  const path = join(folder, `${attemptsDocId(day)}.json`);
+  const next = applyAttemptOp(readJson(path, { attempts: [] as Attempt[] }), op);
+  writeAtomic(path, JSON.stringify(next, null, 1) + "\n");
+  return next.attempts;
+}
+
 // ---------- HTTP ----------
 
 const LOOPBACK = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
@@ -381,6 +440,15 @@ export function contentApi(appRoot: string): Connect.NextHandleFunction {
           200,
           progress ? changeProgress(dir, op as ProgressOp) : { captures: changeCaptures(dir, op as CaptureOp) },
         );
+      }
+
+      if (url.pathname === "/api/practice" && req.method === "GET")
+        return send(res, 200, { banks: loadBanks(dir), days: loadAttempts(dir) });
+      if (parts[1] === "practice" && parts[2] === "attempts" && parts.length === 4) {
+        if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+        const refused = writeAllowed(req);
+        if (refused) return send(res, 403, { error: refused });
+        return send(res, 200, { attempts: changeAttempts(dir, parts[3], (await readBody(req)) as AttemptOp) });
       }
 
       const [, kind, collection, id, extra] = parts;
@@ -451,7 +519,8 @@ export function contentApi(appRoot: string): Connect.NextHandleFunction {
         e instanceof ThreadOpError ||
         e instanceof ProgressOpError ||
         e instanceof DiscussionOpError ||
-        e instanceof ProposalError
+        e instanceof ProposalError ||
+        e instanceof PracticeError
       )
         return send(res, 400, { error: e.message });
       return send(res, 500, { error: e instanceof Error ? e.message : String(e) });

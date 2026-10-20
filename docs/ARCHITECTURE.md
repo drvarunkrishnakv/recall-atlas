@@ -63,7 +63,17 @@ feature we don't use.
      inbox.
   3. A monthly tuning pass that fits FSRS to your own log and records changes in DECISIONS.
 - **Items** come in banks (one per Prelims chapter topic). A PYQ is served only when its key
-  has been checked against UPSC's official key (`keyVerified`).
+  has been checked (`keyVerified`). `keyFrom` says against what: UPSC's final or provisional key
+  (2012–2026), or for 2009–2011, which have no official key, the register, Grok and Gemini
+  agreeing. The session shows that line under each answer.
+- **Where it lives (M7).** Files: `content/practice/banks/<bank>.json` and
+  `content/practice/attempts/<day>.json`. Firestore: `items/{bank}` and `attempts/{day}`. Both
+  answer `GET /api/practice` (`{banks, days}`) and `POST /api/practice/attempts/<day>` (an
+  `AttemptOp`: add, or change a grade). The CLI loads banks with `atlas practice-import`, which
+  checks every bank first. Review state isn't stored: `src/lib/srs.ts` rebuilds each item's FSRS
+  card by replaying its attempts (no fuzz, retention 0.9), so the log is the only record.
+- **Screens plug in through `src/modes/registry.tsx`**: each milestone adds its routes and
+  sidebar entries there.
 
 ## Stack
 

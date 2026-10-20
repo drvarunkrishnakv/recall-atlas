@@ -31,6 +31,10 @@
 //                                                    is replaced only with --force, when the user asks)
 //   node cli/atlas.ts heatmap-compare-import <file.json>   load the comparison with past papers (checked
 //                                                    against the frozen map first)
+//   node cli/atlas.ts practice                       practice banks (items, servable) and attempts per day
+//   node cli/atlas.ts practice-import <banks.json> [--replace]   load practice banks ({banks: Bank[]}),
+//                                                    each checked first; --replace drops banks not in the file
+//   node cli/atlas.ts attempts [--days 7]            recent attempts with grades, for the nightly lesson
 //   node cli/atlas.ts owner [uid|email] [--remove]   list accounts, or mark the one that may open the app
 //   node cli/atlas.ts mcp-key add <grok|gemini|chatgpt> ["label"]   a key for one AI (shown once)
 //   node cli/atlas.ts mcp-key list | revoke <id>      the MCP server's keys
@@ -52,6 +56,7 @@ import { briefing, nextUp, progress } from "../src/lib/discussions.ts";
 import { AIS, isAi, MODE_INFO, speaker, type Mode, type Seat } from "../src/lib/personas.ts";
 import { fileBackend, snapshot, type Backend } from "../server/backend.ts";
 import { nextDue } from "../src/lib/progress.ts";
+import { GRADE_LABEL, ratingAfter, servable, validateBank, type Bank } from "../src/lib/practice.ts";
 import {
   comparisonProblems,
   heatMapProblems,
@@ -516,6 +521,58 @@ switch (cmd) {
       `Imported the comparison into ${db.kind}: ${c.questions.length} questions from ${c.exams.length} papers, ` +
         `${linked} drawing on the map's news.`,
     );
+    break;
+  }
+
+  case "practice": {
+    const [banks, days] = await Promise.all([db.banks(), db.attempts()]);
+    const items = banks.flatMap((b) => b.items);
+    console.log(
+      `${banks.length} banks, ${items.length} items (${items.filter(servable).length} servable) in ${db.kind}.`,
+    );
+    for (const b of banks)
+      console.log(`  ${b.id.padEnd(40)} ${String(b.items.length).padStart(4)} items  ${b.subject} · ${b.topic}`);
+    const all = Object.values(days).flat();
+    console.log(`${all.length} attempts over ${Object.keys(days).length} days; rating ${ratingAfter(all)}.`);
+    break;
+  }
+
+  case "practice-import": {
+    const file = args[0];
+    if (!file || !existsSync(file)) fail("Usage: practice-import <banks.json> [--replace]");
+    const data = JSON.parse(readFileSync(file, "utf8")) as { banks: Bank[] };
+    if (!Array.isArray(data.banks)) fail("Expected {banks: [...]}");
+    const problems: string[] = [];
+    for (const b of data.banks)
+      try {
+        validateBank(b);
+      } catch (e) {
+        problems.push(e instanceof Error ? e.message : String(e));
+      }
+    if (problems.length) fail(`Not imported (${problems.length} problems):\n- ${problems.slice(0, 40).join("\n- ")}`);
+    await db.setBanks(data.banks, args.includes("--replace"));
+    const items = data.banks.flatMap((b) => b.items);
+    console.log(
+      `Imported ${data.banks.length} banks into ${db.kind}: ${items.length} items, ${items.filter(servable).length} servable.`,
+    );
+    break;
+  }
+
+  case "attempts": {
+    const n = Number(args[args.indexOf("--days") + 1] || 7) || 7;
+    const days = await db.attempts();
+    const banks = await db.banks();
+    const byId = new Map(banks.flatMap((b) => b.items.map((i) => [i.id, i] as const)));
+    for (const day of Object.keys(days).sort().slice(-n)) {
+      console.log(`\n## ${day}: ${days[day].length} attempts, ${days[day].filter((a) => !a.correct).length} wrong`);
+      for (const a of days[day]) {
+        const it = byId.get(a.itemId);
+        const what = it && it.kind === "mcq" ? it.stem.split("\n")[0].slice(0, 90) : a.itemId;
+        console.log(
+          `- ${a.correct ? "right" : "WRONG"} · ${a.grade ? GRADE_LABEL[a.grade] : "no grade"}${a.sure === undefined ? "" : a.sure ? " · sure" : " · unsure"} · ${a.bank} · ${what}`,
+        );
+      }
+    }
     break;
   }
 

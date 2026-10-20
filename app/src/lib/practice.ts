@@ -9,6 +9,12 @@
 // or how well you knew it). Everything the engine works out is read from this log.
 
 export type ItemKind = "mcq" | "flashcard" | "puzzle";
+export type KeyFrom = "upsc" | "upsc-provisional" | "consensus";
+export const KEY_FROM_LABEL: Record<KeyFrom, string> = {
+  upsc: "Answer from UPSC's official key",
+  "upsc-provisional": "Answer from UPSC's provisional key",
+  consensus: "No official key for this year: the register, Grok and Gemini agree on this answer",
+};
 export const ITEM_KINDS: readonly ItemKind[] = ["mcq", "flashcard", "puzzle"];
 
 /**
@@ -16,7 +22,18 @@ export const ITEM_KINDS: readonly ItemKind[] = ["mcq", "flashcard", "puzzle"];
  * an item Claude wrote is served only after its blind fact-check.
  */
 export type ItemSource =
-  | { type: "pyq"; year: number; paper: "GS1" | "CSAT"; keyVerified: boolean; ref?: string }
+  | {
+      type: "pyq";
+      year: number;
+      paper: "GS1" | "CSAT";
+      keyVerified: boolean;
+      /**
+       * Where the checked answer comes from: UPSC's final or provisional key, or (2009–2011, which
+       * have no official key) the register, Grok and Gemini agreeing.
+       */
+      keyFrom?: KeyFrom;
+      ref?: string;
+    }
   | { type: "claude"; checked: boolean; sources: { label: string; url: string }[] };
 
 interface ItemBase {
@@ -42,6 +59,10 @@ export interface McqItem extends ItemBase {
   /** One line per option: why it is right or wrong. */
   why?: string[];
   trap?: string;
+  /** The line after the statements ("Which of the statements given above is/are correct?"). */
+  ask?: string;
+  /** A longer explanation, with where it came from and whether it was fact-checked. */
+  explanation?: { text: string; source: string; checked: boolean };
 }
 
 export interface FlashcardItem extends ItemBase {
@@ -64,6 +85,14 @@ export interface PuzzleItem extends ItemBase {
 }
 
 export type Item = McqItem | FlashcardItem | PuzzleItem;
+
+/** A bank of items: one Prelims chapter topic, e.g. Polity · Parliament. */
+export interface Bank {
+  id: string;
+  subject: string;
+  topic: string;
+  items: Item[];
+}
 
 /** The grade buttons after an answer, as in the chosen session design. */
 export const WRONG_GRADES = ["unknown", "forgot", "mixed", "misread", "guess"] as const;
@@ -120,7 +149,7 @@ export interface Attempt {
   marks?: (boolean | null)[];
   /** Flashcard: what you typed before flipping. */
   typed?: string;
-  /** Puzzle: how much your rating moved. */
+  /** MCQ or puzzle: how much your rating moved. */
   delta?: number;
 }
 
@@ -155,6 +184,7 @@ function checkSource(s: unknown): ItemSource {
     if (!Number.isInteger(src.year) || (src.year as number) < 1979 || (src.year as number) > 2100) fail("Bad PYQ year");
     if (src.paper !== "GS1" && src.paper !== "CSAT") fail("Bad PYQ paper");
     if (typeof src.keyVerified !== "boolean") fail("A PYQ must say whether its key is verified");
+    if (src.keyFrom !== undefined && !Object.hasOwn(KEY_FROM_LABEL, String(src.keyFrom))) fail("Bad key source");
   } else if (src?.type === "claude") {
     if (typeof src.checked !== "boolean") fail("A generated item must say whether it was fact-checked");
     const sources = src.sources as unknown;
@@ -190,6 +220,12 @@ export function validateItem(x: unknown): Item {
             fail(`Statement truths on ${it.id} don't match its statements`);
         }
       } else if (it.truth !== undefined) fail(`Truths without statements on ${it.id}`);
+      if (it.ask !== undefined && !isText(it.ask, 1000)) fail(`Bad closing line on ${it.id}`);
+      if (it.explanation !== undefined) {
+        const ex = it.explanation as Partial<Record<string, unknown>>;
+        if (!isText(ex?.text, 8000) || !isText(ex?.source, 200) || typeof ex?.checked !== "boolean")
+          fail(`Bad explanation on ${it.id}`);
+      }
       if (it.why !== undefined) {
         const why = it.why as unknown;
         if (!Array.isArray(why) || why.length !== options.length || !why.every((w) => typeof w === "string"))
@@ -248,7 +284,8 @@ export function validateAttempt(x: unknown): Attempt {
     if (!Array.isArray(m) || m.length > 12 || !m.every((v) => v === null || typeof v === "boolean")) fail("Bad marks");
   }
   if (a.typed !== undefined && (typeof a.typed !== "string" || a.typed.length > 2000)) fail("Typed answer too long");
-  if (a.delta !== undefined && (a.kind !== "puzzle" || !Number.isFinite(a.delta))) fail("Only puzzles move the rating");
+  if (a.delta !== undefined && (a.kind === "flashcard" || !Number.isFinite(a.delta)))
+    fail("Only MCQs and puzzles move the rating");
   return a as unknown as Attempt;
 }
 
@@ -272,6 +309,34 @@ export function applyAttemptOp(day: AttemptDay, op: AttemptOp): AttemptDay {
     }
   }
 }
+
+/** Checks a bank and every item in it; items must belong to the bank. */
+export function validateBank(x: unknown): Bank {
+  const b = x as Partial<Record<string, unknown>> | null;
+  if (!b || typeof b !== "object") fail("Not a bank");
+  if (typeof b.id !== "string" || !BANK.test(b.id)) fail("Bad bank id");
+  if (!isText(b.subject, 80) || !isText(b.topic, 160)) fail(`Bank ${b.id} needs a subject and a topic`);
+  if (!Array.isArray(b.items)) fail(`Bank ${b.id} has no items`);
+  const seen = new Set<string>();
+  for (const it of b.items as unknown[]) {
+    const item = validateItem(it);
+    if (item.bank !== b.id) fail(`Item ${item.id} says bank ${item.bank}, but it is in ${b.id}`);
+    if (seen.has(item.id)) fail(`Item ${item.id} appears twice in ${b.id}`);
+    seen.add(item.id);
+  }
+  return b as unknown as Bank;
+}
+
+/** The rating starts at 500 and moves by each answer's delta, kept between 0 and 1000. */
+export const RATING_START = 500;
+export function ratingAfter(attempts: Attempt[]): number {
+  let r = RATING_START;
+  for (const a of attempts) if (a.delta) r = Math.min(1000, Math.max(0, r + a.delta));
+  return Math.round(r);
+}
+
+/** An MCQ's rating change (the chosen session design): confidence raises the stakes both ways. */
+export const mcqDelta = (correct: boolean, sure: boolean) => (correct ? (sure ? 8 : 4) : sure ? -7 : -4);
 
 /** The `attempts/{id}` document for a local calendar day. */
 export function attemptsDocId(day: string): string {

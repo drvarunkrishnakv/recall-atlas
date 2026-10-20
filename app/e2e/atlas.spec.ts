@@ -674,3 +674,77 @@ test("the Prelims / Mains switch changes the sidebar and remembers each mode's p
   await expect(frame).toHaveAttribute("data-mode", "mains");
   await expect(page.locator(".nav").getByRole("link", { name: "Claude inbox" })).toHaveCount(1);
 });
+
+test("a Prelims session: statement marks pick the option, the answer shows, and a miss lands in the notebook", async ({
+  page,
+}) => {
+  await page.goto("/prelims");
+  await expect(page.getByRole("link", { name: /Practise now/ })).toBeVisible();
+  // The unverified PYQ in the fixture is never served.
+  await expect(page.getByText(/^3 questions ready/)).toBeVisible();
+  await expect(page.getByRole("link", { name: /Sample topic/ })).toBeVisible();
+  await noSideScroll(page);
+
+  await page.goto("/prelims/session?items=fx-1,fx-2&mode=practice");
+  const card = page.getByRole("region", { name: "Question 1 of 2" });
+  await expect(card.getByText("Consider the following statements")).toBeVisible();
+  for (const [n, mark] of [
+    [1, "Mark true"],
+    [2, "Mark true"],
+    [3, "Mark false"],
+  ] as const)
+    await card
+      .getByRole("group", { name: `Statement ${n}` })
+      .getByRole("button", { name: mark })
+      .click();
+  await expect(card.getByRole("radio", { name: /1 and 2 only/ })).toHaveAttribute("aria-checked", "true");
+  await expect(card.getByText("your marks")).toBeVisible();
+  await noSideScroll(page);
+  await card.getByRole("button", { name: /Lock in · sure/ }).click();
+  await expect(card.getByText("Right: the answer is A.")).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "Session" }).getByText("+8")).toBeVisible();
+  await card.getByRole("button", { name: /Knew it/ }).click();
+  await expect(card.getByRole("button", { name: /Knew it/ })).toHaveAttribute("aria-pressed", "true");
+  await card.getByRole("button", { name: /Next question/ }).click();
+
+  const second = page.getByRole("region", { name: "Question 2 of 2" });
+  await second.getByRole("radio", { name: /Beta/ }).click();
+  await second.getByRole("button", { name: /Lock in · unsure/ }).click();
+  await expect(second.getByText("Wrong: the answer is C.")).toBeVisible();
+  await expect(second.getByText("Gamma is the made-up capital used in tests.")).toBeVisible();
+  await second.getByRole("button", { name: /Mixed up/ }).click();
+  await second.getByRole("button", { name: /See the summary/ }).click();
+
+  await expect(page.getByRole("heading", { name: "Session done" })).toBeVisible();
+  await expect(page.getByText("1 / 2")).toBeVisible();
+  await expect(page.getByText("1.3", { exact: true })).toBeVisible();
+  await noSideScroll(page);
+
+  // The miss is saved: it is in the notebook after a reload.
+  await page.goto("/prelims/notebook");
+  await page.reload();
+  const list = page.getByRole("navigation", { name: "Missed questions" });
+  await list
+    .getByRole("button", { name: /Which sample city/ })
+    .first()
+    .click();
+  const detail = page.getByRole("region", { name: "The question" });
+  await expect(detail.getByText("your answer")).toBeVisible();
+  await expect(detail.getByText("Mixed up").first()).toBeVisible();
+  await page.getByRole("tab", { name: "Revision book" }).click();
+  await expect(page.getByText("Answer C: Gamma").first()).toBeVisible();
+  await noSideScroll(page);
+});
+
+test("exam mode holds the answers until the summary, where each one is graded", async ({ page }) => {
+  test.skip(!isDesktop(page), "Once is enough");
+  await page.goto("/prelims/session?items=fx-3&mode=exam");
+  const card = page.getByRole("region", { name: "Question 1 of 1" });
+  await expect(card.getByText("Which sample instrument")).toBeVisible();
+  await page.keyboard.press("b");
+  await expect(card.getByRole("radio", { name: /Barosample/ })).toHaveAttribute("aria-checked", "true");
+  await page.keyboard.press("s");
+  await expect(page.getByRole("heading", { name: "Session done" })).toBeVisible();
+  await page.getByRole("region", { name: "Your answers" }).getByRole("button", { name: "Instant" }).click();
+  await expect(page.getByRole("button", { name: "Instant" })).toHaveAttribute("aria-pressed", "true");
+});
