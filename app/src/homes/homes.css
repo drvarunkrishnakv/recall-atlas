@@ -179,7 +179,15 @@
 /* The Puzzle button: a green chessboard square that glows and floats (still under reduced motion). */
 .ph-centre {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.ph-centre-links {
+  display: flex;
+  flex-wrap: wrap;
   justify-content: center;
+  gap: 8px;
 }
 .ph-puzzle {
   width: 100%;

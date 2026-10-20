@@ -45,10 +45,10 @@ async function fling(page: Page, el: Locator, dx: number) {
 
 test("Prelims Home and the sidebar lead to flashcards, puzzles and Rush", async ({ page }) => {
   await page.goto("/prelims");
-  const opts = page.locator(".start-opts");
-  for (const name of ["Flashcards", "Puzzles", "Rush"]) await expect(opts.getByRole("link", { name })).toBeVisible();
-  // A bank of cards and puzzles alone isn't listed among the MCQ topics.
-  await expect(page.getByRole("link", { name: /Sample cards and puzzles/ })).toHaveCount(0);
+  // M11's home: the big Puzzles button, with Rush and Flashcards under it.
+  const opts = page.locator(".ph-centre");
+  await expect(opts.getByRole("link", { name: /^Puzzles: play/ })).toBeVisible();
+  for (const name of [/^Rush/, /^Flashcards$/]) await expect(opts.getByRole("link", { name })).toBeVisible();
   if (isDesktop(page)) {
     const nav = page.getByRole("navigation", { name: "Prelims" });
     await nav.getByRole("link", { name: "Puzzles" }).click();
@@ -58,7 +58,7 @@ test("Prelims Home and the sidebar lead to flashcards, puzzles and Rush", async 
     await nav.getByRole("link", { name: "Rush" }).click();
     await expect(page).toHaveURL(/\/prelims\/rush$/);
   } else {
-    await opts.getByRole("link", { name: "Puzzles" }).click();
+    await opts.getByRole("link", { name: /^Puzzles: play/ }).click();
     await expect(page).toHaveURL(/\/prelims\/puzzles$/);
   }
 });

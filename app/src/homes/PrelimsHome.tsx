@@ -193,6 +193,14 @@ export function PrelimsHome() {
                 </span>
                 <span className="ph-pz-play">Play</span>
               </Link>
+              <div className="ph-centre-links">
+                <Link className="chip-btn" to="/prelims/rush">
+                  Rush · 3 minutes
+                </Link>
+                <Link className="chip-btn" to="/prelims/cards">
+                  Flashcards
+                </Link>
+              </div>
             </div>
 
             <div className="ph-side">

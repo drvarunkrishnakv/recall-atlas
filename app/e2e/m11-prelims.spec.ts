@@ -142,7 +142,11 @@ test("Analytics tells the week's story, and the range switches between 4 weeks, 
   await page.goto("/prelims/analytics");
   const main = page.locator("main");
   await expect(main.getByRole("heading", { level: 1 })).toHaveText(/^Readiness \d+ \/ 1000/);
-  await expect(main.getByText("No weekly note yet.", { exact: false })).toBeVisible();
+  // M9's fixture has a weekly note; each line links to its evidence.
+  await expect(main.getByRole("link", { name: /two of the week's three misses/ })).toHaveAttribute(
+    "href",
+    "/prelims/notebook?filter=week",
+  );
   for (const part of ["Coverage", "Memory", "New questions", "Speed", "Calibration"])
     await expect(main.getByText(part, { exact: true })).toBeVisible();
   // The subject with most misses this week (the M7 session test can add misses to Sample subject).
