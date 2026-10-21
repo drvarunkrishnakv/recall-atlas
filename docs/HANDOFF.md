@@ -29,9 +29,13 @@
   without a key returns 401. The shell's `GOOGLE_APPLICATION_CREDENTIALS` points at another
   project's (missing) key: run the CLI with it unset so it uses
   `~/.config/mains-atlas/service-account.json`.
-- **Not done:** Storage. `firebase deploy --only storage` says Storage isn't set up: the user
-  clicks "Get started" in the console, then `--only storage` deploys `storage.rules`. Until then
-  answer photos can't upload on the live site. Also not done: scheduling the marking,
+- **Storage live 2026-10-21:** the user created the default bucket
+  (`recall-atlas-511913.firebasestorage.app`) in the console; `firebase deploy --only storage`
+  released `storage.rules`. Live checks: signed-out list and upload under `answers/` return 403;
+  the deployed build already names this bucket (`VITE_FIREBASE_STORAGE_BUCKET`). The app uploads
+  with `uploadBytes` and shows photos through download URLs, so the bucket needs no CORS setting.
+  Not yet tried signed in from a phone.
+- **Not done:** scheduling the marking,
   nightly-lesson and weekly-note runs (docs/routines/); the `mcp` function was not redeployed
   (unchanged for its tools). No real flashcards yet: Claude-written cards need the blind
   fact-check first.
