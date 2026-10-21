@@ -1,26 +1,29 @@
-/* Tonight's lesson (M9): the Board tokens in a warm, dim night variant, scoped to the lesson.
-   Warm graphite and amber with no bright white, in light and dark alike, because the lesson is
-   read in the evening (Chang et al. 2015). The rest of the app keeps its theme. */
+/* Tonight's lesson (M9): the Board tokens in a warm variant, scoped to the lesson. It follows the
+   app's theme like every other screen: a warm, low-glare paper in light mode, and the warm, dim
+   night look (Chang et al. 2015) in dark mode, where the "Night mode" badge shows. */
 .lesson {
-  --bd-ground: #16120e;
-  --bd-panel: #211b15;
-  --bd-raised: #2b231b;
-  --bd-ink: #efe4d0;
-  --bd-muted: #a8987f;
-  --bd-line: #3a3027;
+  --bd-ground: #f6efe3;
+  --bd-panel: #fcf8f0;
+  --bd-raised: #efe5d4;
+  --bd-ink: #2b2219;
+  --bd-muted: #6f604c;
+  --bd-line: #e2d6c2;
   --mode: #e3a548;
-  --mode-shade: #8f6420;
+  --mode-shade: #a8721f;
   --on-mode: #1f1405;
-  --mode-ink: #e3a548;
-  --ls-amber-soft: rgba(227, 165, 72, 0.13);
-  --ls-good: #9fcf6a;
-  --ls-good-shade: #5d8a33;
-  --ls-on-good: #13200a;
-  --ls-bad: #ec8f6f;
-  --ls-bad-soft: rgba(236, 143, 111, 0.14);
+  --mode-ink: #8f560b;
+  --ls-amber-soft: rgba(227, 165, 72, 0.18);
+  --ls-good: #76b041;
+  --ls-good-shade: #4e7d27;
+  --ls-on-good: #102006;
+  --ls-good-ink: #376f18;
+  --ls-bad: #b4372f;
+  --ls-bad-soft: rgba(180, 55, 47, 0.1);
+  --ls-shadow: rgba(60, 40, 20, 0.16);
+  --ls-night: none;
+  color-scheme: light;
   --ls-motion: 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
-  color-scheme: dark;
-  /* A dark panel inside the shell, so the shell's own light or dark look stays around it. */
+  /* A panel inside the shell, in the shell's own light or dark theme. */
   margin: 0.25rem 0 0;
   padding: 0 clamp(0.75rem, 3vw, 2rem) 2.5rem;
   border-radius: 28px;
@@ -36,6 +39,52 @@
   align-items: center;
   /* A flung card leaves the screen without making the page scroll sideways. */
   overflow-x: clip;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .lesson {
+    --bd-ground: #16120e;
+    --bd-panel: #211b15;
+    --bd-raised: #2b231b;
+    --bd-ink: #efe4d0;
+    --bd-muted: #a8987f;
+    --bd-line: #3a3027;
+    --mode: #e3a548;
+    --mode-shade: #8f6420;
+    --on-mode: #1f1405;
+    --mode-ink: #e3a548;
+    --ls-amber-soft: rgba(227, 165, 72, 0.13);
+    --ls-good: #9fcf6a;
+    --ls-good-shade: #5d8a33;
+    --ls-on-good: #13200a;
+    --ls-good-ink: #9fcf6a;
+    --ls-bad: #ec8f6f;
+    --ls-bad-soft: rgba(236, 143, 111, 0.14);
+    --ls-shadow: rgba(0, 0, 0, 0.45);
+    --ls-night: inline-flex;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] .lesson {
+  --bd-ground: #16120e;
+  --bd-panel: #211b15;
+  --bd-raised: #2b231b;
+  --bd-ink: #efe4d0;
+  --bd-muted: #a8987f;
+  --bd-line: #3a3027;
+  --mode: #e3a548;
+  --mode-shade: #8f6420;
+  --on-mode: #1f1405;
+  --mode-ink: #e3a548;
+  --ls-amber-soft: rgba(227, 165, 72, 0.13);
+  --ls-good: #9fcf6a;
+  --ls-good-shade: #5d8a33;
+  --ls-on-good: #13200a;
+  --ls-good-ink: #9fcf6a;
+  --ls-bad: #ec8f6f;
+  --ls-bad-soft: rgba(236, 143, 111, 0.14);
+  --ls-shadow: rgba(0, 0, 0, 0.45);
+  --ls-night: inline-flex;
+  color-scheme: dark;
 }
 @media (max-width: 900px) {
   .lesson {
@@ -106,12 +155,12 @@
 .ls-night {
   flex: none;
   margin-left: auto;
-  display: inline-flex;
+  display: var(--ls-night);
   align-items: center;
   gap: 6px;
   font-size: 0.8rem;
   font-weight: 800;
-  color: var(--mode);
+  color: var(--mode-ink);
   background: var(--ls-amber-soft);
   border-radius: 999px;
   padding: 4px 12px;
@@ -149,7 +198,7 @@
   border-radius: 26px;
   border: 1px solid var(--bd-line);
   background: var(--bd-panel);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 18px 40px var(--ls-shadow);
   pointer-events: none;
 }
 .ls-shell.s1 {
@@ -173,7 +222,7 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 18px 40px var(--ls-shadow);
   touch-action: pan-y;
   cursor: grab;
   transition: transform var(--ls-motion);
@@ -305,7 +354,7 @@
 }
 .ls-tag.back {
   background: var(--ls-amber-soft);
-  color: var(--mode);
+  color: var(--mode-ink);
 }
 .ls-tag.unchecked {
   background: var(--ls-bad-soft);
@@ -337,7 +386,7 @@
   color: var(--ls-bad);
 }
 .ls-mistake.shaky .ls-mistake-label {
-  color: var(--mode);
+  color: var(--mode-ink);
 }
 .ls-mistake-label .caps {
   text-transform: uppercase;
@@ -362,7 +411,7 @@
   color: var(--ls-bad);
 }
 .ls-verdict .good {
-  color: var(--ls-good);
+  color: var(--ls-good-ink);
 }
 .ls-option-line {
   font-size: 0.82rem;
@@ -429,7 +478,7 @@
   font-size: 1.25rem;
   font-weight: 900;
   line-height: 1.35;
-  color: var(--mode);
+  color: var(--mode-ink);
 }
 .ls-sources {
   margin: 0;
@@ -469,7 +518,7 @@
 .ls-fling.shaky {
   border: 2px solid var(--mode);
   background: var(--ls-amber-soft);
-  color: var(--mode);
+  color: var(--mode-ink);
 }
 .ls-fling.got {
   border: 0;
@@ -543,7 +592,7 @@
 .ls-done > svg {
   width: 44px;
   height: 44px;
-  color: var(--mode);
+  color: var(--mode-ink);
   stroke-width: 2;
 }
 .ls-done h2 {

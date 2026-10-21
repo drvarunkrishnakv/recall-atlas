@@ -27,14 +27,16 @@
   revision" became the Notes due card; the "from Claude" count and the Claude inbox panel became
   the From Claude strip; the subject cards became the paper tiles, whose subject links (Polity) still
   open the subject table. Continue reading and the scratch pad stay, below the papers. The old
-  `HomePage` is left in `dashboard.tsx`, unused, until M12 has merged.
+  `HomePage` was removed from `dashboard.tsx` once M12 had merged (integration, 21 Oct).
 
 ## 2026-10-21 — The nightly engine (M9)
 
-- **The lesson keeps its night look in light mode too.** The user chose a warm, dim night version
-  of Board for the lesson (Chang et al. 2015) because it is read before sleep. A bright version
-  would undo that, so the lesson is a dark warm panel inside the shell in both themes. The
-  sidebar, the top bar and every other screen follow the theme as before.
+- **The lesson follows the app's theme (changed 2026-10-21 after the user's review).** The first
+  build kept the lesson a dark night panel even in light mode; the user saw a dark panel inside a
+  light shell and asked for one theme, not a hybrid. Now light mode shows a warm, low-glare paper
+  version, and dark mode the warm, dim night look (Chang et al. 2015) with its "Night mode"
+  badge. The exam-hall timer while writing (M8) stays dark: it fills the whole screen, so
+  nothing around it clashes.
 - **Shaky concepts come back until they hold.** A card called "Still shaky" is added to every
   later lesson until it is called "Got it" on two different days after the last "shaky" (the
   day of that "shaky" doesn't count). The same successive-relearning rule the Mistake notebook

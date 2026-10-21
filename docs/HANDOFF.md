@@ -1,5 +1,30 @@
 # Handoff
 
+## Integration: M7–M12 in one branch — 2026-10-21
+
+- **Branch:** `claude/atlas-integration`, from `claude/m7-mcq-loop`, with M9 (#49), M10 (#50),
+  M11 Prelims (#51), M8 (#52), M12 (#53) and M11 Mains (#54) merged in. Assisting tool: Claude
+  Code (the milestones were built side by side by helper agents from one shared brief).
+- **Conflicts resolved:** the shared files (dev API, cloud API, CLI, backends, Firestore rules,
+  icons, sidebar registry, docs). Both sidebars follow the chosen order.
+- **Fixes made while joining:**
+  - M11 read M9's weekly note in a shape M9 doesn't send; it now reads `{weeks, latest}` and
+    links each line to its route.
+  - M10's puzzle-only banks no longer show as empty topics on subject pages or count as extra
+    PYQs.
+  - Rush and Flashcards links sit under the Puzzles button on the new Prelims Home.
+  - The Board versions of `.chip`, `.chip-btn`, `.muted` and `.small` moved from prelims.css to
+    index.css, so older Mains pages no longer change look after a practice page has loaded.
+  - The lesson follows the app's theme (the user's review: no dark panel in a light shell). See
+    DECISIONS, the M9 entry.
+  - The old `HomePage` was removed from `dashboard.tsx`; Mains Home replaced it.
+- **Answers:** the 7 contested 2009–2011 questions are retired (kept, never served).
+  `data/grok_check/ANSWERS-REVIEW.md` has the full record.
+- **Not done (each needs the user's go-ahead):** deploying (Hosting, `firestore:rules`, Storage
+  rules, and turning on Storage); importing the banks, Mains questions and Essay / Ethics /
+  Medical content into Firestore; scheduling the marking, nightly-lesson and weekly-note runs
+  (docs/routines/). No real flashcards yet: Claude-written cards need the blind fact-check first.
+
 ## Mains Home and Mains Analytics (M11, Mains half) — 2026-10-21
 
 - **Branch:** `claude/m11-mains-homes`, from `claude/atlas-integration` (826c609: M7, M8, M9, M10
