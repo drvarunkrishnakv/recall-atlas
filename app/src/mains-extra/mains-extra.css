@@ -392,7 +392,8 @@ span.mx-main {
   --cols-o: 3.2rem minmax(0, 1fr) 5.6rem 4.4rem;
   --cols-n: 2.6rem minmax(0, 1fr);
 }
-@media (min-width: 1280px) {
+/* Beside the table only from 1440 px: at 1280 it squeezed note names onto three or four lines. */
+@media (min-width: 1440px) {
   .mx-split.has-drawer .mx-table {
     --cols: var(--cols-o);
   }
@@ -590,8 +591,8 @@ button.mx-flag {
     opacity: 0;
   }
 }
-/* iPad and narrower: a full-height sheet over the table; phones: a page of its own. */
-@media (max-width: 1279px) {
+/* Below 1440 px (small Macs, iPad): a full-height sheet over the table; phones: a page of its own. */
+@media (max-width: 1439px) {
   .mx-drawer {
     position: fixed;
     z-index: 70;

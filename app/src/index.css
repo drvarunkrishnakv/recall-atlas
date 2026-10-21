@@ -2346,6 +2346,10 @@ kbd {
   display: none;
 }
 @media (max-width: 900px) {
+  /* Room under the last lines, so the floating Capture button never hides them. */
+  .frame.has-fab .main {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  }
   .capture-fab {
     display: inline-flex;
     align-items: center;
@@ -5517,5 +5521,17 @@ a.mode-btn:active {
 @media (prefers-reduced-motion: reduce) {
   .mode-btn {
     transition: none;
+  }
+}
+
+/* Finger-sized targets on touch screens (the responsiveness audit, 21 Oct): the subject table's
+   status and start chips, and a wider tap area round the heat map's dots. */
+@media (pointer: coarse) {
+  .chip.select,
+  .chip.start {
+    min-height: 36px;
+  }
+  .hm-dot::after {
+    inset: -10px;
   }
 }

@@ -158,7 +158,8 @@ test("a long title's field grows to show every line once the heading font loads"
 });
 
 test("quick capture lands in the scratch pad, and Claude's filing shows in the inbox", async ({ page }, info) => {
-  await page.goto("/");
+  // On phones and iPads, Capture floats over a note you're reading.
+  await page.goto("/notes/P06");
   const text = `Capture from ${info.project.name}`;
   const narrow = (page.viewportSize()?.width ?? 1440) <= 900;
   if (narrow) await page.locator(".capture-fab").click();
@@ -169,6 +170,8 @@ test("quick capture lands in the scratch pad, and Claude's filing shows in the i
   }
   await page.getByRole("textbox", { name: "What did you notice?" }).fill(text);
   await page.getByRole("button", { name: "Save to scratch pad" }).click();
+  await expect(page.getByRole("textbox", { name: "What did you notice?" })).toHaveCount(0);
+  await page.goto("/"); // the scratch pad is on Mains Home
   const item = page.locator(".captures li", { hasText: text });
   await expect(item).toContainText("Waiting for Claude");
   if (!isDesktop(page)) return;

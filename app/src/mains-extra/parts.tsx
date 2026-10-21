@@ -37,7 +37,7 @@ export function useSelection(param: string): [string | null, (id: string | null)
   return [current, select];
 }
 
-const NARROW = "(max-width: 1279px)";
+const NARROW = "(max-width: 1439px)";
 
 /** Whether the drawer sits beside the table (wide) or over it (narrower screens). */
 export function useWide() {

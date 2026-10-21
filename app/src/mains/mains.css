@@ -807,6 +807,8 @@ h1.mw-q-text {
   .mw-fb-grid {
     display: flex;
     flex-direction: column;
+    /* Full width each: the two-column grid's "start" would shrink the right column's panels. */
+    align-items: stretch;
     gap: 1rem;
   }
   .mw-fb-grid > .mw-fb-left,

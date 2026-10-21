@@ -224,6 +224,7 @@ function useCollapsed() {
 
 export function Layout() {
   const location = useLocation();
+  const readingPage = /^\/(notes|cards)\/[^/]+/.test(location.pathname);
   const mode = useMode();
   const navigate = useNavigate();
   const [navOpen, setNavOpen] = useState(false);
@@ -272,7 +273,10 @@ export function Layout() {
   }, []);
 
   return (
-    <div className={`frame${navOpen ? " nav-open" : ""}${collapsed ? " nav-collapsed" : ""}`} data-mode={mode}>
+    <div
+      className={`frame${navOpen ? " nav-open" : ""}${collapsed ? " nav-collapsed" : ""}${readingPage ? " has-fab" : ""}`}
+      data-mode={mode}
+    >
       <aside className="nav" aria-label="Sidebar">
         <div className="nav-head">
           <Link className="brand" to={MODE_HOME[mode]}>
@@ -349,8 +353,9 @@ export function Layout() {
           <PageSkeleton label="Loading notes" />
         )}
       </main>
-      {/* Practice screens are focus mode: no floating button over the answers. */}
-      {!/^\/prelims\/(session|cards|puzzles|rush|lesson|quiz)/.test(location.pathname) && (
+      {/* On phones and iPads, Capture floats only over a note or card you're reading: jotting a
+          thought while reading is what it's for, and elsewhere it sat on top of rows and buttons. */}
+      {readingPage && (
         <button type="button" className="capture-fab" onClick={() => setCapturing(true)}>
           <Icon name="plus" />
           Capture

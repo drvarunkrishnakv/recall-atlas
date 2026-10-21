@@ -451,7 +451,8 @@
     aspect-ratio: 16 / 9;
   }
 }
-@container (max-width: 760px) {
+/* Two tiles a row below 1000 px, so names like "Science and Technology" fit (iPad, 13" Macs). */
+@container (max-width: 1000px) {
   .ph-board {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1023,5 +1024,16 @@
   }
   .st-expand {
     padding-left: 14px;
+  }
+}
+
+/* Finger-sized topic and count buttons on touch screens (the responsiveness audit, 21 Oct). */
+@media (pointer: coarse) {
+  .st-topic,
+  .st-count {
+    min-height: 40px;
+  }
+  .st-count {
+    min-width: 40px;
   }
 }

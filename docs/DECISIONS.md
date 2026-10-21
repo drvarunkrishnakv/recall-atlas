@@ -1,5 +1,25 @@
 # Decisions
 
+## 2026-10-21 — Responsiveness audit: phones, iPad and Macs
+
+- **How it was checked:** every screen (48 routes, on test data and on a copy of the real notes) at
+  seven sizes: 375 and 412 px phones, iPad portrait (820) and landscape (1180), and Macs at 1280,
+  1440 and 1728 px. Each page was measured for sideways scroll, anything past the right edge,
+  clipped text, small touch targets, and the floating Capture button covering a control; then
+  screenshots were reviewed. No page scrolled sideways or ran off the edge at any size.
+- **Fixed:**
+  - The floating Capture button (phones and iPad) shows only on a note or concept card you're
+    reading, with room under the last lines; elsewhere it sat on rows, tiles and buttons. Capture
+    stays in the ··· menu everywhere.
+  - Prelims Home's subject tiles go two a row below 1000 px, so names like "Science and
+    Technology" no longer cut off (iPad, 13-inch Macs).
+  - Mains Notes, Essay, Ethics, Medical and the inbox: the drawer sits beside the table only from
+    1440 px; below that it slides over the table, which had squeezed note names onto three or four
+    lines at 1280.
+  - The marked answer page, in one column (below 1100 px), stretches every panel to full width.
+  - Finger-sized targets on touch screens for the subject page's topic and count buttons, the
+    subject table's chips and the heat map's dots.
+
 ## 2026-10-21 — A shorter Mains sidebar; the main button is each mode's main action
 
 - **Why:** after the milestones were joined, the Mains sidebar carried the new screens and every
