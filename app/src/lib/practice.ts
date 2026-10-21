@@ -95,6 +95,11 @@ export interface PuzzleItem extends ItemBase {
   /** 0–1000, on the same scale as your rating. */
   difficulty: number;
   why?: string;
+  /**
+   * The real explanation shown after you answer: the fact and the idea around it, who wrote it,
+   * and whether it was fact-checked blind (true-or-false puzzles cut from PYQ statements).
+   */
+  explanation?: { text: string; source: string; checked: boolean };
   /** True or false: the statement to judge, and whether it is true. */
   statement?: string;
   truth?: boolean;
@@ -339,6 +344,11 @@ export function validateItem(x: unknown): Item {
       if (!Number.isInteger(it.difficulty) || (it.difficulty as number) < 0 || (it.difficulty as number) > 1000)
         fail(`Difficulty on ${it.id} must be 0–1000`);
       if (it.why !== undefined && !isText(it.why, 2000)) fail(`Bad "why" on ${it.id}`);
+      if (it.explanation !== undefined) {
+        const ex = it.explanation as Partial<Record<string, unknown>>;
+        if (!isText(ex?.text, 2000) || !isText(ex?.source, 200) || typeof ex?.checked !== "boolean")
+          fail(`Bad explanation on ${it.id}`);
+      }
       break;
     }
     default:

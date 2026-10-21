@@ -164,6 +164,9 @@ test("puzzles: each style answered right and wrong moves the rating; misses are 
   let r = await rating();
   await page.getByRole("button", { name: "True", exact: true }).click();
   await expectMove(r, true);
+  // The real explanation, with who wrote and checked it.
+  await expect(sheet.getByText(/rises in the sample north hills and gathers its tributaries/)).toBeVisible();
+  await expect(sheet.getByText("Explanation by Claude, checked by Grok and Gemini")).toBeVisible();
   await next();
   r = await rating();
   await page.getByRole("button", { name: "False", exact: true }).click();

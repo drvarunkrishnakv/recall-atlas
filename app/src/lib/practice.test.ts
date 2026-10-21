@@ -75,6 +75,12 @@ describe("items", () => {
     expect(() => validateItem({ ...mcq, truth: [true] })).toThrow(/don't match/);
     expect(() => validateItem({ ...mcq, why: ["one line"] })).toThrow(/per option/);
     expect(() => validateItem({ ...puzzle, difficulty: 1200 })).toThrow(/0–1000/);
+    const explained = {
+      ...puzzle,
+      explanation: { text: "Why it is so.", source: "Explanation by Claude", checked: false },
+    };
+    expect(validateItem(explained).kind).toBe("puzzle");
+    expect(() => validateItem({ ...puzzle, explanation: { text: "Why", source: "Claude" } })).toThrow(/explanation/);
   });
   it("need a PYQ to say whether its key is verified, and a generated item its sources", () => {
     expect(() => validateItem({ ...mcq, source: { type: "pyq", year: 2020, paper: "GS1" } })).toThrow(/verified/);

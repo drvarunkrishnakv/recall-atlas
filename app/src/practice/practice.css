@@ -939,6 +939,13 @@
 .pz-key {
   font-size: 0.8rem;
 }
+/* The explanation itself: the fact and the idea around it, read as the main text. */
+.pz-explain {
+  margin: 0;
+  color: var(--bd-ink);
+  font-weight: 600;
+  line-height: 1.55;
+}
 .pz-logged {
   font-size: 0.8rem;
   font-weight: 800;
@@ -1332,5 +1339,34 @@
   .pz-page .pc-rise,
   .pz-page .pc-pulse {
     animation: none;
+  }
+}
+
+/* Small phones (375 px): the puzzle header's six controls fit on one row without the rating
+   running off the edge (found checking the explanations on a 375 px screen). */
+@media (max-width: 400px) {
+  .pc-head {
+    gap: 0.4rem;
+  }
+  .pc-x {
+    width: 38px;
+    height: 38px;
+  }
+  .pz-head .seg a,
+  .pz-head .seg .seg-on {
+    padding: 0 0.5rem;
+  }
+  .pz-sound {
+    width: 34px;
+    height: 34px;
+  }
+  .pz-rating {
+    gap: 0.25rem;
+  }
+  .pz-star {
+    padding: 0.25rem 0.4rem;
+  }
+  .pz-star b {
+    font-size: 1.05rem;
   }
 }

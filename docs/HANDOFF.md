@@ -24,6 +24,9 @@
   the full note (DECISIONS, "A shorter Mains sidebar").
 - **Responsiveness audit (21 Oct):** every screen at phone, iPad and Mac sizes; fixes and method in
   DECISIONS ("Responsiveness audit").
+- **Puzzle explanations (21 Oct):** 1,154 of 1,173 true-or-false puzzles carry an explanation
+  checked blind by Grok and Gemini; loaded into Firestore. Method in DECISIONS ("Real
+  explanations on true-or-false puzzles").
 - **Answers:** the 7 contested 2009–2011 questions are retired (kept, never served).
   `data/grok_check/ANSWERS-REVIEW.md` has the full record.
 - **Live 2026-10-21** (on the user's say-so, from `claude/atlas-integration` 1128e8b, PR #55 not

@@ -15,7 +15,12 @@
       "source": {
         "type": "claude",
         "checked": true,
-        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+        "sources": [
+          {
+            "label": "Test fixture",
+            "url": "https://example.com"
+          }
+        ]
       }
     },
     {
@@ -30,7 +35,12 @@
       "source": {
         "type": "claude",
         "checked": true,
-        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+        "sources": [
+          {
+            "label": "Test fixture",
+            "url": "https://example.com"
+          }
+        ]
       }
     },
     {
@@ -45,7 +55,12 @@
       "source": {
         "type": "claude",
         "checked": true,
-        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+        "sources": [
+          {
+            "label": "Test fixture",
+            "url": "https://example.com"
+          }
+        ]
       }
     },
     {
@@ -62,7 +77,12 @@
       "source": {
         "type": "claude",
         "checked": true,
-        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+        "sources": [
+          {
+            "label": "Test fixture",
+            "url": "https://example.com"
+          }
+        ]
       }
     },
     {
@@ -76,7 +96,12 @@
       "source": {
         "type": "claude",
         "checked": false,
-        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+        "sources": [
+          {
+            "label": "Test fixture",
+            "url": "https://example.com"
+          }
+        ]
       }
     },
     {
@@ -93,7 +118,17 @@
       "source": {
         "type": "claude",
         "checked": true,
-        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+        "sources": [
+          {
+            "label": "Test fixture",
+            "url": "https://example.com"
+          }
+        ]
+      },
+      "explanation": {
+        "text": "The made-up north river rises in the sample north hills and gathers its tributaries on the way to the west sea.",
+        "source": "Explanation by Claude, checked by Grok and Gemini",
+        "checked": true
       }
     },
     {
@@ -107,7 +142,13 @@
       "truth": false,
       "difficulty": 500,
       "why": "From UPSC's 2020 paper: statement 3 is false according to UPSC's answer key.",
-      "source": { "type": "pyq", "year": 2020, "paper": "GS1", "keyVerified": true, "keyFrom": "upsc" }
+      "source": {
+        "type": "pyq",
+        "year": 2020,
+        "paper": "GS1",
+        "keyVerified": true,
+        "keyFrom": "upsc"
+      }
     },
     {
       "id": "fz-tf-3",
@@ -123,7 +164,12 @@
       "source": {
         "type": "claude",
         "checked": true,
-        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+        "sources": [
+          {
+            "label": "Test fixture",
+            "url": "https://example.com"
+          }
+        ]
       }
     },
     {
@@ -140,7 +186,12 @@
       "source": {
         "type": "claude",
         "checked": true,
-        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+        "sources": [
+          {
+            "label": "Test fixture",
+            "url": "https://example.com"
+          }
+        ]
       }
     },
     {
@@ -151,16 +202,30 @@
       "style": "match",
       "prompt": "Match each sample article to what it covers.",
       "pairs": [
-        { "left": "Art. 1", "right": "Name of the sample land" },
-        { "left": "Art. 7", "right": "Sample rights" },
-        { "left": "Art. 9", "right": "Sample duties" }
+        {
+          "left": "Art. 1",
+          "right": "Name of the sample land"
+        },
+        {
+          "left": "Art. 7",
+          "right": "Sample rights"
+        },
+        {
+          "left": "Art. 9",
+          "right": "Sample duties"
+        }
       ],
       "difficulty": 610,
       "why": "The made-up charter names the land first, then rights and duties.",
       "source": {
         "type": "claude",
         "checked": true,
-        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+        "sources": [
+          {
+            "label": "Test fixture",
+            "url": "https://example.com"
+          }
+        ]
       }
     },
     {
@@ -176,7 +241,12 @@
       "source": {
         "type": "claude",
         "checked": true,
-        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+        "sources": [
+          {
+            "label": "Test fixture",
+            "url": "https://example.com"
+          }
+        ]
       }
     },
     {
@@ -189,9 +259,24 @@
       "map": "svg:sample-coast",
       "alt": "A made-up coast: a peninsula on the left, an island on the right, three lettered places",
       "regions": [
-        { "id": "A", "x": 20, "y": 18, "label": "North bay" },
-        { "id": "B", "x": 56, "y": 58, "label": "Strait of Testmore" },
-        { "id": "C", "x": 86, "y": 72, "label": "East cape" }
+        {
+          "id": "A",
+          "x": 20,
+          "y": 18,
+          "label": "North bay"
+        },
+        {
+          "id": "B",
+          "x": 56,
+          "y": 58,
+          "label": "Strait of Testmore"
+        },
+        {
+          "id": "C",
+          "x": 86,
+          "y": 72,
+          "label": "East cape"
+        }
       ],
       "region": "B",
       "difficulty": 450,
@@ -199,7 +284,12 @@
       "source": {
         "type": "claude",
         "checked": true,
-        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+        "sources": [
+          {
+            "label": "Test fixture",
+            "url": "https://example.com"
+          }
+        ]
       }
     }
   ]

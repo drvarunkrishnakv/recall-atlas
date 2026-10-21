@@ -1,5 +1,26 @@
 # Decisions
 
+## 2026-10-21 — Real explanations on true-or-false puzzles
+
+- **Why:** the user found the puzzle feedback useless ("statement 3 is false according to UPSC's
+  provisional key"): it teaches nothing, and the statement number means nothing once the
+  statement stands alone.
+- **What a puzzle now shows after you answer:** a 2–4 sentence explanation that states the fact
+  and the idea UPSC was testing, then who wrote it and whether it was checked, then the key line.
+  The register's own explanations weren't reused as they stand: many cover the whole question,
+  carry personal notes, reference lists or "Final answer" lines, and some are wrong.
+- **How they were made and checked:** Claude wrote one per statement, taking the true/false
+  verdict from UPSC's key as fixed and the register only as a hint. Grok and Gemini then checked
+  each one blind for accuracy and for supporting the verdict. Anything either flagged was fixed
+  (or its disputed detail dropped) and checked again, with web search for recent events.
+  1,154 of 1,173 passed both; the 19 still disputed show a plain "a checked explanation isn't
+  ready yet" line rather than anything unverified.
+- **Data:** an optional `explanation {text, source, checked}` on puzzle items. The private
+  pipeline (inputs, writer brief, checker, merge) is in data/puzzle_explain/. Statements where
+  the writers doubted UPSC's own verdict are listed for the user in data/puzzle_explain/doubts.md.
+- **Also fixed:** 15 PYQs whose last statement was cut off or had the closing question stuck to
+  it (which added 12 puzzles), and the puzzle header on 375 px phones.
+
 ## 2026-10-21 — Responsiveness audit: phones, iPad and Macs
 
 - **How it was checked:** every screen (48 routes, on test data and on a copy of the real notes) at

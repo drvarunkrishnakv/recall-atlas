@@ -272,7 +272,17 @@ function Arena() {
             <span className={`pz-sheet-delta ${result.delta >= 0 ? "up" : "down"}`}>{signed(result.delta)}</span>
           </div>
           {!result.ok && <RightAnswer item={current} />}
-          {current.why && <p className="pz-why">{current.why}</p>}
+          {current.explanation ? (
+            <>
+              <p className="pz-explain">{current.explanation.text}</p>
+              <p className="pz-key">
+                {current.explanation.source}
+                {current.explanation.checked ? "" : " · not fact-checked yet"}
+              </p>
+            </>
+          ) : (
+            current.why && <p className="pz-why">{current.why}</p>
+          )}
           {current.source.type === "pyq" && current.source.keyFrom && (
             <p className="pz-key">{KEY_FROM_LABEL[current.source.keyFrom]}.</p>
           )}
