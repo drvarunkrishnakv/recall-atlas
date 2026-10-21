@@ -20,8 +20,9 @@
 //   node cli/atlas.ts proposals [--all]             proposed changes waiting for the user (--all: every status)
 //   node cli/atlas.ts propose notes/P10 <edit|add|row|check> --block <id> --source "Label|url[|YYYY-MM-DD]"
 //        --reason "…" [--find "…" --replace "…"] [--text "…"] [--cells "a|b|c"] [--type paragraph]
-//        [--flag <thread>] [--feed <article-id>] [--secondary]
+//        [--flag <thread>] [--feed <article-id>] [--secondary] [--confidence high|medium|low]
 //   node cli/atlas.ts approve <proposal-id> | reject <proposal-id>   only when the user said so in chat
+//        (or pressed "Verify, then add" in the inbox and the primary source matches)
 //   node cli/atlas.ts history notes/P10             past versions;  restore notes/P10 <version-id>
 //   node cli/atlas.ts import <content-dir> [--force]  copy a content folder into Firestore (once, at the switch)
 //   node cli/atlas.ts export <content-dir>           write Firestore out as files: the notes repo's mirror
@@ -31,6 +32,29 @@
 //                                                    is replaced only with --force, when the user asks)
 //   node cli/atlas.ts heatmap-compare-import <file.json>   load the comparison with past papers (checked
 //                                                    against the frozen map first)
+//   node cli/atlas.ts practice                       practice banks (items, servable) and attempts per day
+//   node cli/atlas.ts practice-import <banks.json> [--replace]   load practice banks ({banks: Bank[]}),
+//                                                    each checked first; --replace drops banks not in the file
+//   node cli/atlas.ts attempts [--days 7]            recent attempts with grades, for the nightly lesson
+//   node cli/atlas.ts misses [--day YYYY-MM-DD]      JSON: the day's missed and shaky MCQs for tonight's
+//                                                    lesson, with the shaky cards due back (cli/lessons.ts)
+//   node cli/atlas.ts lesson-write <day> <lesson.json>   check and store a day's lesson ({cards, quiz})
+//   node cli/atlas.ts lessons                        every lesson with its cards, fact-checks and ratings
+//   node cli/atlas.ts week-note <YYYY-Www> <note.json>   check and store the weekly note
+//   node cli/atlas.ts week-data [--weeks 1]          JSON: the facts a weekly note is written from
+//   Mains answers (cli/mains.ts; the marking run: docs/routines/mark-answers.md):
+//   node cli/atlas.ts mains-import <questions.json> [--replace]   load Mains questions, each checked first
+//   node cli/atlas.ts mains-questions [--paper GS2]  questions per paper
+//   node cli/atlas.ts answers-waiting [--json]       answers waiting for marking, with each photo's file path
+//   node cli/atlas.ts mark <answerId> <marking.json> [--again]   save a marking (checklist, comments, tags…)
+//   node cli/atlas.ts mark-rewrite <answerId> <rewriteId> <better|same> "<verdict>"
+//   node cli/atlas.ts disputes                       open "I disagree"s and corrected readings
+//   node cli/atlas.ts resolve-dispute <answerId> <disputeId> <changed|kept> "<reason>" [--points n] [--item key]
+//   node cli/atlas.ts answers [--days 14]            recent answers with scores and fix tags
+//   node cli/atlas.ts mains-extra                    Essay, Ethics and Medical Science: what's loaded and done
+//   node cli/atlas.ts mains-extra-import <file.json> [--replace]   load {essay, ethics, medical}, each
+//                                                    record checked first (cli/mains-extra.ts)
+//   node cli/atlas.ts mains-extra-work [essay|ethics|medical]   your outlines, bench attempts, ratings, drills
 //   node cli/atlas.ts owner [uid|email] [--remove]   list accounts, or mark the one that may open the app
 //   node cli/atlas.ts mcp-key add <grok|gemini|chatgpt> ["label"]   a key for one AI (shown once)
 //   node cli/atlas.ts mcp-key list | revoke <id>      the MCP server's keys
@@ -52,6 +76,7 @@ import { briefing, nextUp, progress } from "../src/lib/discussions.ts";
 import { AIS, isAi, MODE_INFO, speaker, type Mode, type Seat } from "../src/lib/personas.ts";
 import { fileBackend, snapshot, type Backend } from "../server/backend.ts";
 import { nextDue } from "../src/lib/progress.ts";
+import { GRADE_LABEL, ratingAfter, servable, validateBank, type Bank } from "../src/lib/practice.ts";
 import {
   comparisonProblems,
   heatMapProblems,
@@ -359,6 +384,12 @@ switch (cmd) {
         console.log(
           `${what}\n  Why: ${p.reason}\n  Source: ${p.source.label} ${p.source.url}${p.note ? `\n  Note: ${p.note}` : ""}`,
         );
+        // From the inbox (M12): the user asked for the primary-source check, then approval.
+        if (p.status === "pending" && p.verifyRequested)
+          console.log(
+            `  VERIFY, THEN ADD (asked ${p.verifyRequested.slice(0, 10)}${p.revised ? ", in the user's wording" : ""}): ` +
+              `check it against the primary source; if it matches, approve it; if not, reply why and leave it.`,
+          );
       }
     if (!n) console.log("No proposals waiting.");
     break;
@@ -391,6 +422,7 @@ switch (cmd) {
         reason: opt("reason") ?? "",
         origin: flag ? `flag:${flag}` : feed ? `feed:${feed}` : "claude",
         verification: args.includes("--secondary") ? "secondary" : "primary",
+        confidence: opt("confidence") as "high" | "medium" | "low" | undefined,
       },
     });
     // Check now that it would apply, so a bad proposal never reaches the user.
@@ -516,6 +548,87 @@ switch (cmd) {
       `Imported the comparison into ${db.kind}: ${c.questions.length} questions from ${c.exams.length} papers, ` +
         `${linked} drawing on the map's news.`,
     );
+    break;
+  }
+
+  case "practice": {
+    const [banks, days] = await Promise.all([db.banks(), db.attempts()]);
+    const items = banks.flatMap((b) => b.items);
+    console.log(
+      `${banks.length} banks, ${items.length} items (${items.filter(servable).length} servable) in ${db.kind}.`,
+    );
+    for (const b of banks)
+      console.log(`  ${b.id.padEnd(40)} ${String(b.items.length).padStart(4)} items  ${b.subject} · ${b.topic}`);
+    const all = Object.values(days).flat();
+    console.log(`${all.length} attempts over ${Object.keys(days).length} days; rating ${ratingAfter(all)}.`);
+    break;
+  }
+
+  case "practice-import": {
+    const file = args[0];
+    if (!file || !existsSync(file)) fail("Usage: practice-import <banks.json> [--replace]");
+    const data = JSON.parse(readFileSync(file, "utf8")) as { banks: Bank[] };
+    if (!Array.isArray(data.banks)) fail("Expected {banks: [...]}");
+    const problems: string[] = [];
+    for (const b of data.banks)
+      try {
+        validateBank(b);
+      } catch (e) {
+        problems.push(e instanceof Error ? e.message : String(e));
+      }
+    if (problems.length) fail(`Not imported (${problems.length} problems):\n- ${problems.slice(0, 40).join("\n- ")}`);
+    await db.setBanks(data.banks, args.includes("--replace"));
+    const items = data.banks.flatMap((b) => b.items);
+    console.log(
+      `Imported ${data.banks.length} banks into ${db.kind}: ${items.length} items, ${items.filter(servable).length} servable.`,
+    );
+    break;
+  }
+
+  case "attempts": {
+    const n = Number(args[args.indexOf("--days") + 1] || 7) || 7;
+    const days = await db.attempts();
+    const banks = await db.banks();
+    const byId = new Map(banks.flatMap((b) => b.items.map((i) => [i.id, i] as const)));
+    for (const day of Object.keys(days).sort().slice(-n)) {
+      console.log(`\n## ${day}: ${days[day].length} attempts, ${days[day].filter((a) => !a.correct).length} wrong`);
+      for (const a of days[day]) {
+        const it = byId.get(a.itemId);
+        const what = it && it.kind === "mcq" ? it.stem.split("\n")[0].slice(0, 90) : a.itemId;
+        console.log(
+          `- ${a.correct ? "right" : "WRONG"} · ${a.grade ? GRADE_LABEL[a.grade] : "no grade"}${a.sure === undefined ? "" : a.sure ? " · sure" : " · unsure"} · ${a.bank} · ${what}`,
+        );
+      }
+    }
+    break;
+  }
+
+  case "misses":
+  case "lesson-write":
+  case "lessons":
+  case "week-note":
+  case "week-data": {
+    const { lessonsCli } = await import("./lessons.ts");
+    await lessonsCli(cmd, args, db);
+    break;
+  }
+  case "mains-import":
+  case "mains-questions":
+  case "answers-waiting":
+  case "mark":
+  case "mark-rewrite":
+  case "disputes":
+  case "resolve-dispute":
+  case "answers": {
+    const { mainsCommand } = await import("./mains.ts");
+    await mainsCommand(db, cmd, args);
+    break;
+  }
+  case "mains-extra":
+  case "mains-extra-import":
+  case "mains-extra-work": {
+    const { mainsExtraCommand } = await import("./mains-extra.ts");
+    await mainsExtraCommand(db, cmd, args, fail);
     break;
   }
 

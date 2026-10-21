@@ -84,6 +84,136 @@ proposals, and the twice-daily task (7 am, 7 pm) using them.
 - Later (user's idea, 2026-10-16): a bank of ready introductions and conclusions for each
   microtheme, for answer writing.
 
+## Prelims and Mains practice (from 2026-10-20)
+
+The user asked for one study system for CSE 2027: a Prelims mode and a Mains mode in this app.
+Each step below is one milestone and one PR. Screens follow the mocks the user chose on the
+design canvas (https://claude.ai/artifact/5L9F2MBYd2QSETo5r485cQ); the reasons are in
+DECISIONS (2026-10-20).
+
+### M6 · Practice foundations (this branch: `claude/practice-foundations`)
+
+- Board shell: the sidebar, the top bar and a Prelims/Mains switch in the Board look, in light
+  and dark, green for Prelims and amber for Mains. Note pages keep their reading style.
+- Prelims mode under `/prelims`, with its own sidebar. Mains keeps every existing route. The
+  switch remembers the last page of each mode.
+- Data shapes for items and attempts (`app/src/lib/practice.ts`), their Firestore documents, and
+  owner-only rules with emulator tests.
+- **Done when** the switch works at all three sizes in light and dark, the existing tests pass,
+  and the shapes have unit and rules tests.
+
+### M7 · Prelims MCQ loop
+
+- The practice session (Session 3 · Statement marks): a ✓/✕ per statement, sure/unsure lock-in,
+  feedback after each question or at the end in exam mode, keyboard shortcuts, and a summary.
+- The eight grade buttons, FSRS scheduling with `ts-fsrs`, and the day's attempts saved to
+  `attempts/{day}`.
+- The Mistake notebook (Notebook 2 · Two panes, with the revision-book view).
+- Content: every register PYQ (2009–2026) whose key is verified, imported by the CLI into
+  `items/` — 1,856 of 1,890 on 21 Oct 2026; the other 34 are kept but not served.
+- **Done when** a session's answers are saved, due dates follow FSRS, misses appear in the
+  notebook, and an unverified key never reaches a session.
+
+### M8 · Mains answer loop
+
+- Write: the phone stepper and the desktop desk, which shows a QR code to send photos from the
+  phone. Photos go to Firebase Storage under owner-only rules.
+- Marking on Claude's next scheduled run: a transcription for the user to check, the checklist
+  out of 10, comments pinned to lines, and "I disagree".
+- The marked page (Feedback 1) and the Feedback tab (table + pattern drawer).
+- **Done when** a photographed answer is marked by the next run, and its feedback, tags and
+  history show.
+- **Built on `claude/m8-mains-answers` (2026-10-21):** everything above in the app, the dev API,
+  Firestore, Storage rules and the CLI (`mains-import`, `answers-waiting`, `mark`, `mark-rewrite`,
+  `disputes`, `resolve-dispute`, `answers`), the marking run's prompt in
+  `docs/routines/mark-answers.md` (not scheduled), and 974 register PYQs loaded into the local
+  content folder. Still to do: enable Storage and deploy the rules, import the questions into
+  Firestore, and schedule the marking run, each with the user's go-ahead.
+
+### M9 · Nightly engine
+
+- The scheduled run writes tonight's lesson (Lesson 3 · Stack, in the night look) and tomorrow
+  morning's quiz from the day's misses, and the weekly note.
+- **Done when** a day's misses produce a fact-checked lesson by evening and a quiz the next
+  morning.
+- **Built (branch `claude/m9-nightly`, 21 Oct 2026):** the data and its checks
+  (`src/lib/lessons.ts`: lessons, cards, "your mistake" from an attempt, the shaky queue, the
+  weekly note, the week's facts), storage in files and Firestore with owner-only rules, the
+  lesson screen (`/prelims/lesson`, Lesson 3 · Stack in the night look), the morning quiz
+  (`/prelims/quiz`), the notebook's "Tonight's lesson on this", the CLI (`misses`,
+  `lesson-write`, `lessons`, `week-note`, `week-data`) and the two routine prompts in
+  `docs/routines/`. Not yet: a real lesson (it needs the user's own misses and the fact-check
+  pipeline on a scheduled run, which the user turns on), the weekly note's place on the
+  Analytics screen (M11), and the Mains lesson inside `/mains/answers/:id` (after M8).
+
+### M10 · More practice
+
+- Flashcards (Flashcards 1 · Classic stack, typed answer, FSRS), puzzles (Puzzles 1 · Arena) with
+  the 0–1000 rating, and Rush.
+- MCQs and flashcards that Claude writes per microtheme, fact-checked blind before import.
+- **Done when** all three item types run on the same attempt log.
+- **Built on `claude/m10-cards-puzzles` (2026-10-21):** `/prelims/cards`, `/prelims/puzzles` and
+  `/prelims/rush`; puzzle styles (true or false, match, order, map) and image cards in
+  `lib/practice.ts`; Elo, the next-puzzle pick and Rush's best in `lib/puzzles.ts`; the typed-answer
+  check in `lib/flashcards.ts`. Real content: 1,161 true-or-false puzzles derived from verified PYQ
+  statements (local content folder only). Not done: real flashcards and generated MCQs, which need
+  the blind fact-check pipeline, so cards run on the fixture only for now.
+
+### M11 · Homes and analytics
+
+- Prelims Home and Mains Home (both Centre stage), the Prelims subject page (table + analytics
+  drawer), and both analytics screens (the week's story).
+- **Done when** every number on them comes from the attempt log or the notes.
+- **Prelims half done** (branch `claude/m11-prelims-homes`): readiness and the other numbers in
+  `src/lib/readiness.ts`; Prelims Home (Board 1 · Centre stage), the subject page with its drawer
+  (Subject 2), Prelims Analytics (Analytics 3), "Log reading" with its own small store, and the
+  Analytics entry in the Prelims sidebar. Lessons, the morning quiz and the weekly note are read
+  when M9 provides them; flashcards and puzzles are counted when M10's items exist.
+- **Mains half done** (branch `claude/m11-mains-homes`, on `claude/atlas-integration`): the
+  numbers in `src/lib/mains-analytics.ts` (paper averages, marks still open, scores by week,
+  marks kept per checklist item, self-score gap and time per 10-marker by month, answers a week,
+  full papers and the predicted-score gate, the adaptive daily answer target, the latest changes
+  in your notes, the From Claude items, and each week's Mains facts for `atlas week-data`); the
+  Mains Home (Mains 1 · Centre stage) at `/`; Mains Analytics (MAna-1 · The week's story) at
+  `/mains/analytics` with Claude's Mains lines pinned on top; Analytics in the Mains sidebar.
+
+### M12 · The rest of Mains (built on `claude/m12-mains-rest`, 2026-10-21)
+
+- Essay, Ethics case studies and Medical Science (table + drawer each), and the Board versions
+  of the Mains Notes table and the Claude inbox.
+- **Done when** each screen works at all three sizes in light and dark.
+- **Built:**
+  - Essay (`/mains/essay`): topic table and decode drawer behind a "try it yourself first" gate;
+    the 20-minute outline sprint (saved, checked for angles, the other side and a closing); the
+    full essay (1 h 30) and full paper (3 h, time plan) timers, ending with the Write flow's link.
+  - Ethics (`/mains/ethics`): case table and drawer, Claude's cases labelled; the six-step bench
+    with Do / Weak / Never and "Compare with mine" after your own attempt at each step.
+  - Medical Science (`/mains/medical`): 65 lines from the CSE 2026 notification under Paper I and
+    II, your rating, PYQs per line (2014–2026), key diagrams with a 3-minute drill, and Claude's
+    checked notes on dated syllabus wording.
+  - Mains Notes (`/mains/notes`): paper switch, subject tabs, every planned note with PYQs, your
+    answers, written or not, and a Claude column; a drawer per note.
+  - The Claude inbox in the Board look: "Needs you" and "For your information", a drawer per item,
+    and Verify, then add / Edit / Reject / Add it now, marked unverified on proposals.
+- **Not yet:** UPSC's Ethics case studies and the 2013–2023 essay papers aren't loaded; "source
+  waiting" for unwritten notes needs the feed to record matched sources (today it counts pending
+  proposals on written notes).
+
+### Routes and data for M8–M12
+
+Fixed up front (2026-10-21) so the milestones can be built side by side and merged without
+guessing. Each milestone adds its routes and sidebar entries in `src/modes/registry.tsx`, its
+screens in its own folder with its own stylesheet, and its end-to-end tests in its own
+`e2e/<milestone>.spec.ts`.
+
+| Milestone | Routes | Data (Firestore · dev files) | Code |
+|---|---|---|---|
+| M8 | `/mains/write`, `/mains/answers/:id`, `/mains/feedback` | `mainsq/{paper}` · `mains/questions/<paper>.json` (questions, CLI-imported); `answers/{id}` · `mains/answers/<id>.json`; photos in Storage `answers/{id}/page-{n}.jpg` · `mains/photos/<id>/` | `src/lib/mains.ts`, `src/mains/` |
+| M9 | `/prelims/lesson`, `/prelims/quiz` (and the Mains lesson inside `/mains/answers/:id`) | `lessons/{day}` · `practice/lessons/<day>.json`; weekly note `notes-week/{week}` · `practice/weeks/<week>.json` | `src/lib/lessons.ts`, `src/lessons/`, `docs/routines/` |
+| M10 | `/prelims/cards`, `/prelims/puzzles`, `/prelims/rush` | Flashcards and puzzles are items in `items/{bank}`; answers in `attempts/{day}` | `src/lib/puzzles.ts`, `src/practice/` |
+| M11 | `/` (Mains Home), `/prelims` (Prelims Home), `/prelims/subject/:subject`, `/prelims/analytics`, `/mains/analytics` | Reads the above | `src/homes/`, `src/analytics/` |
+| M12 | `/mains/notes`, `/mains/essay`, `/mains/ethics`, `/mains/medical`, and `/inbox` in the Board look | `essay/{id}`, `ethics/{id}`, `medical/{line}` · `mains/essay/`, `mains/ethics/`, `mains/medical/` | `src/mains-extra/` |
+
 ## Testing on every milestone
 
 - Unit tests for the Markdown extensions and data helpers.

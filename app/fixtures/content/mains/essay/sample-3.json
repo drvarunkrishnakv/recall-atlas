@@ -1,0 +1,9 @@
+{
+ "id": "sample-3",
+ "year": 2024,
+ "section": "B",
+ "n": 5,
+ "text": "Sample topic: every tool cuts both ways.",
+ "theme": "Sample: technology",
+ "sources": [{ "label": "Sample question paper", "url": "https://example.org/sample-paper" }]
+}

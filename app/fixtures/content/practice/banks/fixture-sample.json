@@ -1,0 +1,65 @@
+{
+  "id": "fixture-sample",
+  "subject": "Sample subject",
+  "topic": "Sample topic",
+  "items": [
+    {
+      "id": "fx-1",
+      "bank": "fixture-sample",
+      "topic": "Sample topic",
+      "kind": "mcq",
+      "source": {
+        "type": "claude",
+        "checked": true,
+        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+      },
+      "stem": "Consider the following statements about the sample river:",
+      "statements": ["It rises in the north hills.", "It drains into the west sea.", "It has no tributaries."],
+      "truth": [true, true, false],
+      "ask": "Which of the statements given above are correct?",
+      "options": ["1 and 2 only", "2 and 3 only", "1 and 3 only", "1, 2 and 3"],
+      "answer": 0,
+      "why": ["Statements 1 and 2 hold.", "Statement 3 is false.", "Statement 3 is false.", "Statement 3 is false."],
+      "trap": "Rivers in the sample land all have tributaries."
+    },
+    {
+      "id": "fx-2",
+      "bank": "fixture-sample",
+      "topic": "Sample topic",
+      "kind": "mcq",
+      "source": {
+        "type": "claude",
+        "checked": true,
+        "sources": [{ "label": "Test fixture", "url": "https://example.com" }]
+      },
+      "stem": "Which sample city is the capital of the sample state?",
+      "options": ["Alpha", "Beta", "Gamma", "Delta"],
+      "answer": 2,
+      "explanation": {
+        "text": "Gamma is the made-up capital used in tests.",
+        "source": "Test fixture",
+        "checked": true
+      }
+    },
+    {
+      "id": "fx-3",
+      "bank": "fixture-sample",
+      "topic": "Sample topic",
+      "kind": "mcq",
+      "source": { "type": "pyq", "year": 2020, "paper": "GS1", "keyVerified": true },
+      "stem": "Which sample instrument measures sample pressure?",
+      "options": ["Sampleometer", "Barosample", "Testograph", "Fixturescope"],
+      "answer": 1
+    },
+    {
+      "id": "fx-4",
+      "bank": "fixture-sample",
+      "topic": "Sample topic",
+      "kind": "mcq",
+      "source": { "type": "pyq", "year": 2011, "paper": "GS1", "keyVerified": false },
+      "stem": "An unverified sample question that should never be served.",
+      "options": ["One", "Two", "Three", "Four"],
+      "answer": 0
+    }
+  ]
+}

@@ -109,3 +109,38 @@ describe("proposals", () => {
     expect(() => applyProposalOp(list, { op: "reject", proposalId: "p1" })).toThrow();
   });
 });
+
+describe("the inbox's proposal actions (M12)", () => {
+  it("keeps Claude's confidence and asks for the source check", () => {
+    const p = make({ kind: "add", blockId: "h", text: "New line", confidence: "medium" });
+    expect(p.confidence).toBe("medium");
+    expect(make({ kind: "add", blockId: "h", text: "x", confidence: "sure" as never }).confidence).toBeUndefined();
+    const [v] = applyProposalOp([p], { op: "verify", proposalId: "p1" }, "2026-10-21T08:00:00Z");
+    expect(v).toMatchObject({ status: "pending", verifyRequested: "2026-10-21T08:00:00Z" });
+  });
+
+  it("changes the wording to yours, which then waits for the source check", () => {
+    const [a] = applyProposalOp([make({ kind: "add", blockId: "h", text: "Old" })], {
+      op: "revise",
+      proposalId: "p1",
+      text: "My wording",
+    });
+    expect(a).toMatchObject({ text: "My wording", status: "pending" });
+    expect(a.revised).toBeTruthy();
+    expect(a.verifyRequested).toBeTruthy();
+    const e = make({ kind: "edit", blockId: "t", find: "cap of 3%", replace: "limit" });
+    expect(() => applyProposalOp([e], { op: "revise", proposalId: "p1", replace: "cap of 3%" })).toThrow(/same/);
+    const r = make({ kind: "row", blockId: "t", cells: ["a", "b"] });
+    expect(applyProposalOp([r], { op: "revise", proposalId: "p1", cells: ["c", "d"] })[0].cells).toEqual(["c", "d"]);
+  });
+
+  it("marks a proposal added without the check, once", () => {
+    let list = [make({ kind: "add", blockId: "h", text: "New line" })];
+    list = applyProposalOp(list, { op: "unverified", proposalId: "p1" });
+    list = applyProposalOp(list, { op: "unverified", proposalId: "p1" });
+    expect(list[0]).toMatchObject({ unverified: true, source: { label: "PIB (unverified)" } });
+    expect(textOf(planApproval(blocks, list, "p1").blocks)).toContain("PIB (unverified)");
+    list = applyProposalOp(list, { op: "reject", proposalId: "p1" });
+    expect(() => applyProposalOp(list, { op: "verify", proposalId: "p1" })).toThrow(/pending/);
+  });
+});

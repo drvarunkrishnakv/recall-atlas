@@ -1,0 +1,147 @@
+{
+ "id": "a-20260929-sample02",
+ "question": {
+  "id": "gs1-2019-sample-delta",
+  "paper": "GS1",
+  "text": "Sample question: why do sample deltas grow in some sample seasons and shrink in others? Explain with examples.",
+  "topic": "Sample deltas",
+  "year": 2019,
+  "marks": 10,
+  "words": 150
+ },
+ "status": "marked",
+ "createdAt": "2026-09-29T04:20:00.000Z",
+ "submittedAt": "2026-09-29T04:35:00.000Z",
+ "plan": [
+  "Sample opening",
+  "Sample body",
+  "Sample way forward"
+ ],
+ "times": {
+  "planMs": 40000,
+  "writeMs": 460000,
+  "overtimeMs": 40000,
+  "limitMs": 420000
+ },
+ "pages": [
+  {
+   "file": "page-1.png",
+   "type": "image/png",
+   "at": "2026-09-29T04:35:00.000Z"
+  }
+ ],
+ "selfScore": 7,
+ "selfMissed": [
+  "Evidence"
+ ],
+ "transcript": {
+  "text": "Sample transcript: an opening line, three sample points with one sample example, and a short way forward.",
+  "unsure": [
+   "sediment"
+  ]
+ },
+ "marking": {
+  "score": 6,
+  "checklist": [
+   {
+    "key": "demand",
+    "got": 1.5,
+    "why": "Sample: the seasons are compared, but 'explain with examples' gets one line."
+   },
+   {
+    "key": "structure",
+    "got": 1.5,
+    "why": "Sample: opening, two causes, closing."
+   },
+   {
+    "key": "dimensions",
+    "got": 1,
+    "why": "Sample: two causes where four were wanted."
+   },
+   {
+    "key": "evidence",
+    "got": 0.5,
+    "why": "Sample: no named sample delta."
+   },
+   {
+    "key": "current",
+    "got": 0.5,
+    "why": "Sample: an old sample flood only."
+   },
+   {
+    "key": "presentation",
+    "got": 0.5,
+    "why": "Sample: no sketch where one would help."
+   },
+   {
+    "key": "length",
+    "got": 0.5,
+    "why": "Sample: about 150 words."
+   }
+  ],
+  "comments": [
+   {
+    "page": 1,
+    "y": 0.1,
+    "kind": "good",
+    "text": "Sample comment: a clear opening."
+   },
+   {
+    "page": 1,
+    "y": 0.45,
+    "kind": "fix",
+    "text": "Sample comment: this point needs an example."
+   },
+   {
+    "page": 1,
+    "y": 0.8,
+    "kind": "strong",
+    "text": "Sample comment: a way forward that follows from the body."
+   }
+  ],
+  "keep": [
+   "Sample: a clear comparison of the two seasons."
+  ],
+  "fix": [
+   {
+    "item": "evidence",
+    "gain": 1,
+    "text": "Sample fix: name one sample delta and one figure."
+   },
+   {
+    "item": "demand",
+    "gain": 0.5,
+    "text": "Sample fix: give the examples part its own paragraph."
+   }
+  ],
+  "outline": [
+   {
+    "h": "Intro",
+    "p": "Sample outline: set up the question in one line."
+   },
+   {
+    "h": "Body",
+    "p": "Sample outline: three angles, each with an example."
+   },
+   {
+    "h": "Way forward",
+    "p": "Sample outline: two steps that follow from the body."
+   }
+  ],
+  "fromNotes": [],
+  "tags": [
+   {
+    "tag": "missed-demand",
+    "note": "Sample: the examples part got one line"
+   },
+   {
+    "tag": "no-figures",
+    "note": "Sample: no figure for the sample sediment"
+   }
+  ],
+  "run": "2026-09-29 evening",
+  "markedAt": "2026-09-29T13:30:00.000Z"
+ },
+ "disputes": [],
+ "rewrites": []
+}

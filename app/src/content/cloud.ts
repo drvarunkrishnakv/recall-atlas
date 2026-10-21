@@ -36,6 +36,28 @@ import {
   type Progress,
   type ProgressOp,
 } from "../lib/progress";
+import { applyAttemptOp, attemptsDocId, type Attempt, type AttemptOp, type Bank } from "../lib/practice";
+import {
+  applyLessonOp,
+  lessonDocId,
+  lessonIndex,
+  weekDocId,
+  weekIndex,
+  type Lesson,
+  type LessonOp,
+  type WeeklyNote,
+} from "../lib/lessons";
+import { applyReadingOp, readingDocId, type ReadingLog, type ReadingOp } from "../lib/reading";
+import {
+  APP_OPS,
+  applyAnswerOp,
+  MainsError,
+  validateAnswer,
+  type AnswerOp,
+  type MainsAnswer,
+  type QuestionSet,
+} from "../lib/mains";
+import { mainsExtraCloud } from "./mains-extra-cloud";
 
 const ID = /^[A-Za-z0-9][A-Za-z0-9-]{0,80}$/;
 
@@ -123,6 +145,99 @@ export function cloudApi(db: Firestore) {
           (await getDoc(doc(db, "heatmap", `${base}-${i}`))).data(),
         );
       return { map: await read("current"), comparison: await read("questions") };
+    }
+
+    if (path === "/api/practice" && method === "GET") {
+      const [banks, days] = await Promise.all([getDocs(col(db, "items")), getDocs(col(db, "attempts"))]);
+      return {
+        banks: banks.docs.map((d) => decodeJson<Bank | null>(d.data(), null)).filter((b): b is Bank => !!b),
+        days: Object.fromEntries(
+          days.docs.map((d) => [d.id, decodeJson(d.data(), { attempts: [] as Attempt[] }).attempts]),
+        ),
+      };
+    }
+    const practiceDay = /^\/api\/practice\/attempts\/(\d{4}-\d{2}-\d{2})$/.exec(path);
+    if (practiceDay && method === "POST") {
+      const ref = doc(db, "attempts", attemptsDocId(practiceDay[1]));
+      const next = await change(db, ref, { attempts: [] as Attempt[] }, (v) => applyAttemptOp(v, body as AttemptOp));
+      return { attempts: next.attempts };
+    }
+    // Essay, Ethics and Medical Science (M12).
+    if (path === "/api/mains-extra" || path.startsWith("/api/mains-extra/"))
+      return mainsExtraCloud(db, path, method, body);
+
+    // Lessons (M9): Claude's run writes them through the CLI; the app reads them and rates cards.
+    if (path === "/api/lessons" && method === "GET")
+      return lessonIndex(
+        (await getDocs(col(db, "lessons"))).docs
+          .map((d) => decodeJson<Lesson | null>(d.data(), null))
+          .filter((l): l is Lesson => !!l),
+      );
+    const lessonDay = /^\/api\/lessons\/([^/]+)$/.exec(path);
+    if (lessonDay) {
+      const ref = doc(db, "lessons", lessonDocId(lessonDay[1]));
+      if (method === "GET") {
+        const lesson = decodeJson<Lesson | null>((await getDoc(ref)).data(), null);
+        if (!lesson) throw new NotFoundError("No lesson for that day");
+        return lesson;
+      }
+      return change<Lesson | null>(db, ref, null, (l) => applyLessonOp(l, body as LessonOp));
+    }
+    if (path === "/api/weeks" && method === "GET")
+      return weekIndex(
+        (await getDocs(col(db, "notes-week"))).docs
+          .map((d) => decodeJson<WeeklyNote | null>(d.data(), null))
+          .filter((n): n is WeeklyNote => !!n),
+      );
+    const week = /^\/api\/weeks\/([^/]+)$/.exec(path);
+    if (week && method === "GET") {
+      const note = decodeJson<WeeklyNote | null>(
+        (await getDoc(doc(db, "notes-week", weekDocId(week[1])))).data(),
+        null,
+      );
+      if (!note) throw new NotFoundError("No note for that week");
+      return note;
+    }
+    // The reading log (M11): reading/{subject}.
+    if (path === "/api/reading" && method === "GET") {
+      const snap = await getDocs(col(db, "reading"));
+      return { subjects: Object.fromEntries(snap.docs.map((d) => [d.id, decodeJson(d.data(), { topics: {} })])) };
+    }
+    const reading = /^\/api\/reading\/([a-z0-9-]+)$/.exec(path);
+    if (reading && method === "POST") {
+      const ref = doc(db, "reading", readingDocId(reading[1]));
+      return change(db, ref, { topics: {} } as ReadingLog, (v) => applyReadingOp(v, body as ReadingOp));
+    }
+    // Mains answers (M8): questions in mainsq/{paper} (read-only here), answers in answers/{id}.
+    // Page photos go to Firebase Storage straight from the store (content/mains.ts), not through here.
+    if (path === "/api/mains" && method === "GET") {
+      const [sets, answers] = await Promise.all([getDocs(col(db, "mainsq")), getDocs(col(db, "answers"))]);
+      return {
+        sets: sets.docs.map((d) => decodeJson<QuestionSet | null>(d.data(), null)).filter((s): s is QuestionSet => !!s),
+        answers: answers.docs
+          .map((d) => decodeJson<MainsAnswer | null>(d.data(), null))
+          .filter((a): a is MainsAnswer => !!a),
+      };
+    }
+    const mainsAnswer = /^\/api\/mains\/answers\/([A-Za-z0-9][A-Za-z0-9._-]{0,80})$/.exec(path);
+    if (mainsAnswer) {
+      const id = mainsAnswer[1];
+      const ref = doc(db, "answers", id);
+      if (method === "GET") {
+        const a = decodeJson<MainsAnswer | null>((await getDoc(ref)).data(), null);
+        if (!a) throw new NotFoundError("Not found");
+        return a;
+      }
+      const op = body as AnswerOp;
+      if (!APP_OPS.includes(op?.op as never)) throw new MainsError("Only Claude's CLI marks answers");
+      const answer = await runTransaction(db, async (tx) => {
+        const next = applyAnswerOp(decodeJson<MainsAnswer | null>((await tx.get(ref)).data(), null), op);
+        if (next.id !== id) throw new MainsError("The answer's id doesn't match its address");
+        validateAnswer(next);
+        tx.set(ref, { json: JSON.stringify(next), updatedAt: Date.now() });
+        return next;
+      });
+      return { answer };
     }
 
     if (path === "/api/progress") {

@@ -1,0 +1,98 @@
+{
+  "id": "fixture-rivers",
+  "subject": "Sample geography",
+  "topic": "Sample rivers",
+  "items": [
+    {
+      "id": "gr-1",
+      "bank": "fixture-rivers",
+      "topic": "Sample rivers",
+      "microtheme": "Sample deltas",
+      "kind": "mcq",
+      "source": {
+        "type": "pyq",
+        "year": 2024,
+        "paper": "GS1",
+        "keyVerified": true
+      },
+      "stem": "Which sample river forms the widest sample delta?",
+      "options": [
+        "River A",
+        "River B",
+        "River C",
+        "River D"
+      ],
+      "answer": 3
+    },
+    {
+      "id": "gr-2",
+      "bank": "fixture-rivers",
+      "topic": "Sample rivers",
+      "microtheme": "Sample dams",
+      "kind": "mcq",
+      "source": {
+        "type": "claude",
+        "checked": true,
+        "sources": [
+          {
+            "label": "Test fixture",
+            "url": "https://example.com"
+          }
+        ]
+      },
+      "stem": "Which sample dam stands on River B?",
+      "options": [
+        "Dam One",
+        "Dam Two",
+        "Dam Three",
+        "Dam Four"
+      ],
+      "answer": 0
+    },
+    {
+      "id": "gr-3",
+      "bank": "fixture-rivers",
+      "topic": "Sample rivers",
+      "microtheme": "Sample dams",
+      "kind": "mcq",
+      "source": {
+        "type": "claude",
+        "checked": true,
+        "sources": [
+          {
+            "label": "Test fixture",
+            "url": "https://example.com"
+          }
+        ]
+      },
+      "stem": "How many sample dams stand on River C?",
+      "options": [
+        "None",
+        "One",
+        "Two",
+        "Three"
+      ],
+      "answer": 2
+    },
+    {
+      "id": "gr-c1",
+      "bank": "fixture-rivers",
+      "topic": "Sample rivers",
+      "microtheme": "Sample deltas",
+      "kind": "flashcard",
+      "style": "qa",
+      "source": {
+        "type": "claude",
+        "checked": true,
+        "sources": [
+          {
+            "label": "Test fixture",
+            "url": "https://example.com"
+          }
+        ]
+      },
+      "front": "Which sample river has the widest delta?",
+      "back": "River D"
+    }
+  ]
+}

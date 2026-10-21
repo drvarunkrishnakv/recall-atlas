@@ -1,0 +1,22 @@
+{
+ "id": "sample-1",
+ "year": 2024,
+ "section": "A",
+ "n": 1,
+ "text": "Sample topic: a quiet river carves the deepest valley.",
+ "theme": "Sample: patience",
+ "sources": [{ "label": "Sample question paper", "url": "https://example.org/sample-paper" }],
+ "decode": {
+  "asks": "A sample question about whether slow, steady effort changes more than sudden force.",
+  "keywords": ["quiet", "river", "deepest"],
+  "angles": [
+   { "k": "Individual", "v": "Sample: habits that build over years" },
+   { "k": "Society", "v": "Sample: reforms that take a generation" },
+   { "k": "Economy", "v": "Sample: compounding, patient capital" },
+   { "k": "Polity", "v": "Sample: institutions that change slowly" },
+   { "k": "Environment", "v": "Sample: erosion and renewal" },
+   { "k": "Caution", "v": "Sample: when patience becomes delay" }
+  ],
+  "notes": [{ "id": "P06", "why": "Sample point from the fixture note: a change that took decades." }]
+ }
+}

@@ -158,12 +158,20 @@ test("a long title's field grows to show every line once the heading font loads"
 });
 
 test("quick capture lands in the scratch pad, and Claude's filing shows in the inbox", async ({ page }, info) => {
-  await page.goto("/");
+  // On phones and iPads, Capture floats over a note you're reading.
+  await page.goto("/notes/P06");
   const text = `Capture from ${info.project.name}`;
   const narrow = (page.viewportSize()?.width ?? 1440) <= 900;
-  await page.locator(narrow ? ".capture-fab" : ".capture-btn").click();
+  if (narrow) await page.locator(".capture-fab").click();
+  else {
+    // The sidebar's main button is each mode's main action; Capture is in the ··· menu.
+    await page.getByRole("button", { name: "More ways to add" }).click();
+    await page.getByRole("menuitem", { name: /Capture a thought/ }).click();
+  }
   await page.getByRole("textbox", { name: "What did you notice?" }).fill(text);
   await page.getByRole("button", { name: "Save to scratch pad" }).click();
+  await expect(page.getByRole("textbox", { name: "What did you notice?" })).toHaveCount(0);
+  await page.goto("/"); // the scratch pad is on Mains Home
   const item = page.locator(".captures li", { hasText: text });
   await expect(item).toContainText("Waiting for Claude");
   if (!isDesktop(page)) return;
@@ -596,10 +604,8 @@ test("a proposed change is approved into the note, recorded in history, and can 
   await expect(page.locator(".bn-editor").getByText("Confirm the e2e figure")).toHaveCount(0);
 });
 
-test("the news heat map opens from the sidebar; a dot, a river row and a month pick a story", async ({ page }) => {
-  await page.goto("/");
-  const menu = page.getByRole("button", { name: "Open navigator" });
-  if (await menu.isVisible()) await menu.click(); // phones: the sidebar is a drawer
+test("the news heat map opens from Notes; a dot, a river row and a month pick a story", async ({ page }) => {
+  await page.goto("/mains/notes");
   await page.getByRole("link", { name: "News heat map" }).click();
   await expect(page).toHaveURL(/\/heat-map$/);
   await expect(page.getByRole("heading", { name: "Which stories lasted", level: 1 })).toBeVisible();
@@ -645,4 +651,108 @@ test("the heat map shows past-paper questions on their stories and sums them up"
   await expect(page).toHaveURL(/asked=1/);
   await expect(page.locator(".hm-dot.asked")).toHaveCount(2);
   await noSideScroll(page);
+});
+
+test("the Prelims / Mains switch changes the sidebar and remembers each mode's page", async ({ page }) => {
+  await page.goto("/gs2/polity");
+  const frame = page.locator(".frame");
+  const exam = page.getByRole("group", { name: "Exam" });
+  await expect(frame).toHaveAttribute("data-mode", "mains");
+  await expect(exam.locator('[aria-current="page"]')).toHaveText("Mains");
+
+  await exam.getByRole("link", { name: "Prelims" }).click();
+  await expect(page).toHaveURL(/\/prelims$/);
+  await expect(frame).toHaveAttribute("data-mode", "prelims");
+  await expect(page.getByRole("heading", { level: 1, name: "Prelims" })).toBeVisible();
+  await expect(page.getByText(/\d+ days to Prelims|Today to Prelims/)).toBeVisible();
+  await expect(page.locator(".nav").getByRole("link", { name: "Claude inbox" })).toHaveCount(0);
+  await noSideScroll(page);
+
+  if (isDesktop(page)) {
+    // Settings belongs to both modes, so it keeps the one you came from.
+    await page.locator(".nav").getByRole("link", { name: "Settings" }).click();
+    await expect(page).toHaveURL(/\/settings$/);
+    await expect(frame).toHaveAttribute("data-mode", "prelims");
+  }
+
+  await exam.getByRole("link", { name: "Mains" }).click();
+  await expect(page).toHaveURL(/\/gs2\/polity$/);
+  await expect(frame).toHaveAttribute("data-mode", "mains");
+  await expect(page.locator(".nav").getByRole("link", { name: "Claude inbox" })).toHaveCount(1);
+});
+
+test("a Prelims session: statement marks pick the option, the answer shows, and a miss lands in the notebook", async ({
+  page,
+}) => {
+  await page.goto("/prelims");
+  // The home's own Practise button (the sidebar's main button says "Practise now" too).
+  await expect(page.locator("main").getByRole("link", { name: /Practise now/ })).toBeVisible();
+  // The unverified PYQ in the fixture is never served (3 sample questions + M11's 10 in Sample geography).
+  await expect(page.getByText(/^13 questions ready/)).toBeVisible();
+  // M11's home shows subject tiles rather than every topic.
+  await expect(page.getByRole("link", { name: /Sample subject/ })).toBeVisible();
+  await noSideScroll(page);
+
+  await page.goto("/prelims/session?items=fx-1,fx-2&mode=practice");
+  const card = page.getByRole("region", { name: "Question 1 of 2" });
+  await expect(card.getByText("Consider the following statements")).toBeVisible();
+  for (const [n, mark] of [
+    [1, "Mark true"],
+    [2, "Mark true"],
+    [3, "Mark false"],
+  ] as const)
+    await card
+      .getByRole("group", { name: `Statement ${n}` })
+      .getByRole("button", { name: mark })
+      .click();
+  await expect(card.getByRole("radio", { name: /1 and 2 only/ })).toHaveAttribute("aria-checked", "true");
+  await expect(card.getByText("your marks")).toBeVisible();
+  await noSideScroll(page);
+  await card.getByRole("button", { name: /Lock in · sure/ }).click();
+  await expect(card.getByText("Right: the answer is A.")).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "Session" }).getByText("+8")).toBeVisible();
+  await card.getByRole("button", { name: /Knew it/ }).click();
+  await expect(card.getByRole("button", { name: /Knew it/ })).toHaveAttribute("aria-pressed", "true");
+  await card.getByRole("button", { name: /Next question/ }).click();
+
+  const second = page.getByRole("region", { name: "Question 2 of 2" });
+  await second.getByRole("radio", { name: /Beta/ }).click();
+  await second.getByRole("button", { name: /Lock in · unsure/ }).click();
+  await expect(second.getByText("Wrong: the answer is C.")).toBeVisible();
+  await expect(second.getByText("Gamma is the made-up capital used in tests.")).toBeVisible();
+  await second.getByRole("button", { name: /Mixed up/ }).click();
+  await second.getByRole("button", { name: /See the summary/ }).click();
+
+  await expect(page.getByRole("heading", { name: "Session done" })).toBeVisible();
+  await expect(page.getByText("1 / 2")).toBeVisible();
+  await expect(page.getByText("1.3", { exact: true })).toBeVisible();
+  await noSideScroll(page);
+
+  // The miss is saved: it is in the notebook after a reload.
+  await page.goto("/prelims/notebook");
+  await page.reload();
+  const list = page.getByRole("navigation", { name: "Missed questions" });
+  await list
+    .getByRole("button", { name: /Which sample city/ })
+    .first()
+    .click();
+  const detail = page.getByRole("region", { name: "The question" });
+  await expect(detail.getByText("your answer")).toBeVisible();
+  await expect(detail.getByText("Mixed up").first()).toBeVisible();
+  await page.getByRole("tab", { name: "Revision book" }).click();
+  await expect(page.getByText("Answer C: Gamma").first()).toBeVisible();
+  await noSideScroll(page);
+});
+
+test("exam mode holds the answers until the summary, where each one is graded", async ({ page }) => {
+  test.skip(!isDesktop(page), "Once is enough");
+  await page.goto("/prelims/session?items=fx-3&mode=exam");
+  const card = page.getByRole("region", { name: "Question 1 of 1" });
+  await expect(card.getByText("Which sample instrument")).toBeVisible();
+  await page.keyboard.press("b");
+  await expect(card.getByRole("radio", { name: /Barosample/ })).toHaveAttribute("aria-checked", "true");
+  await page.keyboard.press("s");
+  await expect(page.getByRole("heading", { name: "Session done" })).toBeVisible();
+  await page.getByRole("region", { name: "Your answers" }).getByRole("button", { name: "Instant" }).click();
+  await expect(page.getByRole("button", { name: "Instant" })).toHaveAttribute("aria-pressed", "true");
 });

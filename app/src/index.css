@@ -2163,15 +2163,22 @@ kbd {
   border-radius: 14px;
   box-shadow: var(--shadow);
 }
-.create-menu a {
+.create-menu a,
+.create-menu button {
   display: flex;
   flex-direction: column;
   padding: 0.5rem 0.65rem;
+  border: 0;
   border-radius: 10px;
+  background: none;
   color: var(--ink);
+  font: inherit;
+  text-align: left;
   text-decoration: none;
+  cursor: pointer;
 }
-.create-menu a:hover {
+.create-menu a:hover,
+.create-menu button:hover {
   background: var(--surface);
 }
 .create-menu span {
@@ -2339,6 +2346,10 @@ kbd {
   display: none;
 }
 @media (max-width: 900px) {
+  /* Room under the last lines, so the floating Capture button never hides them. */
+  .frame.has-fab .main {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  }
   .capture-fab {
     display: inline-flex;
     align-items: center;
@@ -5258,5 +5269,269 @@ span.hm-rl {
   }
   .main.arriving > :not(.topbar) {
     animation: none;
+  }
+}
+
+/* ---------- Board shell (M6): the sidebar, the top bar and the Prelims / Mains switch ---------- */
+/* Warm paper in light, warm graphite in dark; green for Prelims, amber for Mains. Note and card
+   pages keep the reading style above. */
+:root {
+  --bd-ground: #f3f1ec;
+  --bd-panel: #ffffff;
+  --bd-raised: #e8e5de;
+  --bd-ink: #1c1b19;
+  --bd-muted: #5e5a53;
+  --bd-line: #dcd8cf;
+  --bd-prelims: #76b041;
+  --bd-prelims-shade: #4e7d27;
+  --bd-on-prelims: #102006;
+  --bd-prelims-ink: #376f18;
+  --bd-mains: #f0a63a;
+  --bd-mains-shade: #9a6416;
+  --bd-on-mains: #1f1405;
+  --bd-mains-ink: #8f560b;
+  --f-board: "Nunito", "Figtree", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bd-ground: #1c1b19;
+    --bd-panel: #262522;
+    --bd-raised: #33312d;
+    --bd-ink: #f3f0ea;
+    --bd-muted: #aaa49b;
+    --bd-line: #3b3935;
+    --bd-prelims-ink: #9fd36b;
+    --bd-mains-ink: #f0a63a;
+  }
+}
+:root[data-theme="dark"] {
+  --bd-ground: #1c1b19;
+  --bd-panel: #262522;
+  --bd-raised: #33312d;
+  --bd-ink: #f3f0ea;
+  --bd-muted: #aaa49b;
+  --bd-line: #3b3935;
+  --bd-prelims-ink: #9fd36b;
+  --bd-mains-ink: #f0a63a;
+}
+.frame {
+  --mode: var(--bd-mains);
+  --mode-shade: var(--bd-mains-shade);
+  --on-mode: var(--bd-on-mains);
+  --mode-ink: var(--bd-mains-ink);
+}
+.frame[data-mode="prelims"] {
+  --mode: var(--bd-prelims);
+  --mode-shade: var(--bd-prelims-shade);
+  --on-mode: var(--bd-on-prelims);
+  --mode-ink: var(--bd-prelims-ink);
+}
+
+.nav {
+  background: var(--bd-ground);
+  border-right: 1px solid var(--bd-line);
+  color: var(--bd-ink);
+  font-family: var(--f-board);
+  font-weight: 700;
+}
+.nav .brand {
+  font-family: var(--f-board);
+  font-weight: 900;
+  color: var(--bd-ink);
+}
+.nav .logo {
+  background: var(--mode);
+  color: var(--on-mode);
+  box-shadow: 0 3px 0 var(--mode-shade);
+}
+.nav .side-nav a {
+  color: var(--bd-ink);
+}
+.nav .side-nav .soon,
+.nav .nav-foot a,
+.nav .side-label,
+.nav .count {
+  color: var(--bd-muted);
+}
+.nav .side-nav a:hover,
+.nav .nav-foot a:hover {
+  background: var(--bd-panel);
+  color: var(--bd-ink);
+}
+.nav .side-nav a.active,
+.nav .nav-foot a.active {
+  background: var(--bd-raised);
+  color: var(--bd-ink);
+  font-weight: 800;
+}
+.nav .search-btn,
+.nav .more-btn {
+  background: var(--bd-panel);
+  border: 1px solid var(--bd-line);
+  color: var(--bd-muted);
+}
+.topbar {
+  font-family: var(--f-board);
+}
+/* The sidebar's main button is each mode's main action, in the mode's colour. */
+.nav .capture-btn.mode-action {
+  background: var(--mode);
+  color: var(--on-mode);
+  box-shadow: 0 3px 0 var(--mode-shade);
+  font-family: var(--f-board);
+  font-weight: 900;
+  text-decoration: none;
+}
+.nav .capture-btn.mode-action:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--mode-shade);
+}
+
+.mode-switch {
+  flex: none;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--bd-panel);
+  border: 1px solid var(--bd-line);
+}
+.mode-btn {
+  min-width: 7.5rem;
+  min-height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1rem;
+  border-radius: 10px;
+  font: 900 0.875rem/1 var(--f-board);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--bd-muted);
+  transition:
+    background 0.15s,
+    color 0.15s,
+    transform 0.08s;
+}
+a.mode-btn:hover {
+  background: var(--bd-raised);
+  color: var(--bd-ink);
+}
+a.mode-btn:active {
+  transform: translateY(2px);
+}
+.mode-btn.on[data-mode="prelims"] {
+  background: var(--bd-prelims);
+  color: var(--bd-on-prelims);
+  box-shadow: 0 3px 0 var(--bd-prelims-shade);
+}
+.mode-btn.on[data-mode="mains"] {
+  background: var(--bd-mains);
+  color: var(--bd-on-mains);
+  box-shadow: 0 3px 0 var(--bd-mains-shade);
+}
+@media (max-width: 600px) {
+  .mode-switch {
+    gap: 3px;
+    padding: 3px;
+    border-radius: 11px;
+  }
+  .mode-btn {
+    min-width: 0;
+    min-height: 2rem;
+    padding: 0 0.6rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
+  }
+}
+
+/* Prelims home (M6: the countdown; practice screens arrive from M7). */
+.prelims-home {
+  max-width: 52rem;
+  font-family: var(--f-board);
+}
+.prelims-home .board-hero h1 {
+  font-family: var(--f-board);
+  font-weight: 900;
+  margin: 0.4rem 0 0.3rem;
+}
+.board-hero p {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 700;
+}
+.board-hero b {
+  color: var(--mode-ink);
+}
+.board-card {
+  background: var(--bd-panel);
+  border: 1px solid var(--bd-line);
+  border-radius: 18px;
+  padding: 1.1rem 1.25rem;
+}
+.board-card h2 {
+  margin: 0 0 0.4rem;
+  font-family: var(--f-board);
+  font-weight: 900;
+  font-size: 1.15rem;
+  color: var(--bd-ink);
+}
+.board-card p {
+  margin: 0;
+  color: var(--bd-muted);
+  font-weight: 600;
+}
+/* Board chips and small text, everywhere (the Board shell is the app's look). They used to live in
+   prelims.css, which made older Mains pages change look after a practice page had loaded. */
+.muted {
+  color: var(--bd-muted);
+}
+.small {
+  font-size: 0.85rem;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.78rem;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  background: var(--bd-raised);
+  color: var(--bd-ink);
+}
+.chip-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--bd-line);
+  background: var(--bd-panel);
+  color: var(--bd-ink);
+  font: 800 0.85rem var(--f-board);
+  text-decoration: none;
+  cursor: pointer;
+}
+.chip-btn.on {
+  border-color: var(--mode);
+  background: var(--bd-raised);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mode-btn {
+    transition: none;
+  }
+}
+
+/* Finger-sized targets on touch screens (the responsiveness audit, 21 Oct): the subject table's
+   status and start chips, and a wider tap area round the heat map's dots. */
+@media (pointer: coarse) {
+  .chip.select,
+  .chip.start {
+    min-height: 36px;
+  }
+  .hm-dot::after {
+    inset: -10px;
   }
 }

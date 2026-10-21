@@ -31,6 +31,53 @@ service cloud.firestore {
     match /heatmap/{id} {
       allow read: if isOwner();
     }
+    // Practice (M6). Banks of items are written by Claude's CLI; the app only reads them.
+    match /items/{id} {
+      allow read: if isOwner();
+    }
+    // The attempt log is kept, never thrown away: the app can add and update a day, not delete it.
+    match /attempts/{id} {
+      allow read, create, update: if isOwner();
+    }
+    match /srs/{id} {
+      allow read, write: if isOwner();
+    }
+    // Lessons (M9). Claude's scheduled run writes each day's lesson with the CLI; the app reads it
+    // and adds your ratings to it, but never creates or deletes one.
+    match /lessons/{id} {
+      allow read, update: if isOwner();
+    }
+    // The engine's weekly notes: written by the CLI only.
+    match /notes-week/{id} {
+      allow read: if isOwner();
+    }
+    // The reading log (M11): one document per subject, changed by "Log reading" and its Undo.
+    match /reading/{id} {
+      allow read, create, update: if isOwner();
+    }
+    // Mains answers (M8). The questions are imported by Claude's CLI; the app only reads them.
+    match /mainsq/{paper} {
+      allow read: if isOwner();
+    }
+    // Answers are kept, like the attempt log: the app can add and update one, not delete it.
+    // Marking is written by Claude's CLI (Admin SDK). Page photos are in Storage (storage.rules).
+    match /answers/{id} {
+      allow read, create, update: if isOwner();
+    }
+    // Essay, Ethics and Medical Science (M12). Topics, cases and syllabus lines are written by
+    // Claude's CLI; the app writes only your own records (`mine-<id>`), and never deletes them.
+    match /essay/{id} {
+      allow read: if isOwner();
+      allow create, update: if isOwner() && id.matches('mine-.+');
+    }
+    match /ethics/{id} {
+      allow read: if isOwner();
+      allow create, update: if isOwner() && id.matches('mine-.+');
+    }
+    match /medical/{id} {
+      allow read: if isOwner();
+      allow create, update: if isOwner() && id.matches('mine-.+');
+    }
     // Anything else is closed.
   }
 }

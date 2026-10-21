@@ -8,15 +8,21 @@ import "@fontsource/figtree/700.css";
 import "@fontsource/bricolage-grotesque/600.css";
 import "@fontsource/bricolage-grotesque/700.css";
 import "@fontsource/shantell-sans/600.css";
+import "@fontsource/nunito/700.css";
+import "@fontsource/nunito/800.css";
+import "@fontsource/nunito/900.css";
 import "./index.css";
 import { Layout } from "./components/Layout";
 import { applySavedTheme } from "./components/ThemeToggle";
 import { loadContent } from "./content/store";
 import { refreshStudy } from "./content/study";
 import { PaperPage, TopicPage, NotePage, CardPage, CardsPage, NotFound } from "./pages";
-import { HomePage, InboxPage, RevisePage, SubjectPage } from "./dashboard";
+import { InboxPage, RevisePage, SubjectPage } from "./dashboard";
 import { SettingsPage } from "./settings";
 import { PageSkeleton } from "./components/Skeleton";
+import { PrelimsHome } from "./prelims/PrelimsHome";
+import { MainsHome } from "./homes/MainsHome";
+import { mainsRoutes, prelimsRoutes } from "./modes/registry";
 
 applySavedTheme();
 // The cloud build loads notes only after Google sign-in (AuthGate); locally they load at once.
@@ -53,7 +59,7 @@ const router = createBrowserRouter([
   {
     element: <Layout />,
     children: [
-      { path: "/", element: <HomePage /> },
+      { path: "/", element: <MainsHome /> },
       { path: "/notes/:noteId", element: <NotePage /> },
       { path: "/inbox", element: <InboxPage /> },
       { path: "/revise", element: <RevisePage /> },
@@ -66,6 +72,10 @@ const router = createBrowserRouter([
           </Suspense>
         ),
       },
+      { path: "/prelims", element: <PrelimsHome /> },
+      ...prelimsRoutes,
+      ...mainsRoutes,
+      { path: "/prelims/*", element: <NotFound /> },
       { path: "/cards", element: <CardsPage /> },
       { path: "/cards/:cardId", element: <CardPage /> },
       { path: "/:paperId", element: <PaperPage /> },

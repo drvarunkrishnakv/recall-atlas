@@ -1,0 +1,23 @@
+{
+ "id": "SA1",
+ "paper": "I",
+ "subject": "Sample Anatomy",
+ "order": 1,
+ "label": "Sample limbs and joints",
+ "syllabus": "Sample wording: the applied anatomy of a sample limb and its joints.",
+ "pyqs": {
+  "count": 2,
+  "marks": 25,
+  "secondary": 1,
+  "last": 2025,
+  "items": [
+   { "id": "sample-2025-I-1a", "year": 2025, "paper": "I", "marks": 10, "text": "Sample question: describe a sample joint with a labelled diagram.", "primary": true },
+   { "id": "sample-2023-I-2b", "year": 2023, "paper": "I", "marks": 15, "text": "Sample question: trace the nerve supply of a sample limb.", "primary": true },
+   { "id": "sample-2021-I-3c", "year": 2021, "paper": "I", "marks": 10, "text": "Sample question that also touches this line.", "primary": false }
+  ]
+ },
+ "diagrams": [
+  { "id": "sample-plexus", "t": "Sample nerve plexus", "asked": [2025] },
+  { "id": "sample-joint", "t": "Sample joint section" }
+ ]
+}

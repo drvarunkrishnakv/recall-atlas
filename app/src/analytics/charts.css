@@ -1,0 +1,264 @@
+/* Inline-SVG charts for the Prelims screens (M11): recessive grid, thin marks, ink-coloured text. */
+.chart,
+.spark {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.spark {
+  width: 140px;
+  height: 32px;
+}
+.chart .ch-grid,
+.spark .ch-grid {
+  stroke: var(--bd-line);
+  stroke-width: 1;
+}
+.chart .ch-base,
+.spark .ch-base {
+  stroke: var(--bd-muted);
+  stroke-opacity: 0.45;
+  stroke-width: 1;
+}
+.chart .ch-axis {
+  fill: var(--bd-muted);
+  font: 700 11px var(--f-board);
+}
+.chart .ch-label {
+  fill: var(--bd-ink);
+  font: 900 12px var(--f-board);
+}
+.chart .ch-line,
+.spark .ch-line {
+  fill: none;
+  stroke: var(--line-c, var(--hm-gold));
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.chart .ch-dot,
+.spark .ch-dot {
+  fill: var(--line-c, var(--hm-gold));
+  stroke: var(--bd-panel);
+  stroke-width: 2;
+}
+.chart .ch-dot:not(.last) {
+  opacity: 0.85;
+}
+
+.bars {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 10px;
+  align-items: end;
+  height: 170px;
+}
+.bar-col {
+  height: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+}
+.bar-v {
+  font-weight: 900;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+.bar {
+  width: min(60%, 48px);
+  min-height: 2px;
+  max-height: calc(100% - 44px);
+  border-radius: 4px 4px 0 0;
+  background: var(--bd-muted);
+  opacity: 0.55;
+}
+.bar.last {
+  background: var(--hm-gold);
+  opacity: 1;
+}
+.bar-l {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--bd-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* On phones the charts shrink to about half size, so their text is drawn larger to stay readable. */
+@media (max-width: 600px) {
+  .chart .ch-axis {
+    font-size: 19px;
+  }
+  .chart .ch-label {
+    font-size: 21px;
+  }
+  .bars {
+    gap: 4px;
+  }
+  .bar-v {
+    font-size: 0.72rem;
+  }
+  .bar-l {
+    font-size: 0.62rem;
+    text-overflow: clip;
+  }
+}
+
+.cal {
+  display: grid;
+  grid-template-rows: repeat(7, auto);
+  grid-auto-flow: column;
+  gap: 4px;
+  max-width: 100%;
+}
+.cal span {
+  aspect-ratio: 1 / 1;
+  border-radius: 4px;
+  background: var(--hm-l0);
+}
+.cal .cal-pad {
+  background: transparent;
+}
+
+/* Columns on a fixed scale with an optional target band (Mains Analytics). */
+.cols {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cols-plot {
+  position: relative;
+  height: 170px;
+  margin-top: 20px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 10px;
+  border-bottom: 1px solid var(--bd-line);
+}
+.col {
+  position: relative;
+  min-width: 0;
+}
+.col-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: min(70%, 48px);
+  min-height: 2px;
+  border-radius: 6px 6px 0 0;
+  background: var(--bd-muted);
+  transform-origin: bottom;
+  animation: col-grow 0.5s ease-out both;
+}
+.col-v {
+  position: absolute;
+  left: 0;
+  right: 0;
+  padding-bottom: 3px;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+.col-bar.up {
+  background: var(--hm-up);
+}
+.col-bar.mid {
+  background: var(--hm-gold);
+}
+.col-bar.down {
+  background: var(--hm-down);
+}
+.col-v.up {
+  color: var(--hm-up);
+}
+.col-v.mid {
+  color: var(--hm-gold);
+}
+.col-v.down {
+  color: var(--hm-down);
+}
+.cols-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: rgb(159 211 107 / 0.12);
+  border-top: 1px dashed var(--hm-up);
+  border-bottom: 1px dashed var(--hm-up);
+  pointer-events: none;
+}
+.cols-band em {
+  position: absolute;
+  right: 6px;
+  bottom: 100%;
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: var(--hm-up);
+}
+.cols-x {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+.cols-x span {
+  min-width: 0;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--bd-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cols-x small {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+.cols.dense .col-v,
+.cols.dense .cols-x small,
+.cols.dense .cols-x span:nth-child(even) {
+  visibility: hidden;
+}
+@keyframes col-grow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .col-bar {
+    animation: none;
+  }
+}
+@media (max-width: 600px) {
+  .cols-plot,
+  .cols-x {
+    gap: 4px;
+  }
+  .col-v {
+    font-size: 0.7rem;
+  }
+  .cols-x span {
+    font-size: 0.62rem;
+    text-overflow: clip;
+  }
+  .cols-x small {
+    font-size: 0.58rem;
+  }
+}

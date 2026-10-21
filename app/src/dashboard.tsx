@@ -1,17 +1,9 @@
-// Home, the subject database (table / board / due), Revise today and the Claude inbox.
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+// The subject database (table / board / due), Revise today and the Claude inbox. (Home is homes/MainsHome.tsx.)
+import { lazy, Suspense, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { Link, MorphTitle } from "./components/nav";
-import {
-  COMING_SUBJECTS,
-  PAPERS,
-  subjectStyle,
-  type Paper,
-  type PlannedNote,
-  type Subject,
-  type Topic,
-} from "./content/syllabus";
-import { createPage, getPage, savePage, STATUS_LABEL, useContent, type Page } from "./content/store";
+import { PAPERS, subjectStyle, type Paper, type PlannedNote, type Subject, type Topic } from "./content/syllabus";
+import { createPage, savePage, STATUS_LABEL, useContent, type Page } from "./content/store";
 import {
   addCapture,
   claudeState,
@@ -24,9 +16,9 @@ import {
 } from "./content/study";
 import { dueLabel, isDue, nextDue, today, type Confidence, type NoteProgress } from "./lib/progress";
 import type { Block } from "./lib/blocks";
-import { AIS, bot, isAi } from "./lib/personas";
 import type { StoredThread } from "./lib/threads";
 import { Icon } from "./components/Icon";
+import { PageSkeleton } from "./components/Skeleton";
 
 function useTitle(title: string) {
   useEffect(() => {
@@ -178,191 +170,6 @@ function useRows(subject: Subject) {
   }));
 }
 
-function SubjectShapes({ id }: { id: string }) {
-  const st = subjectStyle(id);
-  return (
-    <>
-      <span className="shape a" style={{ background: st.shape }} />
-      <span className="shape b" style={{ background: st.ink }} />
-    </>
-  );
-}
-
-// ---------- Home ----------
-
-function greeting() {
-  const h = new Date().getHours();
-  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
-}
-
-export function HomePage() {
-  useTitle("");
-  const { pages } = useContent();
-  const { progress, threads, captures, recent } = useStudy();
-  const notes = [...pages.values()].filter((p) => p.collection === "notes");
-  const due = notes
-    .filter((n) => isDue(progress.notes[n.id]))
-    .sort((a, b) => nextDue(progress.notes[a.id])!.localeCompare(nextDue(progress.notes[b.id])!));
-  const continueList = [...recent.map((id) => pages.get(`notes:${id}`)).filter(Boolean), ...notes]
-    .filter((p, i, all) => all.indexOf(p) === i)
-    .slice(0, 3) as Page[];
-  const replies = Object.entries(threads).flatMap(([key, ts]) =>
-    ts
-      .filter((t) => t.kind === "claude" && !t.resolved && t.comments.at(-1)?.userId === "claude")
-      .map((t) => ({ key, t })),
-  );
-  const filed = captures.filter((c) => c.status === "done");
-  const fromClaude = replies.length + filed.length;
-
-  return (
-    <article className="dash">
-      <header className="dash-head">
-        <div>
-          <div className="eyebrow">
-            {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
-          </div>
-          <h1>{greeting()}</h1>
-        </div>
-        <div className="head-chips">
-          <Link className="chip go big" to="/revise">
-            {due.length === 1 ? "1 note to revise" : `${due.length} notes to revise`}
-          </Link>
-          <Link className="chip claude big" to="/inbox">
-            {fromClaude} from Claude
-          </Link>
-        </div>
-      </header>
-
-      <section aria-labelledby="subjects-h">
-        <h2 id="subjects-h" className="sec-h">
-          Subjects
-        </h2>
-        <div className="subject-grid">
-          {PAPERS.flatMap((paper) =>
-            paper.subjects.map((s) => {
-              const planned = s.topics.flatMap((t) => t.notes);
-              const written = planned.filter((n) => pages.has(`notes:${n.id}`)).length;
-              const st = subjectStyle(s.id);
-              return (
-                <Link key={s.id} className="subject-card" to={`/${paper.id}/${s.id}`}>
-                  <span className="art" style={{ background: st.color }}>
-                    <SubjectShapes id={s.id} />
-                    <span className="paper-tag" style={{ color: st.ink }}>
-                      {paper.title.replace("GS Paper ", "GS")}
-                    </span>
-                  </span>
-                  <span className="body">
-                    <b>{s.title}</b>
-                    <span className="muted">
-                      {written} of {planned.length} notes written
-                    </span>
-                    <span className="bar" style={{ background: st.tint }}>
-                      <span
-                        style={{ width: `${Math.max(4, (written / planned.length) * 100)}%`, background: st.color }}
-                      />
-                    </span>
-                  </span>
-                </Link>
-              );
-            }),
-          )}
-          {COMING_SUBJECTS.slice(0, 3).map((s) => {
-            const st = subjectStyle(s.title);
-            return (
-              <div key={s.title} className="subject-card off">
-                <span className="art" style={{ background: st.color }}>
-                  <SubjectShapes id={s.title} />
-                  <span className="paper-tag" style={{ color: st.ink }}>
-                    {s.paper}
-                  </span>
-                </span>
-                <span className="body">
-                  <b>{s.title}</b>
-                  <span className="muted">Not planned yet</span>
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <div className="tri">
-        <section className="panel" aria-labelledby="continue-h">
-          <h2 id="continue-h">Continue reading</h2>
-          {continueList.length === 0 && <p className="muted">Open a note and it shows up here.</p>}
-          {continueList.map((n) => {
-            const st = subjectStyle(String(n.subject ?? "polity"));
-            return (
-              <Link key={n.id} className="note-row" to={`/notes/${n.id}`}>
-                <span className="id-tile" style={{ background: st.tint, color: st.ink }}>
-                  {n.id}
-                </span>
-                <span>
-                  <b>
-                    <MorphTitle to={`/notes/${n.id}`}>{n.title}</MorphTitle>
-                  </b>
-                  <span className="muted">
-                    <RevisionText p={progress.notes[n.id]} />
-                  </span>
-                </span>
-              </Link>
-            );
-          })}
-        </section>
-
-        <section className="panel tone-go" aria-labelledby="due-h">
-          <div className="panel-title">
-            <h2 id="due-h">Due for revision</h2>
-            <span className="count-pill go">{due.length}</span>
-          </div>
-          {due.length === 0 && <p className="muted-on">Nothing due. Read a note to start its revision cycle.</p>}
-          {due.slice(0, 4).map((n) => (
-            <Link key={n.id} className="due-row" to={`/notes/${n.id}`}>
-              <span className="dot" style={{ background: subjectStyle(String(n.subject ?? "polity")).color }} />
-              <span className="grow">{n.title}</span>
-              <ConfChip value={progress.notes[n.id]?.confidence} />
-            </Link>
-          ))}
-          {due.length > 0 && (
-            <Link className="pill-btn go self-start" to="/revise">
-              Start revising
-            </Link>
-          )}
-        </section>
-
-        <section className="panel tone-claude" aria-labelledby="inbox-h">
-          <div className="panel-title">
-            <Icon name="sparkle" />
-            <h2 id="inbox-h">Claude inbox</h2>
-          </div>
-          {fromClaude === 0 && (
-            <p className="muted-on">Replies to your Ask Claude comments and filed captures land here.</p>
-          )}
-          {replies.slice(0, 2).map(({ key, t }) => (
-            <Link key={t.id} className="inbox-item" to={`/notes/${key.split(":")[1]}`}>
-              <span className="kicker">Reply · {key.split(":")[1]}</span>
-              <span>{t.comments[0]?.body}</span>
-            </Link>
-          ))}
-          {filed.slice(0, 2).map((c) => (
-            <Link key={c.id} className="inbox-item" to="/inbox">
-              <span className="kicker">Filed{c.note ? ` · ${c.note}` : ""}</span>
-              <span>{c.reply || c.text}</span>
-            </Link>
-          ))}
-          {fromClaude > 0 && (
-            <Link className="pill-btn self-start" to="/inbox">
-              Open inbox
-            </Link>
-          )}
-        </section>
-      </div>
-
-      <ScratchPad />
-    </article>
-  );
-}
-
 function RevisionText({ p }: { p?: NoteProgress }) {
   if (!p?.readAt) return <>Not read yet</>;
   const n = p.revisions.length;
@@ -378,7 +185,7 @@ function ConfChip({ value }: { value?: Confidence }) {
   return <span className={`chip conf-${value}`}>{CONF_LABEL[value]}</span>;
 }
 
-function ScratchPad() {
+export function ScratchPad() {
   const { captures } = useStudy();
   const [text, setText] = useState("");
   const [error, setError] = useState("");
@@ -759,129 +566,14 @@ export function RevisePage() {
 }
 
 // ---------- Claude inbox ----------
-
+// In the Board look since M12 (table + drawer, the same items): src/mains-extra/Inbox.tsx, loaded
+// when first opened.
+const InboxBoard = lazy(() => import("./mains-extra/Inbox"));
 export function InboxPage() {
-  useTitle("Claude inbox");
-  const { threads, captures, proposals } = useStudy();
-  const changes = Object.entries(proposals).flatMap(([key, list]) =>
-    list.filter((p) => p.status === "pending").map((p) => ({ key, p })),
-  );
-  const items = Object.entries(threads).flatMap(([key, ts]) => ts.map((t) => ({ key, t })));
-  const replied = items.filter(({ t }) => t.kind === "claude" && !t.resolved && t.comments.at(-1)?.userId === "claude");
-  const waiting = items.filter(({ t }) => t.kind === "claude" && !t.resolved && t.comments.at(-1)?.userId !== "claude");
-  const flags = items.filter(({ t }) => t.kind === "flag" && !t.resolved);
-  const openCaptures = captures.filter((c) => c.status === "open");
-  const filed = captures.filter((c) => c.status === "done");
-  const title = (key: string) => {
-    const [c, id] = key.split(":");
-    return getPage(c === "notes" ? "notes" : "cards", id)?.title ?? id;
-  };
-  const href = (key: string) => {
-    const [c, id] = key.split(":");
-    return `/${c}/${id}`;
-  };
   return (
-    <article className="dash">
-      <header className="dash-head">
-        <div>
-          <div className="eyebrow">Replies, questions waiting, and what Claude filed</div>
-          <h1>Claude inbox</h1>
-        </div>
-      </header>
-      {changes.length > 0 && (
-        <section className="inbox-sec">
-          <h2 className="sec-h">Changes to approve</h2>
-          {changes.map(({ key, p }) => (
-            <Link key={p.id} className="inbox-card" to={`${href(key)}?review=1`}>
-              <span className="kicker">
-                ✎ {title(key)} · {p.source.label}
-              </span>
-              {p.kind === "edit" ? (
-                <>
-                  <del className="q">{p.find}</del>
-                  <span className="a">{p.replace}</span>
-                </>
-              ) : (
-                <span className="a">{p.kind === "row" ? p.cells?.filter(Boolean).join(" · ") : p.text}</span>
-              )}
-              <span className="q">{p.reason}</span>
-            </Link>
-          ))}
-        </section>
-      )}
-      <section className="inbox-sec">
-        <h2 className="sec-h">Replies from Claude</h2>
-        {replied.length === 0 && <p className="muted">No new replies.</p>}
-        {replied.map(({ key, t }) => (
-          <Link key={t.id} className="inbox-card" to={href(key)}>
-            <span className="kicker">{title(key)}</span>
-            <blockquote>{t.anchor.quote}</blockquote>
-            <span className="q">You: {t.comments[0]?.body}</span>
-            <span className="a">Claude: {t.comments.at(-1)?.body}</span>
-          </Link>
-        ))}
-      </section>
-      {flags.length > 0 && (
-        <section className="inbox-sec">
-          <h2 className="sec-h">Flags from AI reviewers</h2>
-          {flags.map(({ key, t }) => {
-            const verdict = t.comments.filter((c) => c.userId === "claude").at(-1)?.body;
-            const author = t.comments[0]?.userId;
-            const ai = isAi(author) ? AIS[author].name : "AI";
-            return (
-              <Link key={t.id} className={`inbox-card${verdict ? "" : " quiet"}`} to={href(key)}>
-                <span className="kicker">
-                  ⚑ {ai} · {bot(t.flag?.by ?? "")?.name ?? "Reviewer"} · {t.flag?.level} · {title(key)}
-                </span>
-                <blockquote>{t.anchor.quote}</blockquote>
-                <span className="q">
-                  {ai}: {t.comments[0]?.body}
-                </span>
-                <span className={verdict ? "a" : "q"}>{verdict ? `Claude: ${verdict}` : "Claude will check this"}</span>
-              </Link>
-            );
-          })}
-        </section>
-      )}
-      <section className="inbox-sec">
-        <h2 className="sec-h">Waiting for Claude</h2>
-        {waiting.length + openCaptures.length === 0 && <p className="muted">Nothing waiting.</p>}
-        {waiting.map(({ key, t }) => (
-          <Link key={t.id} className="inbox-card quiet" to={href(key)}>
-            <span className="kicker">Ask Claude · {title(key)}</span>
-            <span className="q">{t.comments[0]?.body}</span>
-          </Link>
-        ))}
-        {openCaptures.map((c) => (
-          <div key={c.id} className="inbox-card quiet">
-            <span className="kicker">Scratch pad</span>
-            <span className="q">{c.text}</span>
-          </div>
-        ))}
-      </section>
-      {filed.length > 0 && (
-        <section className="inbox-sec">
-          <h2 className="sec-h">Filed from your scratch pad</h2>
-          {filed.map((c) => (
-            <div key={c.id} className="inbox-card">
-              <span className="kicker">{c.note ? `Filed into ${c.note}` : "Done"}</span>
-              <span className="q">You: {c.text}</span>
-              <span className="a">Claude: {c.reply}</span>
-              <span className="row">
-                {c.note && (
-                  <Link className="pill-btn small" to={`/notes/${c.note}`}>
-                    Open {c.note}
-                  </Link>
-                )}
-                <button type="button" className="pill-btn small" onClick={() => void deleteCapture(c.id)}>
-                  Clear
-                </button>
-              </span>
-            </div>
-          ))}
-        </section>
-      )}
-    </article>
+    <Suspense fallback={<PageSkeleton label="Loading the inbox" />}>
+      <InboxBoard />
+    </Suspense>
   );
 }
 

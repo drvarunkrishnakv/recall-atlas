@@ -1,5 +1,260 @@
 # Decisions
 
+## 2026-10-21 — Real explanations on true-or-false puzzles
+
+- **Why:** the user found the puzzle feedback useless ("statement 3 is false according to UPSC's
+  provisional key"): it teaches nothing, and the statement number means nothing once the
+  statement stands alone.
+- **What a puzzle now shows after you answer:** a 2–4 sentence explanation that states the fact
+  and the idea UPSC was testing, then who wrote it and whether it was checked, then the key line.
+  The register's own explanations weren't reused as they stand: many cover the whole question,
+  carry personal notes, reference lists or "Final answer" lines, and some are wrong.
+- **How they were made and checked:** Claude wrote one per statement, taking the true/false
+  verdict from UPSC's key as fixed and the register only as a hint. Grok and Gemini then checked
+  each one blind for accuracy and for supporting the verdict. Anything either flagged was fixed
+  (or its disputed detail dropped) and checked again, with web search for recent events.
+  1,154 of 1,173 passed both; the 19 still disputed show a plain "a checked explanation isn't
+  ready yet" line rather than anything unverified.
+- **Data:** an optional `explanation {text, source, checked}` on puzzle items. The private
+  pipeline (inputs, writer brief, checker, merge) is in data/puzzle_explain/. Statements where
+  the writers doubted UPSC's own verdict are listed for the user in data/puzzle_explain/doubts.md.
+- **Also fixed:** 15 PYQs whose last statement was cut off or had the closing question stuck to
+  it (which added 12 puzzles), and the puzzle header on 375 px phones.
+
+## 2026-10-21 — Responsiveness audit: phones, iPad and Macs
+
+- **How it was checked:** every screen (48 routes, on test data and on a copy of the real notes) at
+  seven sizes: 375 and 412 px phones, iPad portrait (820) and landscape (1180), and Macs at 1280,
+  1440 and 1728 px. Each page was measured for sideways scroll, anything past the right edge,
+  clipped text, small touch targets, and the floating Capture button covering a control; then
+  screenshots were reviewed. No page scrolled sideways or ran off the edge at any size.
+- **Fixed:**
+  - The floating Capture button (phones and iPad) shows only on a note or concept card you're
+    reading, with room under the last lines; elsewhere it sat on rows, tiles and buttons. Capture
+    stays in the ··· menu everywhere.
+  - Prelims Home's subject tiles go two a row below 1000 px, so names like "Science and
+    Technology" no longer cut off (iPad, 13-inch Macs).
+  - Mains Notes, Essay, Ethics, Medical and the inbox: the drawer sits beside the table only from
+    1440 px; below that it slides over the table, which had squeezed note names onto three or four
+    lines at 1280.
+  - The marked answer page, in one column (below 1100 px), stretches every panel to full width.
+  - Finger-sized targets on touch screens for the subject page's topic and count buttons, the
+    subject table's chips and the heat map's dots.
+
+## 2026-10-21 — A shorter Mains sidebar; the main button is each mode's main action
+
+- **Why:** after the milestones were joined, the Mains sidebar carried the new screens and every
+  old entry (Revise today, Concept cards, News heat map, a Subjects list with "soon" rows): about
+  twenty lines. The user found it cluttered and asked what the Capture button still did.
+- **Mains sidebar** is now the chosen list and nothing more: Home, Notes, Feedback, Essay, Ethics
+  case studies, Medical Science, Claude inbox, Analytics. Notes carries the "due for revision"
+  count and stays highlighted while a note, a subject table or a note tool is open.
+- **The old entries moved, not removed:** Revise today, Concept cards and the News heat map are
+  chips at the top of Notes; the subject tables are reached from Notes' paper and subject tabs.
+- **The big button** is each mode's main action: "Today's answer" (the Write screen, which opens
+  on the suggested question) in Mains, "Practise now" (a 20-question session) in Prelims, in the
+  mode's colour. So Write needs no sidebar entry of its own.
+- **Capture** moved into the ··· menu ("Capture a thought"). The Mains Home scratch pad and the
+  phone's floating button still capture too. Claude files captures into notes on its runs.
+- **Mains Notes:** a written note's name opens the note itself, full screen; the rest of the row
+  or its Claude flag opens Claude's drawer, which now leads with "Open the full note". The user
+  had clicked a note and got only the drawer's summary.
+
+## 2026-10-21 — Mains Home and Mains Analytics (M11, Mains half)
+
+- **The daily answer target rises with the calendar.** Agreed on 2026-10-20 as "1–2 now, 5–6 in
+  the Mains season"; `answerTarget` in `app/src/lib/mains-analytics.ts` makes it exact:
+  - until Prelims (23 May 2027): 1–2 answers a day, 7–14 a week. Prelims comes first; a daily
+    answer or two keeps the habit and gives the marking something to learn from;
+  - after Prelims it rises by one answer a day each week: 2–3, 3–4, 4–5, then 5–6 from the fourth
+    week (14 June 2027). A step a week, so the habit grows instead of breaking on a sudden jump;
+  - 5–6 a day holds until Mains (20 Aug 2027): roughly a 250-mark paper's worth of questions every
+    three to four days, about 1½ hours of writing a day at 7–11 minutes an answer;
+  - from the first day of Mains there is no target.
+  It doesn't yet adapt to what you actually write; Analytics compares the two week by week.
+- **A full paper is 250 marks of questions in one sitting.** Answers on one paper, sent on one day,
+  whose questions carry 250 marks between them (a GS paper's twenty questions, or the Essay's two).
+  No predicted score until two such papers are marked (the Mains version of Prelims' "three
+  mocks"); after that, a rough total out of 1,750: the share scored on those papers applied to every
+  written paper, labelled a rough guide.
+- **Marks still open** per paper = paper marks × (1 − average score ÷ 10). A paper with no marked
+  answer counts in full, so Medical Science (both optional papers, 500 marks) leads until it starts.
+- **The weekly note is shared by both modes, split by its evidence.** A line whose evidence route
+  starts with `/prelims` shows on Prelims Analytics; any other (`/mains/…`, `/notes/…`) on Mains
+  Analytics. Until Claude's weekly run writes Mains lines, Mains Analytics pins the story worked out
+  on the device and says so. `atlas week-data` now gives each week's Mains facts and their routes.
+- **The Mains Home replaced the old home at "/".** What moved: "notes to revise" and "Due for
+  revision" became the Notes due card; the "from Claude" count and the Claude inbox panel became
+  the From Claude strip; the subject cards became the paper tiles, whose subject links (Polity) still
+  open the subject table. Continue reading and the scratch pad stay, below the papers. The old
+  `HomePage` was removed from `dashboard.tsx` once M12 had merged (integration, 21 Oct).
+
+## 2026-10-21 — The nightly engine (M9)
+
+- **The lesson follows the app's theme (changed 2026-10-21 after the user's review).** The first
+  build kept the lesson a dark night panel even in light mode; the user saw a dark panel inside a
+  light shell and asked for one theme, not a hybrid. Now light mode shows a warm, low-glare paper
+  version, and dark mode the warm, dim night look (Chang et al. 2015) with its "Night mode"
+  badge. The exam-hall timer while writing (M8) stays dark: it fills the whole screen, so
+  nothing around it clashes.
+- **Shaky concepts come back until they hold.** A card called "Still shaky" is added to every
+  later lesson until it is called "Got it" on two different days after the last "shaky" (the
+  day of that "shaky" doesn't count). The same successive-relearning rule the Mistake notebook
+  uses for "fixed". `lesson-write` adds the due cards itself, so a run can't forget them.
+- **Ratings live in the lesson.** `lessons/{day}` holds the cards, the quiz and the user's
+  presses. The CLI writes a lesson and keeps the presses already made; the app may only add or
+  take back a press (Firestore: read and update, never create or delete). Weekly notes in
+  `notes-week/{week}` are written by the CLI only.
+- **The morning quiz is the practice session in short form**, on the lesson's quiz items, with
+  answers saved in the attempt log as mode "quiz". FSRS and the notebook count them like any
+  other answer.
+
+## 2026-10-21 — Flashcards, puzzles and Rush on the one log (M10)
+
+- **One rating.** Puzzles move the same 0–1000 rating as MCQs: each answer's `delta` is Elo with
+  K = 32 against the puzzle's difficulty, as agreed, and `ratingAfter` adds every delta up. Rush
+  never moves it (mode `rush`, no `delta`; the check refuses one).
+- **Rush keeps its best in the log, not on the device.** Each run's answers share a `session` id,
+  so the best score (most right answers in a run) follows the user to every device.
+- **Puzzle shape.** `PuzzleItem` gained an optional `style` (`tf`, `match`, `order`, `map`) with
+  each style's own fields; `options` and `answer` became optional and are required only when there
+  is no style, so items in the older shape still load.
+- **True-or-false puzzles come from verified PYQs, conservatively.** One per statement, only when
+  the answer key says for certain whether that statement is true (the app's own option logic,
+  ported and checked against it on 21,912 cases), the question asks which statements are correct,
+  and the statement reads on its own. Pairs, "not correct" questions, count answers, the
+  "explains" part of Statement-I/II questions and property lists ("Which of the above…") are left
+  out. Every puzzle starts at difficulty 500: there's no principled way yet to rate a single
+  statement, and the rating places them as they are answered.
+- **No real flashcards yet.** Cards Claude writes need the blind fact-check pipeline first, so the
+  card screen runs on the fixture until then.
+
+## 2026-10-21 — Readiness: five parts, coverage multiplies (M11)
+
+- **What it measures.** Readiness (0–1000) for a subject, a topic or a microtheme is how much of
+  its Prelims questions you're ready for, worked out on the device from the attempt log and the
+  banks (`app/src/lib/readiness.ts`). Nothing is stored.
+- **The five parts** (the chosen Analytics design):
+  - coverage: the share of servable MCQs and flashcards answered at least once;
+  - memory: FSRS retrievability now, averaged over the items answered, capped by review accuracy
+    (see below);
+  - new questions: the share of MCQs right the first time you met them;
+  - speed: the share of the last four weeks' MCQ answers given within 72 s (100 questions in
+    120 minutes);
+  - calibration: the share of the last four weeks' "sure" answers that were right.
+- **How they combine:** readiness = 1000 × coverage × (0.35 memory + 0.35 new questions +
+  0.15 speed + 0.15 calibration). Coverage multiplies because you can't be ready on questions you
+  haven't met; added like the others, three perfect answers would make a 200-question subject look
+  half ready. Memory and new questions share 70%: one says what you learnt stays, the other that it
+  transfers to unseen questions, which is what the paper asks. Speed and calibration get 15% each:
+  they decide whether knowledge becomes marks (finishing in time; not losing ⅔ of a mark on a
+  confident miss). A part with no evidence yet is left out and the others share its weight.
+- **Prelims readiness** weighs each subject by its share of the banks' Prelims PYQs, so it reads
+  as the share of a paper you're ready for, and "where the marks are" (share × (1 − readiness ÷
+  1000) × 100) adds up to the rest of the paper.
+- **The four-week window** for speed and calibration is the shortest range Analytics offers, so a
+  habit you've dropped stops counting within a month. First tries are kept for good: each item has
+  only one.
+- **Weak spots** are judged on each item's latest answer (at least three answers in the microtheme
+  and at least one latest miss), so a miss you've since fixed stops counting.
+- **The daily target** spreads every unseen servable item plus the reviews due now over the days
+  left to 23 May 2027, recomputed each day; there is no streak counter.
+- **Memory is capped by how your reviews actually went (the user's call, 21 Oct).** FSRS's
+  retrievability stays around 0.7–0.8 two days after a lapse, and above 0.5 even after four misses
+  in a row, so a topic you keep missing could read about 600. Memory is now the lower of FSRS's
+  predicted recall and the share of the last four weeks' reviews (answers to MCQs and flashcards
+  you had met before) that were right, once there are at least three such reviews. Two reviews
+  aren't a pattern yet, and good reviews never raise memory above FSRS's prediction.
+- **To revisit** in the monthly tuning pass, once a month of real answers exists: the weights, and
+  whether the cap needs a softer form (for example a blend) once FSRS is fitted to your own log.
+
+## 2026-10-21 — Mains answers: photos, marking and disputes (M8)
+
+- **Photos live in Firebase Storage** at `answers/{id}/page-{n}.jpg`, under owner-only rules
+  (`storage.rules`: the `atlasOwner` claim, JPEG/PNG/WebP only, under 8 MB, no deletes). Locally
+  the dev API keeps them in `content/mains/photos/<id>/`. The app shrinks a photo to 2,000 px on
+  its long side (JPEG) before sending it, so an upload is well under a megabyte. The app shows a
+  Storage photo through its download URL, which is fetched only by the signed-in owner.
+- **An answer is created when the timer starts**, as a draft, so the desk can show a QR code to
+  `/mains/write?answer=<id>` and the phone can add pages to the same answer. Its status then runs
+  draft → waiting (sent) → marked, or disputed while an "I disagree" is open. Answers are never
+  deleted, like the attempt log.
+- **The reading check moved to the marked page.** The Write mocks showed the transcript before the
+  self-score, but marking (and so transcribing) happens on the next run. The user checks Claude's
+  reading on the answer's page instead; a correction after marking opens a dispute so the next run
+  checks whether a misread word cost marks.
+- **"Straighten" is a quarter turn for now.** A page can be turned on the device that took it (it
+  keeps the original until the page is reloaded), then sent again under the same name. Automatic
+  deskewing and cropping can come later.
+- **Disputes** are one per checklist item. The next run resolves each as changed (the item's marks
+  and the score move) or kept, always with a reason; the app shows both and counts them.
+- **The QR code is made on the device** with `qrcode-generator` (no dependencies, no network).
+- **Real questions:** the register's 974 Mains PYQs (GS1–GS4, 2013–2025). The register gives a word
+  limit for 86 of them in the question's own note (37 with the marks too; for the other 49 the marks
+  follow the usual split, 150 words = 10 marks and 250 = 15). The other 888 are set as 10-markers of
+  150 words and flagged, so the Write screen offers a 10/15 switch. "It asks for" is built from
+  the question's sentences and directive words by the private build script.
+
+## 2026-10-21 — The rest of Mains (M12): Essay, Ethics, Medical Science, Notes, inbox
+
+- **Content and your records share a collection.** `essay/{id}`, `ethics/{id}` and
+  `medical/{line}` hold what Claude's CLI writes; your outlines, bench attempts, ratings and
+  drills sit beside them as `essay/mine-{id}` and so on. One read gets both, and the rules stay
+  simple: the app may create and update only `mine-` documents, never delete them, and never
+  write content. Files follow the same names under `content/mains/`.
+- **Claude's breakdowns and comparisons come after your own try.** An essay topic's breakdown
+  opens only once you have written your own keywords and angles (stored), and the sprint starts
+  only then. On the Ethics bench, "Compare with mine" opens per step once that step has your
+  answer. It shows Claude's view beside yours with no mark, since a case often has more than one
+  defensible answer.
+- **The inbox's new actions are proposal operations, not new logic.** "Verify, then add" applies
+  a proposal at once when its source was already checked against a primary source; otherwise it
+  marks it `verifyRequested`, and Claude's next run checks the primary source and approves it
+  only if it matches. "Edit" saves your wording (`revise`) and waits for the same check. "Add it
+  now, marked unverified" appends "(unverified)" to the source label, so the note's citation says
+  so, then approves. Proposals may carry Claude's `confidence` (high, medium, low).
+- **Medical Science PYQs count from 2014 to 2026.** The register in `data/medical_pyqs/` keeps
+  2026 outside its own scope, but the app counts it: it is the latest paper. Key diagrams are those
+  UPSC asked for (with the year), plus a few standard ones with no year.
+- **The Mains Notes table reads what exists.** PYQ counts from the syllabus, "last asked" from the
+  Write flow's question bank, answers from its marked answers, open checks from each note's "Open
+  checks" section, and "sources waiting" from pending proposals. "Draft next" and "Ask Claude to
+  look again" leave a request in the scratch pad for Claude's next run.
+
+## 2026-10-20 — Prelims and Mains practice inside the app
+
+- **What the user asked for:** one study system for CSE 2027 inside Mains Atlas, with a Prelims
+  mode and a Mains mode. Prelims is MCQ-first practice with miss reasons, FSRS for MCQs and
+  flashcards, puzzles with a 0–1000 rating, and nightly lessons from the day's misses. Mains is
+  answers written on paper, photographed and marked by Claude, plus Essay, Ethics case studies and
+  the Medical Science optional. The user chose every screen from three mocks on the design canvas
+  (https://claude.ai/artifact/5L9F2MBYd2QSETo5r485cQ).
+- **The rating is the one exception to "no gamification".** The user asked for a chess.com-style
+  rating with ± points on puzzles. There are still no streaks, badges or points anywhere else.
+- **Board shell everywhere.** The sidebar, the top bar and the Prelims/Mains switch use the Board
+  look: warm graphite in dark, warm paper in light, Nunito, green for Prelims and amber for Mains.
+  Note and card pages keep their reading style inside it. Board has a light mode as well as a
+  dark one, because every screen must work in both.
+- **Modes follow the URL.** Prelims lives under `/prelims`, and every existing route is Mains. The
+  switch remembers the last page of each mode on the device (`atlas-mode-path-prelims`,
+  `atlas-mode-path-mains`).
+- **One attempt log feeds the engine.** Every answer is added once to `attempts/{day}` and never
+  changed, except its miss reason. Three layers read it. On the device, without AI: FSRS, the
+  rating, readiness and the daily target. Claude's scheduled runs: marking, the nightly lesson and
+  morning quiz, generated questions with a blind fact-check, and the weekly note. A monthly tuning
+  pass fits FSRS to the user's own log.
+- **Marking waits for the next scheduled run.** That needs no API key and costs nothing per
+  answer. A faster path (a Cloud Function calling the API) can come later.
+- **No PYQ reaches a session until its key is checked** against UPSC's official answer key
+  (`keyVerified`). The register's answers came from a third-party export.
+- **Data shapes** are in `app/src/lib/practice.ts`, pure and tested: items (MCQ, flashcard,
+  puzzle), attempts with the eight grades from the chosen session design, and the grade-to-FSRS
+  mapping. Wrong answers (Didn't know, Forgot, Mixed up, Misread, Risky guess) are Again; Guessed
+  is Hard, Knew it is Good and Instant is Easy. FSRS itself (`ts-fsrs`) arrives with M7.
+- **Firestore:** `items/{bank}` holds a bank of items, which the CLI writes and the app only reads.
+  `attempts/{YYYY-MM-DD}` holds a day's attempts and `srs/{bank}` a bank's review state. Both are
+  owner-only reads and writes.
+
 ## 2026-10-19 — App pages are not cached for an hour
 
 - Hosting matches header rules against the requested path, before the rewrite to `/index.html`.

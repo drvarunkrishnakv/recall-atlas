@@ -31,7 +31,42 @@ import { applyThreadOp, type StoredThread } from "../src/lib/threads.ts";
 import { applyDiscussionOp, type Discussion } from "../src/lib/discussions.ts";
 import { applyCaptureOp, applyProgressOp, type Capture, type Progress } from "../src/lib/progress.ts";
 import type { Comparison, HeatMap } from "../src/lib/heatmap.ts";
+import { applyAttemptOp, attemptsDocId, validateBank, type Attempt, type Bank } from "../src/lib/practice.ts";
+import {
+  applyLessonOp,
+  lessonDocId,
+  LessonError,
+  validateLesson,
+  validateWeeklyNote,
+  weekDocId,
+  type Lesson,
+  type WeeklyNote,
+} from "../src/lib/lessons.ts";
 import type { Backend } from "./backend.ts";
+import { mainsExtraFirestore } from "./mains-extra-firestore.ts";
+import { mkdirSync } from "node:fs";
+import {
+  applyAnswerOp,
+  isAnswerId,
+  MainsError,
+  PHOTO_FILE,
+  storagePath,
+  validateAnswer,
+  validateQuestionSet,
+  type MainsAnswer,
+  type QuestionSet,
+} from "../src/lib/mains.ts";
+
+/** Where answer photos live: ATLAS_STORAGE_BUCKET, or the project's default Storage bucket. */
+export const photoBucket = (app: App) =>
+  process.env.ATLAS_STORAGE_BUCKET ?? `${app.options.projectId}.firebasestorage.app`;
+
+// Named through a variable so the MCP bundles (rolldown) leave Storage out: only the CLI
+// downloads photos.
+const STORAGE_MODULE = "firebase-admin/storage";
+
+/** Where the CLI keeps photos it downloads for the marking run to read. */
+export const PHOTO_CACHE = process.env.ATLAS_PHOTO_CACHE ?? join(homedir(), ".cache", "mains-atlas", "answers");
 
 export const KEY_PATH = join(homedir(), ".config", "mains-atlas", "service-account.json");
 
@@ -179,6 +214,116 @@ export function firestoreBackend(db: Firestore = getFirestore(adminApp())): Back
         batch.set(db.doc(`heatmap/${id}`), record);
       await batch.commit();
     },
+    banks: async () =>
+      (await db.collection("items").get()).docs
+        .map((d) => decodeJson<Bank | null>(d.data(), null))
+        .filter((b): b is Bank => !!b),
+    async setBanks(banks, replace) {
+      banks.forEach(validateBank);
+      const keep = new Set(banks.map((b) => b.id));
+      const batch = db.batch();
+      for (const b of banks)
+        batch.set(db.doc(`items/${b.id}`), {
+          json: JSON.stringify(b),
+          subject: b.subject,
+          topic: b.topic,
+          count: b.items.length,
+          updatedAt: Date.now(),
+        });
+      if (replace) for (const d of (await db.collection("items").get()).docs) if (!keep.has(d.id)) batch.delete(d.ref);
+      await batch.commit();
+    },
+    attempts: async () =>
+      Object.fromEntries(
+        (await db.collection("attempts").get()).docs.map((d) => [
+          d.id,
+          decodeJson(d.data(), { attempts: [] as Attempt[] }).attempts,
+        ]),
+      ),
+    changeAttempts: async (day, op) =>
+      (
+        await change(db.doc(`attempts/${attemptsDocId(day)}`), { attempts: [] as Attempt[] }, (v) =>
+          applyAttemptOp(v, op),
+        )
+      ).attempts,
+    lessons: async () =>
+      (await db.collection("lessons").get()).docs
+        .map((d) => decodeJson<Lesson | null>(d.data(), null))
+        .filter((l): l is Lesson => !!l)
+        .sort((a, b) => a.day.localeCompare(b.day)),
+    writeLesson: (day, build) =>
+      db.runTransaction(async (tx) => {
+        const ref = db.doc(`lessons/${lessonDocId(day)}`);
+        const next = validateLesson(build(decodeJson<Lesson | null>((await tx.get(ref)).data(), null)));
+        if (next.day !== day) throw new LessonError(`The lesson says ${next.day}, not ${day}`);
+        tx.set(ref, { json: JSON.stringify(next), updatedAt: Date.now() });
+        return next;
+      }),
+    changeLesson: (day, op) =>
+      db.runTransaction(async (tx) => {
+        const ref = db.doc(`lessons/${lessonDocId(day)}`);
+        const next = applyLessonOp(decodeJson<Lesson | null>((await tx.get(ref)).data(), null), op);
+        tx.set(ref, { json: JSON.stringify(next), updatedAt: Date.now() });
+        return next;
+      }),
+    weeks: async () =>
+      (await db.collection("notes-week").get()).docs
+        .map((d) => decodeJson<WeeklyNote | null>(d.data(), null))
+        .filter((n): n is WeeklyNote => !!n)
+        .sort((a, b) => a.week.localeCompare(b.week)),
+    async setWeek(note) {
+      validateWeeklyNote(note);
+      await db.doc(`notes-week/${weekDocId(note.week)}`).set({ json: JSON.stringify(note), updatedAt: Date.now() });
+    },
+    mainsQuestions: async () =>
+      (await db.collection("mainsq").get()).docs
+        .map((d) => decodeJson<QuestionSet | null>(d.data(), null))
+        .filter((s): s is QuestionSet => !!s),
+    async setMainsQuestions(sets, replace) {
+      sets.forEach(validateQuestionSet);
+      const keep = new Set<string>(sets.map((s) => s.paper));
+      const batch = db.batch();
+      for (const s of sets)
+        batch.set(db.doc(`mainsq/${s.paper}`), {
+          json: JSON.stringify(s),
+          paper: s.paper,
+          count: s.questions.length,
+          updatedAt: Date.now(),
+        });
+      if (replace) for (const d of (await db.collection("mainsq").get()).docs) if (!keep.has(d.id)) batch.delete(d.ref);
+      await batch.commit();
+    },
+    answers: async () =>
+      (await db.collection("answers").get()).docs
+        .map((d) => decodeJson<MainsAnswer | null>(d.data(), null))
+        .filter((a): a is MainsAnswer => !!a),
+    async answer(id) {
+      if (!isAnswerId(id)) return null;
+      return decodeJson<MainsAnswer | null>((await db.doc(`answers/${id}`).get()).data(), null);
+    },
+    async changeAnswer(id, op) {
+      if (!isAnswerId(id)) throw new MainsError("Bad answer id");
+      return db.runTransaction(async (tx) => {
+        const ref = db.doc(`answers/${id}`);
+        const next = applyAnswerOp(decodeJson<MainsAnswer | null>((await tx.get(ref)).data(), null), op);
+        if (next.id !== id) throw new MainsError("The answer's id doesn't match its address");
+        validateAnswer(next);
+        tx.set(ref, { json: JSON.stringify(next), updatedAt: Date.now() });
+        return next;
+      });
+    },
+    async answerPhoto(id, file) {
+      if (!isAnswerId(id) || !PHOTO_FILE.test(file)) throw new MainsError("Bad photo path");
+      const { getStorage } = (await import(STORAGE_MODULE)) as typeof import("firebase-admin/storage");
+      const app = adminApp();
+      const remote = getStorage(app).bucket(photoBucket(app)).file(storagePath(id, file));
+      if (!(await remote.exists())[0]) return null;
+      mkdirSync(join(PHOTO_CACHE, id), { recursive: true });
+      const destination = join(PHOTO_CACHE, id, file);
+      await remote.download({ destination });
+      return destination;
+    },
+    mainsExtra: mainsExtraFirestore(db),
     async restoreAll(data) {
       // Small batches: a long page is close to a megabyte on its own.
       const writes: [DocumentReference, Record<string, unknown>][] = [];

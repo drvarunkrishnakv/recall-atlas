@@ -11,6 +11,11 @@ import type { Proposal, ProposalOp } from "../src/lib/proposals.ts";
 import type { HistoryEntry } from "../src/lib/cloud-docs.ts";
 import { approveProposal, restoreVersion } from "../src/lib/approve.ts";
 import type { Comparison, HeatMap } from "../src/lib/heatmap.ts";
+import type { Attempt, AttemptOp, Bank } from "../src/lib/practice.ts";
+import type { Lesson, LessonOp, WeeklyNote } from "../src/lib/lessons.ts";
+import type { AnswerOp, MainsAnswer, QuestionSet } from "../src/lib/mains.ts";
+import { resolve } from "node:path";
+import { mainsExtraFiles, type MainsExtraBackend } from "./mains-extra-files.ts";
 import {
   changeCaptures,
   changeDiscussions,
@@ -29,10 +34,25 @@ import {
   loadThreads,
   loadComparison,
   loadHeatmap,
+  changeAttempts,
+  loadAttempts,
+  loadBanks,
+  saveBanks,
   saveComparison,
   saveHeatmap,
   savePage,
   writePageFiles,
+  changeLesson,
+  loadLessons,
+  loadWeeks,
+  saveWeek,
+  writeLesson,
+  changeAnswer,
+  loadAnswer,
+  loadAnswers,
+  loadQuestionSets,
+  photoFile,
+  saveQuestionSets,
 } from "./content-api.ts";
 
 export type SaveOutcome = { conflict: true; version: number } | { conflict: false; version: number; updated: string };
@@ -70,6 +90,32 @@ export interface Backend {
   /** The heat map's comparison with past papers, or null. */
   comparison(): Promise<Comparison | null>;
   setComparison(c: Comparison): Promise<void>;
+  /** Practice banks (lib/practice.ts). `setBanks` checks every bank; `replace` drops banks not given. */
+  banks(): Promise<Bank[]>;
+  setBanks(banks: Bank[], replace?: boolean): Promise<void>;
+  /** Every day's practice attempts, `YYYY-MM-DD` → attempts. */
+  attempts(): Promise<Record<string, Attempt[]>>;
+  changeAttempts(day: string, op: AttemptOp): Promise<Attempt[]>;
+  /** Every lesson (lib/lessons.ts), oldest first. */
+  lessons(): Promise<Lesson[]>;
+  /** Writes a day's lesson from the current one (null if none), checked, in one step. */
+  writeLesson(day: string, build: (current: Lesson | null) => Lesson): Promise<Lesson>;
+  changeLesson(day: string, op: LessonOp): Promise<Lesson>;
+  /** The weekly notes, oldest first; only the CLI writes them. */
+  weeks(): Promise<WeeklyNote[]>;
+  setWeek(note: WeeklyNote): Promise<void>;
+  /** Mains questions, one set per paper (lib/mains.ts). `setMainsQuestions` checks each set; `replace` drops papers not given. */
+  mainsQuestions(): Promise<QuestionSet[]>;
+  setMainsQuestions(sets: QuestionSet[], replace?: boolean): Promise<void>;
+  /** Every Mains answer, and one by id. */
+  answers(): Promise<MainsAnswer[]>;
+  answer(id: string): Promise<MainsAnswer | null>;
+  /** Applies one change (the app's, or marking, resolving a dispute, marking a rewrite) in a transaction. */
+  changeAnswer(id: string, op: AnswerOp): Promise<MainsAnswer>;
+  /** An answer's photo as a file on this computer (downloaded from Storage first on Firestore), or null. */
+  answerPhoto(id: string, file: string): Promise<string | null>;
+  /** Essay, Ethics and Medical Science (M12): content from the CLI, and your records. */
+  mainsExtra: MainsExtraBackend;
   /**
    * Writes everything as given, without version checks: for `atlas import` and `atlas export`.
    * `prune` (files only) also removes pages, comments and discussions that `data` no longer has,
@@ -136,6 +182,25 @@ export function fileBackend(dir: string): Backend {
     setHeatmap: async (map) => saveHeatmap(dir, map),
     comparison: async () => loadComparison(dir),
     setComparison: async (c) => saveComparison(dir, c),
+    banks: async () => loadBanks(dir),
+    setBanks: async (banks, replace) => saveBanks(dir, banks, replace),
+    attempts: async () => loadAttempts(dir),
+    changeAttempts: async (day, op) => changeAttempts(dir, day, op),
+    lessons: async () => loadLessons(dir),
+    writeLesson: async (day, build) => writeLesson(dir, day, build),
+    changeLesson: async (day, op) => changeLesson(dir, day, op),
+    weeks: async () => loadWeeks(dir),
+    setWeek: async (note) => saveWeek(dir, note),
+    mainsQuestions: async () => loadQuestionSets(dir),
+    setMainsQuestions: async (sets, replace) => saveQuestionSets(dir, sets, replace),
+    answers: async () => loadAnswers(dir),
+    answer: async (id) => loadAnswer(dir, id),
+    changeAnswer: async (id, op) => changeAnswer(dir, id, op),
+    answerPhoto: async (id, file) => {
+      const path = resolve(photoFile(dir, id, file));
+      return existsSync(path) ? path : null;
+    },
+    mainsExtra: mainsExtraFiles(dir),
     async restoreAll(data, opts) {
       if (opts?.prune) {
         const keep = new Set(data.pages.map((p) => `${p.collection}/${p.id}`));

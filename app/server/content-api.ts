@@ -20,6 +20,15 @@
 //   POST /api/history/:collection/:id         {historyId}: restore that version as a new one
 //   GET  /api/heatmap                         the news heat map and its comparison with past papers,
 //                                             {map, comparison} (each null until imported)
+//   GET  /api/lessons                         every lesson day (newest first) and the latest lesson
+//   GET  /api/lessons/:day                    one day's lesson
+//   POST /api/lessons/:day                    a LessonOp: "Got it" / "Still shaky" on a card, or its undo
+//   GET  /api/weeks[/:week]                   the weekly notes ({weeks, latest}), or one of them
+//   GET  /api/mains                           Mains questions and answers, {sets, answers} (lib/mains.ts)
+//   GET|POST /api/mains/answers/:id           one answer; POST applies one of the app's AnswerOps
+//   GET|POST /api/mains/photos/:id/:file      a page photo (POST: the raw image, jpeg/png/webp, up to 8 MB)
+//   GET  /api/mains-extra                     Essay, Ethics and Medical Science: content and your records
+//   POST /api/mains-extra/:kind/:id           one WorkOp on your record (server/mains-extra-files.ts)
 //
 // Writes are accepted only from this machine (unless ATLAS_ALLOW_LAN_WRITES=1) and only
 // from the app's own origin.
@@ -31,6 +40,7 @@ import {
   readFileSync,
   readdirSync,
   renameSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -53,6 +63,46 @@ import {
   type ProgressOp,
 } from "../src/lib/progress.ts";
 import type { Comparison, HeatMap } from "../src/lib/heatmap.ts";
+import {
+  applyAttemptOp,
+  attemptsDocId,
+  PracticeError,
+  validateBank,
+  type Attempt,
+  type AttemptOp,
+  type Bank,
+} from "../src/lib/practice.ts";
+import {
+  applyLessonOp,
+  lessonDocId,
+  LessonError,
+  lessonIndex,
+  validateLesson,
+  validateWeeklyNote,
+  weekDocId,
+  weekIndex,
+  type Lesson,
+  type LessonOp,
+  type WeeklyNote,
+} from "../src/lib/lessons.ts";
+import { applyReadingOp, readingDocId, ReadingError, type ReadingLog, type ReadingOp } from "../src/lib/reading.ts";
+import {
+  APP_OPS,
+  applyAnswerOp,
+  isAnswerId,
+  MainsError,
+  MAX_PHOTO_BYTES,
+  PHOTO_FILE,
+  PHOTO_TYPES,
+  validateAnswer,
+  validateQuestionSet,
+  type AnswerOp,
+  type MainsAnswer,
+  type PhotoType,
+  type QuestionSet,
+} from "../src/lib/mains.ts";
+import { MainsExtraError, type ExtraKind, type WorkOp } from "../src/lib/mains-extra.ts";
+import { changeMainsExtraWork, loadMainsExtra } from "./mains-extra-files.ts";
 
 const COLLECTIONS = ["notes", "cards"] as const;
 type Collection = (typeof COLLECTIONS)[number];
@@ -325,6 +375,207 @@ export function saveComparison(dir: string, c: Comparison) {
   writeAtomic(join(dir, "heatmap-questions.json"), JSON.stringify(c, null, 1) + "\n");
 }
 
+// Practice: banks of items in practice/banks/<bank>.json, and each day's attempts in
+// practice/attempts/<YYYY-MM-DD>.json (lib/practice.ts).
+const BANK_FILE = /^([a-z0-9][a-z0-9-]{0,60})\.json$/;
+const DAY_FILE = /^(\d{4}-\d{2}-\d{2})\.json$/;
+
+export function loadBanks(dir: string): Bank[] {
+  const folder = join(dir, "practice", "banks");
+  if (!existsSync(folder)) return [];
+  return readdirSync(folder)
+    .filter((f) => BANK_FILE.test(f))
+    .sort()
+    .map((f) => readJson<Bank | null>(join(folder, f), null))
+    .filter((b): b is Bank => !!b);
+}
+
+/** Writes each bank after checking it; `replace` also removes banks not in the list. */
+export function saveBanks(dir: string, banks: Bank[], replace = false) {
+  const folder = join(dir, "practice", "banks");
+  mkdirSync(folder, { recursive: true });
+  const keep = new Set<string>();
+  for (const b of banks) {
+    validateBank(b);
+    keep.add(`${b.id}.json`);
+    writeAtomic(join(folder, `${b.id}.json`), JSON.stringify(b, null, 1) + "\n");
+  }
+  if (replace) for (const f of readdirSync(folder)) if (BANK_FILE.test(f) && !keep.has(f)) rmSync(join(folder, f));
+}
+
+/** Every day's attempts: `YYYY-MM-DD` → attempts in the order they were made. */
+export function loadAttempts(dir: string): Record<string, Attempt[]> {
+  const folder = join(dir, "practice", "attempts");
+  const out: Record<string, Attempt[]> = {};
+  if (!existsSync(folder)) return out;
+  for (const f of readdirSync(folder).sort()) {
+    const m = DAY_FILE.exec(f);
+    if (m) out[m[1]] = readJson<{ attempts: Attempt[] }>(join(folder, f), { attempts: [] }).attempts;
+  }
+  return out;
+}
+
+export function changeAttempts(dir: string, day: string, op: AttemptOp): Attempt[] {
+  const folder = join(dir, "practice", "attempts");
+  mkdirSync(folder, { recursive: true });
+  const path = join(folder, `${attemptsDocId(day)}.json`);
+  const next = applyAttemptOp(readJson(path, { attempts: [] as Attempt[] }), op);
+  writeAtomic(path, JSON.stringify(next, null, 1) + "\n");
+  return next.attempts;
+}
+
+// Lessons (M9): practice/lessons/<YYYY-MM-DD>.json, written by Claude's run through the CLI, and
+// the weekly notes in practice/weeks/<YYYY-Www>.json, written only by the CLI (lib/lessons.ts).
+const WEEK_FILE = /^(\d{4}-W\d{2})\.json$/;
+const lessonPath = (dir: string, day: string) => join(dir, "practice", "lessons", `${lessonDocId(day)}.json`);
+
+export function loadLessons(dir: string): Lesson[] {
+  const folder = join(dir, "practice", "lessons");
+  if (!existsSync(folder)) return [];
+  return readdirSync(folder)
+    .filter((f) => DAY_FILE.test(f))
+    .sort()
+    .map((f) => readJson<Lesson | null>(join(folder, f), null))
+    .filter((l): l is Lesson => !!l);
+}
+
+export function loadLesson(dir: string, day: string): Lesson | null {
+  return readJson<Lesson | null>(lessonPath(dir, day), null);
+}
+
+/** Writes a day's lesson from what is there now (null if none), after checking it. */
+export function writeLesson(dir: string, day: string, build: (current: Lesson | null) => Lesson): Lesson {
+  const path = lessonPath(dir, day);
+  const next = validateLesson(build(readJson<Lesson | null>(path, null)));
+  if (next.day !== day) throw new LessonError(`The lesson says ${next.day}, not ${day}`);
+  mkdirSync(join(dir, "practice", "lessons"), { recursive: true });
+  writeAtomic(path, JSON.stringify(next, null, 1) + "\n");
+  return next;
+}
+
+// Reading log (M11): practice/reading/<subject>.json, the days you logged reading each topic (lib/reading.ts).
+const READING_FILE = /^([a-z0-9][a-z0-9-]{0,80})\.json$/;
+
+export function loadReading(dir: string): Record<string, ReadingLog> {
+  const folder = join(dir, "practice", "reading");
+  const out: Record<string, ReadingLog> = {};
+  if (!existsSync(folder)) return out;
+  for (const f of readdirSync(folder).sort()) {
+    const m = READING_FILE.exec(f);
+    if (m) out[m[1]] = readJson<ReadingLog>(join(folder, f), { topics: {} });
+  }
+  return out;
+}
+
+export function changeReading(dir: string, subject: string, op: ReadingOp): ReadingLog {
+  const folder = join(dir, "practice", "reading");
+  mkdirSync(folder, { recursive: true });
+  const path = join(folder, `${readingDocId(subject)}.json`);
+  const next = applyReadingOp(readJson(path, { topics: {} } as ReadingLog), op);
+  writeAtomic(path, JSON.stringify(next, null, 1) + "\n");
+  return next;
+}
+
+/** Applies a "Got it" / "Still shaky" press (or its undo) from the app. */
+export function changeLesson(dir: string, day: string, op: LessonOp): Lesson {
+  const path = lessonPath(dir, day);
+  const next = applyLessonOp(readJson<Lesson | null>(path, null), op);
+  writeAtomic(path, JSON.stringify(next, null, 1) + "\n");
+  return next;
+}
+
+export function loadWeeks(dir: string): WeeklyNote[] {
+  const folder = join(dir, "practice", "weeks");
+  if (!existsSync(folder)) return [];
+  return readdirSync(folder)
+    .filter((f) => WEEK_FILE.test(f))
+    .sort()
+    .map((f) => readJson<WeeklyNote | null>(join(folder, f), null))
+    .filter((n): n is WeeklyNote => !!n);
+}
+
+export function saveWeek(dir: string, note: WeeklyNote) {
+  validateWeeklyNote(note);
+  mkdirSync(join(dir, "practice", "weeks"), { recursive: true });
+  writeAtomic(join(dir, "practice", "weeks", `${weekDocId(note.week)}.json`), JSON.stringify(note, null, 1) + "\n");
+}
+
+// Mains answers (M8): each paper's questions in mains/questions/<paper>.json, each answer in
+// mains/answers/<id>.json, and its page photos in mains/photos/<id>/page-<n>.<ext> (lib/mains.ts).
+const PAPER_FILE = /^(GS[1-4]|Essay|Med[12])\.json$/;
+const ANSWER_FILE = /^([A-Za-z0-9][A-Za-z0-9._-]{0,80})\.json$/;
+
+export function loadQuestionSets(dir: string): QuestionSet[] {
+  const folder = join(dir, "mains", "questions");
+  if (!existsSync(folder)) return [];
+  return readdirSync(folder)
+    .filter((f) => PAPER_FILE.test(f))
+    .sort()
+    .map((f) => readJson<QuestionSet | null>(join(folder, f), null))
+    .filter((s): s is QuestionSet => !!s);
+}
+
+/** Writes each paper's set after checking it; `replace` also removes papers not in the list. */
+export function saveQuestionSets(dir: string, sets: QuestionSet[], replace = false) {
+  const folder = join(dir, "mains", "questions");
+  mkdirSync(folder, { recursive: true });
+  const keep = new Set<string>();
+  for (const set of sets) {
+    validateQuestionSet(set);
+    keep.add(`${set.paper}.json`);
+    writeAtomic(join(folder, `${set.paper}.json`), JSON.stringify(set, null, 1) + "\n");
+  }
+  if (replace) for (const f of readdirSync(folder)) if (PAPER_FILE.test(f) && !keep.has(f)) rmSync(join(folder, f));
+}
+
+export function loadAnswers(dir: string): MainsAnswer[] {
+  const folder = join(dir, "mains", "answers");
+  if (!existsSync(folder)) return [];
+  return readdirSync(folder)
+    .filter((f) => ANSWER_FILE.test(f))
+    .sort()
+    .map((f) => readJson<MainsAnswer | null>(join(folder, f), null))
+    .filter((a): a is MainsAnswer => !!a);
+}
+
+export function loadAnswer(dir: string, id: string): MainsAnswer | null {
+  if (!isAnswerId(id)) return null;
+  return readJson<MainsAnswer | null>(join(dir, "mains", "answers", `${id}.json`), null);
+}
+
+export function changeAnswer(dir: string, id: string, op: AnswerOp): MainsAnswer {
+  if (!isAnswerId(id)) throw new MainsError("Bad answer id");
+  const folder = join(dir, "mains", "answers");
+  mkdirSync(folder, { recursive: true });
+  const next = applyAnswerOp(loadAnswer(dir, id), op);
+  if (next.id !== id) throw new MainsError("The answer's id doesn't match its address");
+  validateAnswer(next);
+  writeAtomic(join(folder, `${id}.json`), JSON.stringify(next, null, 1) + "\n");
+  return next;
+}
+
+/** The file a photo lives in, after checking the answer id and file name. */
+export function photoFile(dir: string, id: string, file: string): string {
+  if (!isAnswerId(id) || !PHOTO_FILE.test(file)) throw new MainsError("Bad photo path");
+  return join(dir, "mains", "photos", id, file);
+}
+
+/** Saves a page (or rewrite) photo: pages only while the answer is a draft, rewrites once it's marked. */
+export function savePhoto(dir: string, id: string, file: string, type: string, bytes: Buffer) {
+  const path = photoFile(dir, id, file);
+  if (!Object.hasOwn(PHOTO_TYPES, type) || !file.endsWith("." + PHOTO_TYPES[type as PhotoType]))
+    throw new MainsError("Photos are JPEG, PNG or WebP, named for their type");
+  if (!bytes.length || bytes.length > MAX_PHOTO_BYTES) throw new MainsError("A photo must be under 8 MB");
+  const answer = loadAnswer(dir, id);
+  if (!answer) throw new MainsError("No such answer");
+  if (file.startsWith("page-") && answer.status !== "draft") throw new MainsError("This answer has been sent");
+  if (file.startsWith("rewrite-") && !answer.marking) throw new MainsError("Rewrites come after the marking");
+  mkdirSync(join(dir, "mains", "photos", id), { recursive: true });
+  writeFileSync(path + ".tmp", bytes);
+  renameSync(path + ".tmp", path);
+  return { file, bytes: bytes.length };
+}
+
 // ---------- HTTP ----------
 
 const LOOPBACK = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
@@ -345,6 +596,17 @@ async function readBody(req: IncomingMessage): Promise<unknown> {
     chunks.push(chunk as Buffer);
   }
   return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
+}
+
+async function readRaw(req: IncomingMessage, limit: number): Promise<Buffer> {
+  let size = 0;
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) {
+    size += (chunk as Buffer).length;
+    if (size > limit) throw new MainsError("A photo must be under 8 MB");
+    chunks.push(chunk as Buffer);
+  }
+  return Buffer.concat(chunks);
 }
 
 function writeAllowed(req: IncomingMessage): string | null {
@@ -381,6 +643,85 @@ export function contentApi(appRoot: string): Connect.NextHandleFunction {
           200,
           progress ? changeProgress(dir, op as ProgressOp) : { captures: changeCaptures(dir, op as CaptureOp) },
         );
+      }
+
+      if (url.pathname === "/api/practice" && req.method === "GET")
+        return send(res, 200, { banks: loadBanks(dir), days: loadAttempts(dir) });
+      if (parts[1] === "practice" && parts[2] === "attempts" && parts.length === 4) {
+        if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+        const refused = writeAllowed(req);
+        if (refused) return send(res, 403, { error: refused });
+        return send(res, 200, { attempts: changeAttempts(dir, parts[3], (await readBody(req)) as AttemptOp) });
+      }
+
+      // Lessons (M9). The app reads lessons and weekly notes and rates cards; the CLI writes the rest.
+      if (url.pathname === "/api/lessons" && req.method === "GET") return send(res, 200, lessonIndex(loadLessons(dir)));
+      if (parts[1] === "lessons" && parts.length === 3) {
+        if (req.method === "GET") {
+          const lesson = loadLesson(dir, parts[2]);
+          return lesson ? send(res, 200, lesson) : send(res, 404, { error: "No lesson for that day" });
+        }
+        if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+        const refused = writeAllowed(req);
+        if (refused) return send(res, 403, { error: refused });
+        return send(res, 200, changeLesson(dir, parts[2], (await readBody(req)) as LessonOp));
+      }
+      if (url.pathname === "/api/weeks" && req.method === "GET") return send(res, 200, weekIndex(loadWeeks(dir)));
+      if (parts[1] === "weeks" && parts.length === 3 && req.method === "GET") {
+        const note = loadWeeks(dir).find((n) => n.week === weekDocId(parts[2]));
+        return note ? send(res, 200, note) : send(res, 404, { error: "No note for that week" });
+      }
+      if (url.pathname === "/api/reading" && req.method === "GET")
+        return send(res, 200, { subjects: loadReading(dir) });
+      if (parts[1] === "reading" && parts.length === 3) {
+        if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+        const refused = writeAllowed(req);
+        if (refused) return send(res, 403, { error: refused });
+        return send(res, 200, changeReading(dir, parts[2], (await readBody(req)) as ReadingOp));
+      }
+      if (url.pathname === "/api/mains" && req.method === "GET")
+        return send(res, 200, { sets: loadQuestionSets(dir), answers: loadAnswers(dir) });
+      if (parts[1] === "mains" && parts[2] === "answers" && parts.length === 4) {
+        if (!isAnswerId(parts[3])) return send(res, 404, { error: "Not found" });
+        if (req.method === "GET") {
+          const answer = loadAnswer(dir, parts[3]);
+          return answer ? send(res, 200, answer) : send(res, 404, { error: "Not found" });
+        }
+        if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+        const refused = writeAllowed(req);
+        if (refused) return send(res, 403, { error: refused });
+        const op = (await readBody(req)) as AnswerOp;
+        if (!APP_OPS.includes(op?.op as never)) return send(res, 400, { error: "Only Claude's CLI marks answers" });
+        return send(res, 200, { answer: changeAnswer(dir, parts[3], op) });
+      }
+      if (parts[1] === "mains" && parts[2] === "photos" && parts.length === 5) {
+        const [, , , answerId, file] = parts;
+        if (!isAnswerId(answerId) || !PHOTO_FILE.test(file)) return send(res, 404, { error: "Not found" });
+        const path = photoFile(dir, answerId, file);
+        if (req.method === "GET") {
+          if (!existsSync(path)) return send(res, 404, { error: "Not found" });
+          res.statusCode = 200;
+          res.setHeader("Content-Type", Object.entries(PHOTO_TYPES).find(([, ext]) => file.endsWith("." + ext))![0]);
+          res.setHeader("Cache-Control", "no-store");
+          res.setHeader("X-Content-Type-Options", "nosniff");
+          return res.end(readFileSync(path));
+        }
+        if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+        const refused = writeAllowed(req);
+        if (refused) return send(res, 403, { error: refused });
+        const type = String(req.headers["content-type"] ?? "")
+          .split(";")[0]
+          .trim();
+        return send(res, 200, savePhoto(dir, answerId, file, type, await readRaw(req, MAX_PHOTO_BYTES)));
+      }
+      // Essay, Ethics and Medical Science (M12): everything at once, and one change to your record.
+      if (url.pathname === "/api/mains-extra" && req.method === "GET") return send(res, 200, loadMainsExtra(dir));
+      if (parts[1] === "mains-extra" && parts.length === 4) {
+        if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+        const refused = writeAllowed(req);
+        if (refused) return send(res, 403, { error: refused });
+        const op = (await readBody(req)) as WorkOp;
+        return send(res, 200, { work: changeMainsExtraWork(dir, parts[2] as ExtraKind, parts[3], op) });
       }
 
       const [, kind, collection, id, extra] = parts;
@@ -451,7 +792,12 @@ export function contentApi(appRoot: string): Connect.NextHandleFunction {
         e instanceof ThreadOpError ||
         e instanceof ProgressOpError ||
         e instanceof DiscussionOpError ||
-        e instanceof ProposalError
+        e instanceof ProposalError ||
+        e instanceof PracticeError ||
+        e instanceof LessonError ||
+        e instanceof ReadingError ||
+        e instanceof MainsError ||
+        e instanceof MainsExtraError
       )
         return send(res, 400, { error: e.message });
       return send(res, 500, { error: e instanceof Error ? e.message : String(e) });

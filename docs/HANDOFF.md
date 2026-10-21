@@ -1,5 +1,405 @@
 # Handoff
 
+## Integration: M7–M12 in one branch — 2026-10-21
+
+- **Branch:** `claude/atlas-integration`, from `claude/m7-mcq-loop`, with M9 (#49), M10 (#50),
+  M11 Prelims (#51), M8 (#52), M12 (#53) and M11 Mains (#54) merged in. Assisting tool: Claude
+  Code (the milestones were built side by side by helper agents from one shared brief).
+- **Conflicts resolved:** the shared files (dev API, cloud API, CLI, backends, Firestore rules,
+  icons, sidebar registry, docs). Both sidebars follow the chosen order.
+- **Fixes made while joining:**
+  - M11 read M9's weekly note in a shape M9 doesn't send; it now reads `{weeks, latest}` and
+    links each line to its route.
+  - M10's puzzle-only banks no longer show as empty topics on subject pages or count as extra
+    PYQs.
+  - Rush and Flashcards links sit under the Puzzles button on the new Prelims Home.
+  - The Board versions of `.chip`, `.chip-btn`, `.muted` and `.small` moved from prelims.css to
+    index.css, so older Mains pages no longer change look after a practice page has loaded.
+  - The lesson follows the app's theme (the user's review: no dark panel in a light shell). See
+    DECISIONS, the M9 entry.
+  - The old `HomePage` was removed from `dashboard.tsx`; Mains Home replaced it.
+- **After the user's review (21 Oct):** the Mains sidebar is the chosen eight entries; the big
+  button is "Today's answer" / "Practise now" and Capture is in the ··· menu; Revise today,
+  Concept cards and the News heat map are chips on Notes; a written note's name in Notes opens
+  the full note (DECISIONS, "A shorter Mains sidebar").
+- **Responsiveness audit (21 Oct):** every screen at phone, iPad and Mac sizes; fixes and method in
+  DECISIONS ("Responsiveness audit").
+- **Puzzle explanations (21 Oct):** 1,154 of 1,173 true-or-false puzzles carry an explanation
+  checked blind by Grok and Gemini; loaded into Firestore. Method in DECISIONS ("Real
+  explanations on true-or-false puzzles").
+- **Answers:** the 7 contested 2009–2011 questions are retired (kept, never served).
+  `data/grok_check/ANSWERS-REVIEW.md` has the full record.
+- **Live 2026-10-21** (on the user's say-so, from `claude/atlas-integration` 1128e8b, PR #55 not
+  yet merged): `firebase deploy --only firestore:rules` and `--only hosting` (firebase-tools 15,
+  from the internal-disk copy). Content loaded into Firestore with the CLI: 144 banks (1,890
+  PYQs, 1,856 served; 1,161 true-or-false puzzles), 974 Mains questions, 24 essay topics, 6
+  ethics cases, 65 Medical Science lines. Live checks: the site serves the new bundle; signed-out
+  reads of items, attempts, mainsq, answers, lessons, essay and reading return 403; `/mcp`
+  without a key returns 401. The shell's `GOOGLE_APPLICATION_CREDENTIALS` points at another
+  project's (missing) key: run the CLI with it unset so it uses
+  `~/.config/mains-atlas/service-account.json`.
+- **Storage live 2026-10-21:** the user created the default bucket
+  (`recall-atlas-511913.firebasestorage.app`) in the console; `firebase deploy --only storage`
+  released `storage.rules`. Live checks: signed-out list and upload under `answers/` return 403;
+  the deployed build already names this bucket (`VITE_FIREBASE_STORAGE_BUCKET`). The app uploads
+  with `uploadBytes` and shows photos through download URLs, so the bucket needs no CORS setting.
+  Not yet tried signed in from a phone.
+- **Not done:** scheduling the marking,
+  nightly-lesson and weekly-note runs (docs/routines/); the `mcp` function was not redeployed
+  (unchanged for its tools). No real flashcards yet: Claude-written cards need the blind
+  fact-check first.
+
+## Mains Home and Mains Analytics (M11, Mains half) — 2026-10-21
+
+- **Branch:** `claude/m11-mains-homes`, from `claude/atlas-integration` (826c609: M7, M8, M9, M10
+  and the Prelims half of M11). Assisting tool: Claude Code. Built alongside M12, which works from M7.
+- **App:**
+  - Mains Home at `/` (Mains 1 · Centre stage), replacing the old home. In the centre, "Today's
+    answer": a big amber button (glowing, still under reduced motion, first on phones) with the
+    question M8's `suggestQuestions` picks first (a retry due, else a new question with a written
+    note), its paper, year, words and minutes, linking to `/mains/write?q=<id>`. Left: notes due
+    (soonest first, with "Revise P06" and Revise today). Right: the last feedback (score, written
+    when, keep, the biggest fix, Open feedback) and "N answers waiting for marking", or the waiting
+    answer alone before any is marked. Above: a "From Claude" strip (note updates to approve,
+    replies, flags, filed captures, answers marked and disputes answered this week, the weekly
+    note's Mains lines; Open inbox). Header: today's answers against the target and the days to
+    Mains. Then six paper tiles (GS1–4, Essay, Medical Science at 500): average answer score, notes
+    written with the subject linked (Polity → `/gs2/polity`), a coverage bar; a tile leads to
+    `/mains/notes?paper=gs2`, `/mains/essay` or `/mains/medical` (M12's routes). Then "This week in
+    your notes" (approved changes with their source dates, and edits; "Latest changes" when the
+    week is quiet), Continue reading and the scratch pad.
+  - Mains Analytics at `/mains/analytics` (MAna-1 · The week's story): Claude's Mains lines from the
+    weekly note pinned on top, each linked to its evidence; until there are any, the story worked
+    out on the device, each line jumping to its section. Six headings over their charts: scores by
+    week (coloured columns out of 10), marks kept per checklist item (with a link to the costliest
+    fix tag), self-score gap and time per 10-marker by month (7:00 marked), answers a week against
+    the target band (7–14 now), and marks still open per paper. 8 weeks by default, 4 weeks or all
+    time (`?range=`). No predicted score until two full papers are marked.
+  - "Analytics" in the Mains sidebar. Prelims Analytics now leaves the note's Mains lines out.
+- **Engine:** `src/lib/mains-analytics.ts` (DECISIONS 2026-10-21: the daily answer target's ramp,
+  full papers and the prediction gate, marks still open, the note split by route, what moved
+  from the old home). `atlas week-data` gives each week a `mains` block for the weekly note, and
+  `docs/routines/weekly-note.md` says how to write Mains lines. Nothing new is stored.
+- **Fixture:** three made-up marked answers (GS1 on 29 Sep and 14 Oct, GS2 on 8 Oct) with photos;
+  none carries the tags or scores M8's tests count. M8's fixture test now expects 6 answers.
+- **Checks** (internal-disk copy, installed Chrome): Prettier, `tsc -b`, 199 unit tests (18 new),
+  build (local and cloud); `npx playwright test e2e/m11-mains.spec.ts` 13 passed + 2 skips (5 tests
+  × desktop, iPad, Android; the weekly-note test runs on desktop only); full `npx playwright test`
+  127 passed, 29 skipped and 6 failed. The 6 failures already happened on `claude/atlas-integration`
+  before this branch (baseline: 114 passed, 6 failed, 27 skipped). They are M10's "Prelims Home and
+  the sidebar lead to flashcards…" (it looks for `.start-opts`, which the M11 Prelims Home dropped)
+  and M11-Prelims' Analytics test (it expects "No weekly note yet." while M9's fixture has a note),
+  each × 3 sizes. `test:cloud` was not rerun: no Firestore code or rules changed. Screenshots
+  (fixture): `docs/design/m11-mains-homes/`.
+- **Not done:** the target doesn't yet adapt to what you actually write; Medical Science and Essay
+  tiles show answer averages only (their own screens are M12's); the old `HomePage` is left
+  unused in `dashboard.tsx` until M12 has merged; deploying.
+
+## Nightly engine (M9) — 2026-10-21
+
+- **Branch:** `claude/m9-nightly`, stacked on `claude/m7-mcq-loop`. Assisting tool: Claude Code.
+- **Why:** the user asked for the whole app to be built from the chosen screens; M9 is the
+  nightly lesson, the morning quiz and the weekly note (BUILD_PLAN).
+- **App:**
+  - Tonight's lesson, `/prelims/lesson?day=` (Lesson 3 · Stack). One card per concept,
+    stacked, with a progress line. Each card opens with "your mistake" (the slipped statement
+    and your mark against the truth, your option against the answer, sure or unsure), then the
+    teaching paragraphs, a comparison table when facts are easily confused, a "Remember" line
+    and the sources. A card not yet fact-checked says "Not fact-checked".
+  - "Got it" flings a card right and "Still shaky" flings it left, by drag, by the buttons or
+    by → / ←. Undo brings the last card back and takes its rating away. The motion takes about
+    0.35 s, and with reduced motion the card just changes. Ratings are saved at once and
+    survive a reload, which reopens on the first card not yet rated.
+  - The lesson is a warm, dim night panel (a night variant of the Board tokens, scoped to the
+    lesson) in light and dark alike (DECISIONS 2026-10-21). The end summary gives the quiz
+    size and the shaky count, and links to the morning quiz.
+  - The morning quiz, `/prelims/quiz?day=`: M7's session (`Run`, now exported, with mode
+    "quiz") on the latest lesson's quiz items. Answers are saved with mode "quiz".
+  - The Mistake notebook's question pane links to "Tonight's lesson on this" when a lesson
+    card teaches that question. The sidebar has "Tonight's lesson" and "Morning quiz".
+- **Engine:** `src/lib/lessons.ts`: lessons, cards, ratings and weekly notes with their checks,
+  "your mistake" from an attempt and its item (using `statementTruth`), the shaky queue (back
+  until "got" on two different later days), the misses feed and the week's facts.
+- **Storage:** files `practice/lessons/<day>.json` and `practice/weeks/<week>.json`; Firestore
+  `lessons/{day}` (owner read and update, never create or delete) and `notes-week/{week}`
+  (owner read only). Routes: `GET /api/lessons`, `GET|POST /api/lessons/<day>`,
+  `GET /api/weeks[/<week>]`.
+- **CLI** (`cli/lessons.ts`): `misses [--day]`, `lesson-write <day> <lesson.json>`, `lessons`,
+  `week-note <week> <note.json>`, `week-data [--weeks 1]`. `lesson-write` checks the cards,
+  the item ids and that every quiz item may be served, keeps ratings already given, and adds
+  the shaky cards due back.
+- **Routines (docs only, nothing scheduled):** `docs/routines/nightly-lesson.md` and
+  `docs/routines/weekly-note.md`. Both forbid CA Tracker Pro content and showing an unchecked
+  fact as checked.
+- **Content:** none. No real lesson or weekly note was written: a real lesson needs the user's
+  own misses and the blind fact-check pipeline on a scheduled run, which the user turns on.
+  The fixture has one made-up lesson (20 Oct 2026, items fx-1 to fx-3) and one weekly note.
+- **Checks** (internal-disk copy): Prettier, `tsc -b`, 111 unit tests (15 new), build;
+  `npm run test:cloud` 26 passed (3 new: lesson and weekly-note rules, the cloud API, the CLI's
+  Firestore backend); `npx playwright test e2e/m9.spec.ts` 12 passed (4 tests × desktop, iPad,
+  Android); full `npx playwright test` 81 passed + 24 skips. Screenshots (fixture):
+  `docs/design/m9-nightly/`.
+- **For M10:** the stack's motion (drag, fling, slide forward, return on undo) is in
+  `src/lessons/Lesson.tsx` and the `ls-*` keyframes in `src/lessons/lessons.css`, ready to
+  carry over to the flashcard screen as the user asked.
+- **Not done:** the weekly note on the Analytics screen (M11 reads it with `useWeeklyNotes`),
+  the Mains lesson inside `/mains/answers/:id` (after M8), scheduling the two routines, and
+  deploying (needs the user's go-ahead, plus `firestore:rules`).
+
+## Flashcards, puzzles and Rush (M10) — 2026-10-21
+
+- **Branch:** `claude/m10-cards-puzzles`, stacked on `claude/m7-mcq-loop`. Assisting tool: Claude
+  Code. Built alongside M8, M9, M11 and M12 in their own worktrees.
+- **App:**
+  - Flashcards (`/prelims/cards`, Flashcards 1 · Classic stack): a tall card with its subject's
+    colour and the next two peeking behind; type an answer (or not) and flip (3D); the back shows the
+    answer, how your typing compares and rings the suggested grade. Fling right for Knew it, left for
+    Forgot (0.35 s, as the lesson stack), or press Hard / Easy; keys Enter, ← →, 1–4. Cloze, Q&A, list
+    (items ticked off, tap to change) and picture cards. FSRS plans the deck (due first, then new);
+    `?banks=`, `?n=`, `?items=`. A short summary at the end; no motion when the device asks for less.
+  - Puzzles (`/prelims/puzzles`, Puzzles 1 · Arena, phone first): an endless, untimed stream near
+    your rating; the rating on top with ± after each, each puzzle's difficulty, its subject and (for
+    a PYQ statement) its year. True or false, match the pairs, put in order, pin on the map. A miss
+    shows the right answer and why and is logged for tonight's lesson. A subject filter (in the URL),
+    tick and buzz (WebAudio and vibration, mutable, remembered), and a summary when you leave.
+  - Rush (`/prelims/rush`, Puzzles 3 · Rush): true or false for 3 minutes or 3 strikes, its own best
+    score (from the log), misses listed and logged, no effect on the rating.
+  - Prelims Home: three links (Flashcards, Puzzles, Rush); banks with no MCQs aren't listed as
+    topics. Sidebar: Flashcards, Puzzles, Rush.
+- **Data:** `lib/practice.ts` gained puzzle styles (`tf`, `match`, `order`, `map`), image cards
+  (`image`, `alt`) and an optional `why` on cards, and an optional `session` on attempts; Rush
+  answers may not carry a `delta`. `lib/puzzles.ts` (Elo, the next puzzle, Rush runs and best),
+  `lib/flashcards.ts` (the typed-answer check, grade mapping, "back in …"). Storage, rules and the
+  CLI are unchanged.
+- **Content:** a private script, `data/practice_build/derive_puzzles.py`, made 1,161 true-or-false
+  puzzles in 15 banks (`<subject>-tf`) from 453 verified PYQ statement questions (of 910 read), and
+  they were imported into the local content folder only (no `--replace`; 144 banks, 3,051 items).
+  Not imported into Firestore; that needs the user's go-ahead:
+  `node cli/atlas.ts practice-import ../data/practice_build/tf_banks.json`. Its report, with what
+  was skipped and why, is `data/practice_build/tf_report.md`. No real flashcards: they need the
+  blind fact-check pipeline; the fixture has one card of each style.
+- **Checks** (internal-disk copy): Prettier, `tsc -b`, 118 unit tests, build; `npm run test:cloud`
+  23 passed; `npx playwright test` 86 passed + 25 skips (installed Chrome; new `e2e/m10.spec.ts`,
+  17 passed + 1 skip, on desktop, iPad and Android: a card typed, flipped, flung and saved; list
+  and picture cards; each puzzle style right and wrong with the rating moving; the filter and the
+  sound switch; Rush to three strikes with the best kept after a reload). Screenshots (fixture):
+  `docs/design/m10-cards-puzzles/`.
+- **Not done:** deploying; real flashcards and generated MCQs (M10's second line); importing the
+  true-or-false banks into Firestore.
+
+## Prelims homes and analytics (M11, Prelims half) — 2026-10-21
+
+- **Branch:** `claude/m11-prelims-homes`, stacked on `claude/m7-mcq-loop` (be719cf). Assisting
+  tool: Claude Code. Built alongside M8, M9 and M10; the Mains Home and Mains Analytics wait for M8.
+- **App:**
+  - Prelims Home (Board 1 · Centre stage): a big animated Puzzle button in the centre (still under
+    reduced motion; first on phones) with the rating; Practise (sizes, exam mode, due counts, and
+    "Today's reading" once a topic is logged today) and Reviews (due MCQs and flashcards) on the
+    left; tonight's lesson and the morning quiz on the right, or "No lesson yet"; a 3×3 board of
+    the nine most-asked subjects (readiness, change this week, due, weak spot), the rest listed
+    below; Prelims readiness overall.
+  - Subject page (Subject 2 · Table + drawer) at `/prelims/subject/<slug>`: one row per topic in
+    book order with PYQs (count, year last asked, heat tint), readiness, MCQs and flashcards
+    (total · due) and Read; rows open into microthemes. Sorts (book order, most asked, weakest,
+    most due) and filters (weak, not read yet, due) live in the URL. A count opens the drawer
+    (totals, due, recall and average time over 4 weeks, a 14-day strip, weak microthemes, your
+    traps from the miss reasons, Start); on phones it is a page of its own, and back closes it.
+    Header: readiness, an 8-week trend, Practise, Try before reading, Log reading (+ Undo).
+  - Prelims Analytics (Analytics 3 · The week's story) at `/prelims/analytics`: the weekly note
+    pinned on top (or its empty state), readiness and its five parts with weekly changes and
+    trends, then story headings worked out from the log, each over its chart: the biggest mover,
+    the week's misses, speed by week, calibration with your guessing rule (2.667p − 0.667), where
+    the marks are, and folded Effort (calendar against the daily target) and Mock tests (empty
+    until January; no predicted score before three mocks). 8 weeks, 4 weeks or all time.
+  - "Analytics" in the Prelims sidebar.
+- **Engine:** `src/lib/readiness.ts` (weights and why: DECISIONS 2026-10-21), `src/lib/reading.ts`;
+  `src/lib/srs.ts` gained `nextReviewState` and `retrievability`.
+- **Storage:** the reading log, `reading/{subject}` (owner read, create, update) and
+  `practice/reading/<subject>.json`, through `GET /api/reading` and `POST /api/reading/<subject>`.
+  Lessons and the weekly note are optional reads of `GET /api/lessons` (and `/api/weeks`); a 404
+  shows the empty states (ARCHITECTURE, Practice).
+- **Fixture:** a made-up second subject, "Sample geography" (three topics, 10 MCQs, 3 flashcards),
+  26 made-up attempts from 8 Sep to 20 Oct 2026 and a reading log. M7's home test now expects
+  "13 questions ready" and the "Sample subject" tile instead of a "Sample topic" link.
+- **Checks** (internal-disk copy): Prettier, `tsc -b`, 126 unit tests, build; `npm run test:cloud`
+  24 passed (new: the reading log's rules and routes); `npx playwright test` 81 passed + 24 skips
+  (installed Chrome; new `e2e/m11-prelims.spec.ts`, 4 tests × 3 sizes, clock fixed to 21 Oct 2026).
+  One earlier run, with a second dev server busy beside it, timed out on two unrelated desktop
+  tests (the AI flag and the heat-map questions); both pass alone and in the clean rerun. Screenshots
+  (fixture, desktop and phone, light and dark): `docs/design/m11-prelims-homes/`.
+- **Not done:** the Mains Home and Mains Analytics (after M8); deploying (needs the user's
+  go-ahead, plus `firebase deploy --only firestore:rules` for `reading/`). No real content was
+  imported.
+
+## Mains answer loop (M8) — 2026-10-21
+
+- **Branch:** `claude/m8-mains-answers`, stacked on `claude/m7-mcq-loop`. Assisting tool: Claude
+  Code. Built overnight alongside the other milestones, from the chosen mocks (Write 1 · Stepper on
+  phones, Write 3 · Desk + phone on wider screens, Feedback 1 · Marked page, Feedback tab 1 ·
+  Table + pattern drawer, and the "It asks for" box from Mains 3).
+- **App:**
+  - Sidebar (Mains): Write and Feedback after Home.
+  - `/mains/write`: retries due first, then new questions (a written note first), a paper filter,
+    "Different question" and a short list of others. The question card shows "It asks for", length
+    and time, and the note. An optional 1-minute plan, then a big countdown (7 min for 10 marks,
+    11 for 15) in a dimmed full-screen exam hall, with a buzz and two soft beeps at one minute left;
+    overtime keeps counting and is logged. Then 1–3 page photos (shrunk on the device, turned a
+    quarter turn at a time, reordered, removed), "your score first" with what you think you missed,
+    and "Sent for marking". The desk shows a QR code (made on the device) to
+    `/mains/write?answer=<id>`, so the phone adds photos to the same answer while the desk watches.
+    Questions without recorded marks offer a 10/15 switch. `?drill=<tag>` shows a fix tag's drill.
+  - `/mains/answers/:id`: waiting for marking until the run, then the photo with numbered pins in
+    examiner pen colours and their comments, "Check my reading" (unsure words highlighted, your
+    corrections saved), the checklist out of 10 with "I disagree" on each item (waits for the run,
+    then shows changed or kept with the reason), Fix first with keep and the fix tags, the stronger
+    outline behind a tap, "Rewrite one part" (timer, photo, logged beside the original; the score
+    stays), "From your notes, you could have used…" with note links, and earlier attempts side by
+    side with what got better and the gaps that repeated. On narrow screens the marks come right
+    after the page.
+  - `/mains/feedback`: this month's average against last month's, how far self-scores are off,
+    the costliest fix and disputes; filters by paper, fix tag and "Retry due"; a row opens its page;
+    a tag opens its pattern (count, marks lost, change against last month, what it means, each
+    time it showed, and a drill).
+- **Data:** `src/lib/mains.ts` (questions, answers, the marking and its checks, the AnswerOps, and
+  the Feedback numbers), with 17 unit tests. Files `content/mains/{questions,answers,photos}/`;
+  Firestore `mainsq/{paper}` (read-only to the app) and `answers/{id}` (no deletes); Storage
+  `answers/{id}/page-{n}.<ext>` under the new `storage.rules`. The app's ops can't mark: marking,
+  resolving and rewrite marks go through the CLI. Decisions: DECISIONS (2026-10-21).
+- **CLI** (`cli/mains.ts`): `mains-import`, `mains-questions`, `answers-waiting [--json]` (photos as
+  file paths; downloaded from Storage first on Firestore), `mark`, `mark-rewrite`, `disputes`,
+  `resolve-dispute`, `answers`. The marking run's prompt: `docs/routines/mark-answers.md` (not
+  scheduled).
+- **Content:** a private script (`data/mains_build/build_questions.py`) built the register's 974
+  Mains PYQs (GS1 267, GS2 275, GS3 266, GS4 166) and imported them into the local content folder
+  only. 86 carry a word limit from the paper (37 with marks); 888 are set as 10-markers of 150
+  words and flagged. 129 link to a Polity note unit. "It asks for" is built from each question's
+  sentences and directive words. Not in Firestore yet; that needs the user's go-ahead:
+  `node cli/atlas.ts mains-import ../data/mains_build/questions.json --replace`.
+- **Checks** (internal-disk copy): Prettier, `tsc -b`, 113 unit tests, build (local and cloud);
+  `npm run test:cloud` 31 passed (now with the Storage emulator; new: Mains rules, cloud API,
+  Storage rules, and the CLI's Firestore and Storage steps); `npx playwright test` 79 passed + 26
+  skips (installed Chrome; new `e2e/m8.spec.ts`: writing to "Sent for marking" with a photo, the
+  marked page with a dispute that survives a reload and the outline on tap, and the Feedback tab's
+  filters, drawer, retry due and rows). Screenshots (fixture): `docs/design/m8-mains-answers/`.
+- **Not done:** enabling Firebase Storage and deploying `storage.rules` and the Firestore rules
+  (`firebase deploy --only storage,firestore:rules`), importing the questions into Firestore, and
+  scheduling the marking run, each with the user's go-ahead. On the dev server the QR code points
+  at `localhost`, which a phone can't open; use the cloud build, or the LAN address with
+  `ATLAS_ALLOW_LAN_WRITES=1`.
+
+## The rest of Mains (M12) — 2026-10-21
+
+- **Branch:** `claude/m12-mains-rest`, stacked on `claude/m7-mcq-loop`. Assisting tool: Claude Code.
+- **Why:** the build order's last Mains step (BUILD_PLAN M12): Essay, Ethics case studies and
+  Medical Science, plus the Board versions of the Mains Notes table and the Claude inbox, each as
+  the "table + drawer" the user chose (Essay-1, Ethics-1, Med-1, Notes-1, Inbox-1).
+- **App** (sidebar: Notes, Essay, Ethics case studies, Medical Science):
+  - Essay (`/mains/essay`): topic table and decode drawer. Claude's breakdown (what it asks,
+    keywords, six angles, evidence from your notes) opens only after you write your own angles.
+    Outline sprint (20 min: thesis, opening, seven tagged paragraphs, the other side, closing;
+    checked and saved), full essay (1 h 30) and full paper (3 h with a time plan and a ready
+    check); both end with the Write flow's photo link (`/mains/write?essay=<id>`).
+  - Ethics (`/mains/ethics`): Claude's practice cases, labelled; UPSC cases "not loaded". The
+    bench: stakeholders, issues and values, options (Do / Weak / Never), decision, a fix for the
+    system, then the 250-word answer in 11 minutes (typed, or `/mains/write?ethics=<id>`).
+    "Compare with mine" opens per step after your own attempt; no mark.
+  - Medical Science (`/mains/medical`): Paper I (7 subjects) and II (6), 65 lines, your rating
+    (Rusty / OK / Strong), PYQs per line, key diagrams with a 3-minute drill (time logged, then
+    `/mains/write?medical=<line>`), answers, and Claude's checked notes on dated syllabus wording.
+  - Mains Notes (`/mains/notes`): GS1–4, Essay, Medical Science; subject tabs; every planned
+    note under its syllabus topic with Mains PYQs (count, last asked, heat), your answers (M8),
+    written or not, and Claude's column (sources waiting, open checks, or "Draft next"); a drawer
+    per note. Note pages and `/gs2/polity` are unchanged.
+  - Claude inbox (`/inbox`): the same items in a table, "Needs you" and "For your information",
+    a drawer per item. A proposal shows its line, section, why, source, confidence and check, with
+    Verify, then add / Edit / Reject and "Add it now, marked unverified".
+- **Data:** `src/lib/mains-extra.ts` (shapes, checks, ops, helpers; 16 tests). Files under
+  `content/mains/`, Firestore `essay/`, `ethics/`, `medical/` with `mine-` records (rules: content
+  read-only, records create/update only). Routes `GET /api/mains-extra`, `POST
+  /api/mains-extra/<kind>/<id>`. Proposals gained `confidence`, `verifyRequested`, `revised`,
+  `unverified` and the ops `verify`, `revise`, `unverified` (3 tests). CLI: `mains-extra`,
+  `mains-extra-import <file> [--replace]`, `mains-extra-work [kind]`; `propose --confidence`;
+  `proposals` flags the ones waiting for a source check.
+- **Content (local content folder only, not Firestore):** built by `data/mains_extra/build.py`
+  (private) and imported with `mains-extra-import --replace`: 24 essay topics (2024, 2025, 2026)
+  with breakdowns, 6 practice cases in full, 65 syllabus lines with 721 PYQ sub-parts as main
+  line (2014–2026) and 34 key diagrams. Firestore import needs the user's go-ahead:
+  `node cli/atlas.ts mains-extra-import ../data/mains_extra/mains-extra.json --replace`.
+- **Checks** (internal-disk copy): Prettier, `tsc -b`, 115 unit tests (19 new), build and cloud
+  build; `npm run test:cloud` 26 passed (3 new: the M12 rules, the cloud routes, the CLI's
+  Firestore side); `npx playwright test` 89 passed + 31 skips (installed Chrome; `e2e/m12.spec.ts`
+  adds 20 runs over the three sizes). Screenshots (fixture): `docs/design/m12-mains-rest/`.
+- **Not done:** deploying (and `firestore:rules`); UPSC case studies and the 2013–2023 essay
+  papers; "source waiting" for unwritten notes (needs the feed to record matched sources); the
+  Write flow (M8) must keep `question.note` and add `essay|ethics|medical` on answers for the
+  answer columns to count them.
+
+## Prelims MCQ loop (M7) — 2026-10-21
+
+- **Branch:** `claude/m7-mcq-loop`, stacked on `claude/practice-foundations` (PR #47). Assisting
+  tool: Claude Code.
+- **Why:** the user asked for the whole app to be built from the chosen screens; M7 is the first
+  step after the foundations (BUILD_PLAN).
+- **App:**
+  - Prelims Home: countdown, rating, "Practise now" (20/50/100, answer after each or exam mode)
+    and every topic grouped by subject with its due and new counts.
+  - The session (Session 3 · Statement marks): ✓/✕ per statement lights up the option the
+    marks point to (also for "how many are correct"); marks only appear when the options are
+    about the statements. Sure/unsure lock-in, a clock that turns red after 72 s, feedback with
+    each statement's truth and where a mark slipped, the eight grade buttons with FSRS "back
+    in …", exam mode, keys (A–D, S/U, 1–5, Enter) and a summary (UPSC marks, rating change,
+    sure/unsure accuracy). Under each answer: whether it comes from UPSC's final or provisional
+    key, or (2009–2011) from the register, Grok and Gemini agreeing.
+  - The Mistake notebook (Notebook 2 · Two panes, plus the revision book): filters, "fixed"
+    after right answers on two later days, and "Practise N shaky ones".
+  - The floating Capture button hides on practice screens.
+- **Engine:** `src/lib/srs.ts` (FSRS state rebuilt from the attempt log, session planning,
+  counts), `src/lib/statements.ts` (what each option says about the statements),
+  `src/content/practice.ts` (the store; answers are saved optimistically).
+- **Storage:** dev API and Firestore both answer `GET /api/practice` and
+  `POST /api/practice/attempts/<day>`. CLI: `practice`, `practice-import <banks.json>
+  [--replace]`, `attempts [--days 7]`.
+- **Content:** the register's PYQs were built into 129 banks by a private script
+  (`data/practice_build/`) and imported into the local content folder: 1,890 questions, 1,856
+  served. Not imported into Firestore yet; that needs the user's go-ahead:
+  `node cli/atlas.ts practice-import ../data/practice_build/banks.json --replace`.
+- **Checks** (internal-disk copy): Prettier, `tsc -b`, 96 unit tests, build; `npm run
+  test:cloud` 23 passed; `npx playwright test` 69 passed + 24 skips (installed Chrome; new: a
+  session with statement marks and a miss that reaches the notebook, exam mode with keys).
+  Screenshots (fixture): `docs/design/m7-mcq-loop/`.
+- **Not done:** deploying (needs the user's go-ahead, plus `firestore:rules`).
+
+## Practice foundations (M6) — 2026-10-20
+
+- **Branch:** `claude/practice-foundations`, from `main` (9c34a97). Assisting tool: Claude Code.
+- **Why:** the user agreed a build order for Prelims and Mains practice (DECISIONS 2026-10-20)
+  and asked for step 0: the mode switch, the Board colours with a light mode, the data shapes for
+  questions and attempts, and the build-plan and DECISIONS updates.
+- **App:**
+  - A PRELIMS / MAINS switch in the top bar, compact on phones. Prelims lives under `/prelims`;
+    every other route is Mains. Each side opens the last page you had open in that mode
+    (`atlas-mode-path-*`). Settings belongs to both, so it keeps the mode you came from
+    (`atlas-mode`).
+  - The sidebar and top bar use the Board look: Nunito and `--bd-*` colours in light and dark,
+    with the logo and switch green in Prelims and amber in Mains. Note pages keep the reading
+    style. The brand in the sidebar now reads "Atlas".
+  - Prelims has its own sidebar (Home for now) and a Home page with the countdown to 23 May 2027
+    and a line on what comes next.
+- **Data:** `src/lib/practice.ts` holds items, attempts, the eight grades and their FSRS ratings,
+  validation, `servable` (no unverified PYQ key, no unchecked generated item) and
+  `applyAttemptOp`. Also `src/lib/mode.ts` and `src/lib/exam.ts`. Firestore rules: `items/` is
+  owner read-only (the CLI writes it), `attempts/` owner read, create and update but never
+  delete, `srs/` owner read and write.
+- **Docs:** BUILD_PLAN (M6–M12), DECISIONS, ARCHITECTURE (Practice) and AGENTS (the rating
+  exception).
+- **Checks** (internal-disk copy): Prettier, `tsc -b`, 86 unit tests, build; `npm run test:cloud`
+  23 passed (new: the practice rules); `npx playwright test` 65 passed + 22 skips (installed
+  Chrome; new: the switch test at three sizes). Screenshots (fixture):
+  `docs/design/practice-foundations/`.
+- **Not done:** deploying. It needs the user's go-ahead, and `firebase deploy --only
+  firestore:rules` as well as Hosting. Next: M7, the Prelims MCQ loop. It waits on the answer-key
+  check running in its own session.
+
 ## Sticky notes: heading and text, the rest behind ⋯ — 2026-10-19
 
 - **Branch:** `claude/sticky-menu`, from `main` (4cefbf8). Assisting tool: Claude Code.

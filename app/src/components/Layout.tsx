@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Outlet, useLocation, useNavigate, useParams } from "react-router";
 import { Link, NavLink } from "./nav";
-import { COMING_SUBJECTS, PAPERS, locateNote, findTopic, subjectStyle } from "../content/syllabus";
+import { PAPERS, locateNote, findTopic } from "../content/syllabus";
 import { usePage, useContent } from "../content/store";
 import { claudeState, refreshStudy, useStudy } from "../content/study";
 import { isDue } from "../lib/progress";
@@ -11,6 +11,9 @@ import { useEdgeBack } from "./gestures";
 import { Icon } from "./Icon";
 import { Peek, usePeekHost } from "./SidePeek";
 import { Search } from "./Search";
+import { ModeSwitch, useMode } from "./ModeSwitch";
+import { MODE_HOME, modeOf } from "../lib/mode";
+import { MAINS_NAV, PRELIMS_NAV } from "../modes/registry";
 
 /** Counts for the sidebar badges. */
 export function useBadges() {
@@ -24,8 +27,7 @@ export function useBadges() {
 }
 
 function Sidebar({ onCapture, onSearch }: { onCapture: () => void; onSearch: () => void }) {
-  const { pages } = useContent();
-  const { due, inbox } = useBadges();
+  const mode = useMode();
   const [menu, setMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -43,10 +45,18 @@ function Sidebar({ onCapture, onSearch }: { onCapture: () => void; onSearch: () 
         <kbd>⌘K</kbd>
       </button>
       <div className="create-row" ref={menuRef}>
-        <button type="button" className="capture-btn" onClick={onCapture}>
-          <Icon name="plus" />
-          Capture
-        </button>
+        {/* Each mode's main action. Capture, which the Mains Home's scratch pad also has, moved to ···. */}
+        {mode === "prelims" ? (
+          <Link className="capture-btn mode-action" to="/prelims/session?n=20&mode=practice">
+            <Icon name="check" />
+            Practise now
+          </Link>
+        ) : (
+          <Link className="capture-btn mode-action" to="/mains/write">
+            <Icon name="pen" />
+            Today&apos;s answer
+          </Link>
+        )}
         <button
           type="button"
           className="more-btn"
@@ -58,9 +68,13 @@ function Sidebar({ onCapture, onSearch }: { onCapture: () => void; onSearch: () 
         </button>
         {menu && (
           <div className="create-menu" role="menu">
-            <Link role="menuitem" to="/gs2/polity" onClick={() => setMenu(false)}>
+            <button type="button" role="menuitem" onClick={() => (setMenu(false), onCapture())}>
+              <b>Capture a thought</b>
+              <span>To your scratch pad; Claude files it into the right note</span>
+            </button>
+            <Link role="menuitem" to="/mains/notes" onClick={() => setMenu(false)}>
               <b>Microtheme note</b>
-              <span>Start a planned note from its subject</span>
+              <span>Start a planned note from Notes</span>
             </Link>
             <Link role="menuitem" to="/cards?new=1" onClick={() => setMenu(false)}>
               <b>Concept card</b>
@@ -69,53 +83,18 @@ function Sidebar({ onCapture, onSearch }: { onCapture: () => void; onSearch: () 
           </div>
         )}
       </div>
-      <nav className="side-nav" aria-label="Atlas">
-        <NavLink to="/" end>
-          <Icon name="home" />
-          Home
-        </NavLink>
-        <NavLink to="/inbox">
-          <Icon name="inbox" />
-          Claude inbox
-          {inbox > 0 && <span className="nav-badge claude">{inbox}</span>}
-        </NavLink>
-        <NavLink to="/revise">
-          <Icon name="revise" />
-          Revise today
-          {due > 0 && <span className="nav-badge go">{due}</span>}
-        </NavLink>
-        <NavLink to="/cards">
-          <Icon name="cards" />
-          Concept cards
-        </NavLink>
-        <NavLink to="/heat-map">
-          <Icon name="heat" />
-          News heat map
-        </NavLink>
-        <div className="side-label">Subjects</div>
-        {PAPERS.flatMap((paper) =>
-          paper.subjects.map((s) => {
-            const planned = s.topics.flatMap((t) => t.notes);
-            const written = planned.filter((n) => pages.has(`notes:${n.id}`)).length;
-            return (
-              <NavLink key={s.id} to={`/${paper.id}/${s.id}`}>
-                <span className="swatch" style={{ background: subjectStyle(s.id).color }} />
-                {s.title}
-                <span className="count">
-                  {written}/{planned.length}
-                </span>
-              </NavLink>
-            );
-          }),
-        )}
-        {COMING_SUBJECTS.map((s) => (
-          <span key={s.title} className="soon">
-            <span className="swatch" style={{ background: subjectStyle(s.title).color }} />
-            {s.title}
-            <span className="count">soon</span>
-          </span>
-        ))}
-      </nav>
+      {mode === "prelims" ? (
+        <nav className="side-nav" aria-label="Prelims">
+          {PRELIMS_NAV.map((n) => (
+            <NavLink key={n.to} to={n.to} end={n.end}>
+              <Icon name={n.icon} />
+              {n.label}
+            </NavLink>
+          ))}
+        </nav>
+      ) : (
+        <MainsNav />
+      )}
       <div className="nav-foot">
         <NavLink to="/settings">
           <Icon name="settings" />
@@ -123,6 +102,55 @@ function Sidebar({ onCapture, onSearch }: { onCapture: () => void; onSearch: () 
         </NavLink>
       </div>
     </>
+  );
+}
+
+/**
+ * Mains mode's sidebar, in the chosen order: Home, Notes, Feedback, Essay, Ethics case studies,
+ * Medical Science, Claude inbox, Analytics (Write is the main button above it, "Today's answer"). Revise today, Concept cards and the News heat
+ * map are reached from Notes; the subject tables from Notes' paper and subject tabs.
+ */
+function MainsNav() {
+  const { due, inbox } = useBadges();
+  const { pathname } = useLocation();
+  // A note, a subject table and the note tools all live under Notes.
+  const inNotes = /^\/(notes|cards|revise|heat-map|gs[1-4])(\/|$)/.test(pathname);
+  const entries = MAINS_NAV.filter((n) => n.to !== "/mains/analytics");
+  const analytics = MAINS_NAV.find((n) => n.to === "/mains/analytics");
+  return (
+    <nav className="side-nav" aria-label="Atlas">
+      <NavLink to="/" end>
+        <Icon name="home" />
+        Home
+      </NavLink>
+      {entries.map((n) => (
+        <NavLink
+          key={n.to}
+          to={n.to}
+          end={n.end}
+          className={({ isActive }) => (isActive || (n.to === "/mains/notes" && inNotes) ? "active" : "")}
+        >
+          <Icon name={n.icon} />
+          {n.label}
+          {n.to === "/mains/notes" && due > 0 && (
+            <span className="nav-badge go" title={`${due} notes due for revision`}>
+              {due}
+            </span>
+          )}
+        </NavLink>
+      ))}
+      <NavLink to="/inbox">
+        <Icon name="inbox" />
+        Claude inbox
+        {inbox > 0 && <span className="nav-badge claude">{inbox}</span>}
+      </NavLink>
+      {analytics && (
+        <NavLink to={analytics.to}>
+          <Icon name={analytics.icon} />
+          {analytics.label}
+        </NavLink>
+      )}
+    </nav>
   );
 }
 
@@ -148,6 +176,8 @@ function Crumbs() {
     add("/settings", "Settings");
   } else if (pathname === "/heat-map") {
     add("/heat-map", "News heat map");
+  } else if (modeOf(pathname) === "prelims") {
+    add("/prelims", "Prelims");
   } else {
     const located = params.noteId ? locateNote(params.noteId, note?.parent) : null;
     const loc = located ?? (params.topicId ? findTopic(params.paperId!, params.subjectId!, params.topicId) : null);
@@ -194,6 +224,8 @@ function useCollapsed() {
 
 export function Layout() {
   const location = useLocation();
+  const readingPage = /^\/(notes|cards)\/[^/]+/.test(location.pathname);
+  const mode = useMode();
   const navigate = useNavigate();
   const [navOpen, setNavOpen] = useState(false);
   const [collapsed, toggleCollapsed] = useCollapsed();
@@ -241,14 +273,17 @@ export function Layout() {
   }, []);
 
   return (
-    <div className={`frame${navOpen ? " nav-open" : ""}${collapsed ? " nav-collapsed" : ""}`}>
+    <div
+      className={`frame${navOpen ? " nav-open" : ""}${collapsed ? " nav-collapsed" : ""}${readingPage ? " has-fab" : ""}`}
+      data-mode={mode}
+    >
       <aside className="nav" aria-label="Sidebar">
         <div className="nav-head">
-          <Link className="brand" to="/">
+          <Link className="brand" to={MODE_HOME[mode]}>
             <span className="logo" aria-hidden="true">
               <Icon name="atlas" />
             </span>
-            Mains Atlas
+            Atlas
           </Link>
           <button
             className="iconbtn nav-fold"
@@ -303,6 +338,7 @@ export function Layout() {
           </button>
           <Crumbs />
           <div className="spacer" />
+          <ModeSwitch />
           <button type="button" className="iconbtn" aria-label="Search" onClick={() => setSearching(true)}>
             <Icon name="search" />
           </button>
@@ -317,10 +353,14 @@ export function Layout() {
           <PageSkeleton label="Loading notes" />
         )}
       </main>
-      <button type="button" className="capture-fab" onClick={() => setCapturing(true)}>
-        <Icon name="plus" />
-        Capture
-      </button>
+      {/* On phones and iPads, Capture floats only over a note or card you're reading: jotting a
+          thought while reading is what it's for, and elsewhere it sat on top of rows and buttons. */}
+      {readingPage && (
+        <button type="button" className="capture-fab" onClick={() => setCapturing(true)}>
+          <Icon name="plus" />
+          Capture
+        </button>
+      )}
       {status === "ready" && <Peek />}
       <div className="edge-back" ref={edgeArrow} aria-hidden="true">
         <Icon name="back" />
