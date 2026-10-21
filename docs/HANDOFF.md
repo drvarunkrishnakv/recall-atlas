@@ -20,10 +20,21 @@
   - The old `HomePage` was removed from `dashboard.tsx`; Mains Home replaced it.
 - **Answers:** the 7 contested 2009–2011 questions are retired (kept, never served).
   `data/grok_check/ANSWERS-REVIEW.md` has the full record.
-- **Not done (each needs the user's go-ahead):** deploying (Hosting, `firestore:rules`, Storage
-  rules, and turning on Storage); importing the banks, Mains questions and Essay / Ethics /
-  Medical content into Firestore; scheduling the marking, nightly-lesson and weekly-note runs
-  (docs/routines/). No real flashcards yet: Claude-written cards need the blind fact-check first.
+- **Live 2026-10-21** (on the user's say-so, from `claude/atlas-integration` 1128e8b, PR #55 not
+  yet merged): `firebase deploy --only firestore:rules` and `--only hosting` (firebase-tools 15,
+  from the internal-disk copy). Content loaded into Firestore with the CLI: 144 banks (1,890
+  PYQs, 1,856 served; 1,161 true-or-false puzzles), 974 Mains questions, 24 essay topics, 6
+  ethics cases, 65 Medical Science lines. Live checks: the site serves the new bundle; signed-out
+  reads of items, attempts, mainsq, answers, lessons, essay and reading return 403; `/mcp`
+  without a key returns 401. The shell's `GOOGLE_APPLICATION_CREDENTIALS` points at another
+  project's (missing) key: run the CLI with it unset so it uses
+  `~/.config/mains-atlas/service-account.json`.
+- **Not done:** Storage. `firebase deploy --only storage` says Storage isn't set up: the user
+  clicks "Get started" in the console, then `--only storage` deploys `storage.rules`. Until then
+  answer photos can't upload on the live site. Also not done: scheduling the marking,
+  nightly-lesson and weekly-note runs (docs/routines/); the `mcp` function was not redeployed
+  (unchanged for its tools). No real flashcards yet: Claude-written cards need the blind
+  fact-check first.
 
 ## Mains Home and Mains Analytics (M11, Mains half) — 2026-10-21
 
