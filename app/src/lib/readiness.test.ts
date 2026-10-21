@@ -118,6 +118,40 @@ describe("readiness", () => {
     expect(geo.score).toBe(combine(geo.parts));
   });
 
+  it("caps memory by recent review accuracy, so a topic you keep missing can't look remembered", () => {
+    // Met once, then missed on three later reviews: FSRS alone still predicts some recall.
+    const misses = [
+      ans(a1, "2026-10-10T09:00:00Z", false, { grade: "mixed" }),
+      ans(a1, "2026-10-13T09:00:00Z", false, { grade: "mixed" }),
+      ans(a1, "2026-10-16T09:00:00Z", false, { grade: "forgot" }),
+      ans(a1, "2026-10-19T09:00:00Z", false, { grade: "mixed" }),
+    ];
+    const predicted = retrievability(reviewStates(misses).get("a1")!, now);
+    expect(predicted).toBeGreaterThan(0.5);
+    const geo = readinessOver([alpha], misses, [now], bySubject)[0].get("Geo")!;
+    expect(geo.parts.memory).toBe(0);
+
+    // Two reviews aren't a pattern yet: memory stays FSRS's prediction.
+    const two = misses.slice(0, 3);
+    const early = readinessOver([alpha], two, [now], bySubject)[0].get("Geo")!;
+    expect(early.parts.memory).toBeCloseTo(retrievability(reviewStates(two).get("a1")!, now), 10);
+
+    // Reviews that go well never raise memory above the prediction.
+    const good = [
+      ans(a2, "2026-10-10T09:00:00Z", true, { grade: "good" }),
+      ans(a2, "2026-10-13T09:00:00Z", true, { grade: "good" }),
+      ans(a2, "2026-10-16T09:00:00Z", true, { grade: "good" }),
+      ans(a2, "2026-10-19T09:00:00Z", true, { grade: "good" }),
+    ];
+    const well = readinessOver([alpha], good, [now], bySubject)[0].get("Geo")!;
+    expect(well.parts.memory).toBeCloseTo(retrievability(reviewStates(good).get("a2")!, now), 10);
+
+    // Reviews older than four weeks no longer cap it.
+    const later = new Date("2026-11-30T12:00:00Z");
+    const old = readinessOver([alpha], misses, [later], bySubject)[0].get("Geo")!;
+    expect(old.parts.memory).toBeCloseTo(retrievability(reviewStates(misses).get("a1")!, later), 10);
+  });
+
   it("combines with the documented weights and leaves out parts with no evidence", () => {
     const p: Parts = { coverage: 0.5, memory: 0.8, firstTry: 0.6, speed: 1, calibration: null };
     const w = WEIGHTS.memory + WEIGHTS.firstTry + WEIGHTS.speed;

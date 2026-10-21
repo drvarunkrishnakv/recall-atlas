@@ -76,7 +76,8 @@
   banks (`app/src/lib/readiness.ts`). Nothing is stored.
 - **The five parts** (the chosen Analytics design):
   - coverage: the share of servable MCQs and flashcards answered at least once;
-  - memory: FSRS retrievability now, averaged over the items answered;
+  - memory: FSRS retrievability now, averaged over the items answered, capped by review accuracy
+    (see below);
   - new questions: the share of MCQs right the first time you met them;
   - speed: the share of the last four weeks' MCQ answers given within 72 s (100 questions in
     120 minutes);
@@ -98,9 +99,14 @@
   and at least one latest miss), so a miss you've since fixed stops counting.
 - **The daily target** spreads every unseen servable item plus the reviews due now over the days
   left to 23 May 2027, recomputed each day; there is no streak counter.
+- **Memory is capped by how your reviews actually went (the user's call, 21 Oct).** FSRS's
+  retrievability stays around 0.7–0.8 two days after a lapse, and above 0.5 even after four misses
+  in a row, so a topic you keep missing could read about 600. Memory is now the lower of FSRS's
+  predicted recall and the share of the last four weeks' reviews (answers to MCQs and flashcards
+  you had met before) that were right, once there are at least three such reviews. Two reviews
+  aren't a pattern yet, and good reviews never raise memory above FSRS's prediction.
 - **To revisit** in the monthly tuning pass, once a month of real answers exists: the weights, and
-  whether FSRS's retrievability right after a lapse (it is still about 0.7–0.8 two days later)
-  flatters memory on topics you keep missing.
+  whether the cap needs a softer form (for example a blend) once FSRS is fitted to your own log.
 
 ## 2026-10-21 — Mains answers: photos, marking and disputes (M8)
 

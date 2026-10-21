@@ -4,7 +4,10 @@
 //
 // Readiness (0–1000) for any group of items (a subject, a topic's bank, a microtheme):
 //   coverage     share of the group's servable MCQs and flashcards you have answered at least once
-//   memory       FSRS retrievability now, averaged over the items you have answered
+//   memory       FSRS retrievability now, averaged over the items you have answered, but never
+//                above how often your reviews were right in the last four weeks (once there
+//                are at least three): FSRS still predicts ~70% recall two days after a miss, so
+//                without the cap a topic you keep missing could read ~600 (DECISIONS 2026-10-21)
 //   new questions share of MCQs you got right the first time you met them
 //   speed        share of recent MCQ answers given within Prelims pace (72 s)
 //   calibration  share of recent "sure" MCQ answers that were right
@@ -37,6 +40,9 @@ export const RECENT_DAYS = 28;
 /** The fewest answers before a microtheme can be called weak: one slip is chance, three show a pattern. */
 export const MIN_WEAK_ATTEMPTS = 3;
 
+/** The fewest recent reviews before their accuracy can cap memory (the same "three show a pattern"). */
+export const MIN_REVIEWS = 3;
+
 /** The chosen subject-page design shows the last 14 days in the analytics drawer. */
 export const STRIP_DAYS = 14;
 
@@ -60,7 +66,7 @@ export const PART_LABEL: Record<PartKey, string> = {
 };
 export const PART_HINT: Record<PartKey, string> = {
   coverage: "questions answered at least once",
-  memory: "predicted recall today of what you've answered",
+  memory: "predicted recall today, no higher than your reviews' accuracy (last 4 weeks)",
   firstTry: "right the first time you met them",
   speed: "answered within 72 seconds, last 4 weeks",
   calibration: '"sure" answers right, last 4 weeks',
@@ -107,6 +113,9 @@ interface Tally {
   inPace: number;
   sure: number;
   sureRight: number;
+  /** Answers in the last four weeks to items met before (MCQs and flashcards), and the right ones. */
+  reviews: number;
+  reviewsRight: number;
 }
 const emptyTally = (): Tally => ({
   seen: 0,
@@ -117,13 +126,21 @@ const emptyTally = (): Tally => ({
   inPace: 0,
   sure: 0,
   sureRight: 0,
+  reviews: 0,
+  reviewsRight: 0,
 });
+
+/** FSRS's predicted recall, capped by how often recent reviews were actually right. */
+function memoryOf(x: Tally): number {
+  const predicted = x.recall / x.seen;
+  return x.reviews >= MIN_REVIEWS ? Math.min(predicted, x.reviewsRight / x.reviews) : predicted;
+}
 
 function toReadiness(total: number, t: Tally | undefined): Readiness {
   const x = t ?? emptyTally();
   const parts: Parts = {
     coverage: total ? x.seen / total : null,
-    memory: x.seen ? x.recall / x.seen : null,
+    memory: x.seen ? memoryOf(x) : null,
     firstTry: x.first ? x.firstRight / x.first : null,
     speed: x.timed ? x.inPace / x.timed : null,
     calibration: x.sure ? x.sureRight / x.sure : null,
@@ -152,6 +169,13 @@ export function readinessOver(
       for (const g of gs) totals.set(g, (totals.get(g) ?? 0) + 1);
     }
   const log = attempts.filter((a) => groups.has(a.itemId)).sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+  // Whether each answer was a review: the item had been answered before.
+  const met = new Set<string>();
+  const isReview = log.map((a) => {
+    const before = met.has(a.itemId);
+    met.add(a.itemId);
+    return before;
+  });
   const order = times.map((t, i) => [t.getTime(), i] as const).sort((a, b) => a[0] - b[0]);
   const out: Map<string, Readiness>[] = new Array(times.length);
   const states = new Map<string, ReviewState>();
@@ -188,6 +212,12 @@ export function readinessOver(
       }
     for (let k = from; k < next; k++) {
       const a = log[k];
+      if (isReview[k])
+        for (const g of groups.get(a.itemId)!) {
+          const x = tally(g);
+          x.reviews++;
+          if (a.correct) x.reviewsRight++;
+        }
       if (a.kind !== "mcq") continue;
       for (const g of groups.get(a.itemId)!) {
         const x = tally(g);
