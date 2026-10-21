@@ -682,7 +682,8 @@ test("a Prelims session: statement marks pick the option, the answer shows, and 
   page,
 }) => {
   await page.goto("/prelims");
-  await expect(page.getByRole("link", { name: /Practise now/ })).toBeVisible();
+  // The home's own Practise button (the sidebar's main button says "Practise now" too).
+  await expect(page.locator("main").getByRole("link", { name: /Practise now/ })).toBeVisible();
   // The unverified PYQ in the fixture is never served (3 sample questions + M11's 10 in Sample geography).
   await expect(page.getByText(/^13 questions ready/)).toBeVisible();
   // M11's home shows subject tiles rather than every topic.

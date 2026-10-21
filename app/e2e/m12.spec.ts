@@ -41,7 +41,10 @@ test("each table opens its drawer, and back closes it", async ({ page }) => {
   for (const [url, table, row, drawer] of screens) {
     await page.goto(url);
     const t = page.getByRole("region", { name: table });
-    await t.getByRole("button", { name: row }).first().click();
+    // In Notes a written note's name opens the note itself (and other tests may write one), so the
+    // drawer is opened from the row's PYQ count there.
+    if (url === "/mains/notes") await t.locator(".mx-row", { hasText: row }).first().locator(".mx-heat").click();
+    else await t.getByRole("button", { name: row }).first().click();
     const d = page.getByRole("complementary", { name: drawer, exact: true });
     await expect(d).toBeVisible();
     await noSideScroll(page);
