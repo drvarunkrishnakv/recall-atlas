@@ -161,7 +161,12 @@ test("quick capture lands in the scratch pad, and Claude's filing shows in the i
   await page.goto("/");
   const text = `Capture from ${info.project.name}`;
   const narrow = (page.viewportSize()?.width ?? 1440) <= 900;
-  await page.locator(narrow ? ".capture-fab" : ".capture-btn").click();
+  if (narrow) await page.locator(".capture-fab").click();
+  else {
+    // The sidebar's main button is each mode's main action; Capture is in the ··· menu.
+    await page.getByRole("button", { name: "More ways to add" }).click();
+    await page.getByRole("menuitem", { name: /Capture a thought/ }).click();
+  }
   await page.getByRole("textbox", { name: "What did you notice?" }).fill(text);
   await page.getByRole("button", { name: "Save to scratch pad" }).click();
   const item = page.locator(".captures li", { hasText: text });
@@ -596,10 +601,8 @@ test("a proposed change is approved into the note, recorded in history, and can 
   await expect(page.locator(".bn-editor").getByText("Confirm the e2e figure")).toHaveCount(0);
 });
 
-test("the news heat map opens from the sidebar; a dot, a river row and a month pick a story", async ({ page }) => {
-  await page.goto("/");
-  const menu = page.getByRole("button", { name: "Open navigator" });
-  if (await menu.isVisible()) await menu.click(); // phones: the sidebar is a drawer
+test("the news heat map opens from Notes; a dot, a river row and a month pick a story", async ({ page }) => {
+  await page.goto("/mains/notes");
   await page.getByRole("link", { name: "News heat map" }).click();
   await expect(page).toHaveURL(/\/heat-map$/);
   await expect(page.getByRole("heading", { name: "Which stories lasted", level: 1 })).toBeVisible();

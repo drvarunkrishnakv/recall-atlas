@@ -126,8 +126,15 @@ export default function NotesPage() {
         <span className="mx-gap" />
         <span className="mx-actions-row">
           {next && <DraftButton row={next} label="Draft the next note" />}
-          <Link className="board-btn quiet small" to="/mains/write">
-            Write an answer
+          {/* The note tools that used to sit in the sidebar. */}
+          <Link className="chip-btn" to="/revise">
+            Revise today
+          </Link>
+          <Link className="chip-btn" to="/cards">
+            Concept cards
+          </Link>
+          <Link className="chip-btn" to="/heat-map">
+            News heat map
           </Link>
         </span>
       </div>
@@ -251,9 +258,15 @@ function NoteRow({ r, on, onPick }: { r: Row; on: boolean; onPick: () => void })
       <span className="mx-main mx-note-cell">
         <b className={`mx-id${r.page ? " on" : ""}`}>{r.note.id}</b>
         <span>
-          <button type="button" className="mx-row-open" onClick={(e) => (e.stopPropagation(), onPick())}>
-            {r.page?.title ?? r.note.title}
-          </button>
+          {r.page ? (
+            <Link className="mx-row-open" to={`/notes/${r.note.id}`} onClick={(e) => e.stopPropagation()}>
+              {r.page.title}
+            </Link>
+          ) : (
+            <button type="button" className="mx-row-open" onClick={(e) => (e.stopPropagation(), onPick())}>
+              {r.note.title}
+            </button>
+          )}
         </span>
       </span>
       <span className={`mx-heat h${heatLevel(r.note.pyqs)}`}>
@@ -266,7 +279,20 @@ function NoteRow({ r, on, onPick }: { r: Row; on: boolean; onPick: () => void })
         <span className={`mx-small b ${r.page ? "t-up" : "mx-muted"}`}>{r.page ? "Written" : "Not written"}</span>
         {r.page?.updated && <span className="mx-tiny mx-muted">changed {dayLabel(String(r.page.updated))}</span>}
       </span>
-      <span>{cl ? <span className={`mx-flag t-${cl.tone}`}>{cl.t}</span> : <span className="mx-muted">—</span>}</span>
+      <span>
+        {cl ? (
+          <button
+            type="button"
+            className={`mx-flag t-${cl.tone}`}
+            aria-label={`Claude on ${r.note.id}: ${cl.t}`}
+            onClick={(e) => (e.stopPropagation(), onPick())}
+          >
+            {cl.t}
+          </button>
+        ) : (
+          <span className="mx-muted">—</span>
+        )}
+      </span>
     </div>
   );
 }
@@ -313,6 +339,11 @@ function NoteDrawer({
       : `${r.note.id} · Not written`;
   return (
     <Drawer label="Claude on this note" onClose={onClose} kicker={kicker} title={r.page?.title ?? r.note.title}>
+      {r.page && (
+        <Link className="board-btn" to={`/notes/${r.note.id}`}>
+          Open the full note
+        </Link>
+      )}
       {r.page && r.facts && (
         <>
           {r.facts.lead && (
@@ -398,11 +429,7 @@ function NoteDrawer({
         )}
         {r.questions.length > 4 && <span className="mx-tiny mx-muted b">+ {r.questions.length - 4} more</span>}
       </div>
-      {r.page ? (
-        <Link className="board-btn" to={`/notes/${r.note.id}`}>
-          Open the note
-        </Link>
-      ) : (
+      {!r.page && (
         <div className="mx-block">
           <span className="mx-small mx-muted">
             Drafted from your notes and the web, judgments from full texts and official data, then fact-checked blind

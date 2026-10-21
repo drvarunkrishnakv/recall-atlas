@@ -58,8 +58,7 @@ export const prelimsRoutes: RouteObject[] = [
 
 /** Mains-mode entries added after Home in the sidebar (the reader's own entries follow). */
 export const MAINS_NAV: NavEntry[] = [
-  // The order follows the chosen Mains Home sidebar: Write, Notes, Feedback, Essay, Ethics, Medical.
-  { to: "/mains/write", label: "Write", icon: "pen" },
+  // The order follows the chosen Mains Home sidebar. Write is the sidebar's main button, "Today's answer".
   { to: "/mains/notes", label: "Notes", icon: "notes" },
   { to: "/mains/feedback", label: "Feedback", icon: "feedback" },
   { to: "/mains/essay", label: "Essay", icon: "essay" },

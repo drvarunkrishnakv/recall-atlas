@@ -17,11 +17,11 @@ const TINY_PAGE = Buffer.from(
   "base64",
 );
 
-test("Mains mode lists Write and Feedback in the sidebar", async ({ page }) => {
+test("Mains mode's main button writes today's answer, and Feedback is in the sidebar", async ({ page }) => {
   test.skip(!isWide(page) || (page.viewportSize()?.width ?? 0) < 1280, "The sidebar is open on desktops");
   await page.goto("/");
   const nav = page.locator(".nav");
-  await nav.getByRole("link", { name: "Write" }).click();
+  await nav.getByRole("link", { name: "Today's answer" }).click();
   await expect(page).toHaveURL(/\/mains\/write$/);
   await expect(page.getByText("It asks for")).toBeVisible();
   await nav.getByRole("link", { name: "Feedback" }).click();

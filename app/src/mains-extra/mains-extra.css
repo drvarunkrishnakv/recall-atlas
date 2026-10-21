@@ -271,6 +271,12 @@ html.mx-lock body {
   text-align: left;
   cursor: pointer;
 }
+a.mx-row-open {
+  text-decoration: none;
+}
+a.mx-row-open:hover {
+  text-decoration: underline;
+}
 .mx-row-open:focus-visible {
   outline: 2px solid var(--mode);
   outline-offset: 2px;
@@ -442,6 +448,12 @@ span.mx-main {
 .mx-chip.link {
   font-size: 0.8rem;
   padding: 0.2rem 0.7rem;
+}
+button.mx-flag {
+  background: none;
+  font-family: var(--f-board);
+  line-height: inherit;
+  cursor: pointer;
 }
 .mx-flag {
   display: inline-block;

@@ -241,6 +241,17 @@ test("Mains Notes: a paper switch, subject tabs and every planned note with its 
   await expect(table.getByText(/Draft next · #1/)).toBeVisible();
   await noSideScroll(page);
 
+  // A written note's name opens the note itself, full screen; the rest of its row opens Claude's
+  // drawer, which leads with "Open the full note".
+  const p06 = table.locator('[data-id="P06"]');
+  await p06.locator(".mx-heat").click(); // the PYQ count shows at every size
+  const drawer = page.getByRole("complementary", { name: "Claude on this note" });
+  await expect(drawer.getByRole("link", { name: "Open the full note" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await p06.getByRole("link", { name: "Fixture note: how a sample topic reads" }).click();
+  await expect(page).toHaveURL(/\/notes\/P06$/);
+  await page.goto("/mains/notes");
+
   await page.getByRole("tab", { name: "GS1" }).click();
   await expect(page.getByText(/No notes are planned for GS1 yet/)).toBeVisible();
   await page.getByRole("tab", { name: "Medical Science" }).click();

@@ -2163,15 +2163,22 @@ kbd {
   border-radius: 14px;
   box-shadow: var(--shadow);
 }
-.create-menu a {
+.create-menu a,
+.create-menu button {
   display: flex;
   flex-direction: column;
   padding: 0.5rem 0.65rem;
+  border: 0;
   border-radius: 10px;
+  background: none;
   color: var(--ink);
+  font: inherit;
+  text-align: left;
   text-decoration: none;
+  cursor: pointer;
 }
-.create-menu a:hover {
+.create-menu a:hover,
+.create-menu button:hover {
   background: var(--surface);
 }
 .create-menu span {
@@ -5361,6 +5368,19 @@ span.hm-rl {
 }
 .topbar {
   font-family: var(--f-board);
+}
+/* The sidebar's main button is each mode's main action, in the mode's colour. */
+.nav .capture-btn.mode-action {
+  background: var(--mode);
+  color: var(--on-mode);
+  box-shadow: 0 3px 0 var(--mode-shade);
+  font-family: var(--f-board);
+  font-weight: 900;
+  text-decoration: none;
+}
+.nav .capture-btn.mode-action:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--mode-shade);
 }
 
 .mode-switch {

@@ -1,5 +1,24 @@
 # Decisions
 
+## 2026-10-21 — A shorter Mains sidebar; the main button is each mode's main action
+
+- **Why:** after the milestones were joined, the Mains sidebar carried the new screens and every
+  old entry (Revise today, Concept cards, News heat map, a Subjects list with "soon" rows): about
+  twenty lines. The user found it cluttered and asked what the Capture button still did.
+- **Mains sidebar** is now the chosen list and nothing more: Home, Notes, Feedback, Essay, Ethics
+  case studies, Medical Science, Claude inbox, Analytics. Notes carries the "due for revision"
+  count and stays highlighted while a note, a subject table or a note tool is open.
+- **The old entries moved, not removed:** Revise today, Concept cards and the News heat map are
+  chips at the top of Notes; the subject tables are reached from Notes' paper and subject tabs.
+- **The big button** is each mode's main action: "Today's answer" (the Write screen, which opens
+  on the suggested question) in Mains, "Practise now" (a 20-question session) in Prelims, in the
+  mode's colour. So Write needs no sidebar entry of its own.
+- **Capture** moved into the ··· menu ("Capture a thought"). The Mains Home scratch pad and the
+  phone's floating button still capture too. Claude files captures into notes on its runs.
+- **Mains Notes:** a written note's name opens the note itself, full screen; the rest of the row
+  or its Claude flag opens Claude's drawer, which now leads with "Open the full note". The user
+  had clicked a note and got only the drawer's summary.
+
 ## 2026-10-21 — Mains Home and Mains Analytics (M11, Mains half)
 
 - **The daily answer target rises with the calendar.** Agreed on 2026-10-20 as "1–2 now, 5–6 in
